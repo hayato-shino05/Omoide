@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const server = vi.hoisted(() => ({ createServiceClient: vi.fn() }))
+const music = vi.hoisted(() => ({ validateMusicTrackReference: vi.fn(async (value: string) => value) }))
 vi.mock('@/lib/time-capsule/server', () => server)
+vi.mock('@/lib/music/server', () => music)
 
 import { POST } from '@/app/api/community/route'
 
@@ -37,7 +39,38 @@ describe('POST /api/community', () => {
 
     expect(response.status).toBe(201)
     expect(upload).toHaveBeenCalledOnce()
-    expect(client.rpc).toHaveBeenCalledWith('create_community_submission', expect.objectContaining({ p_kind: 'message', p_object_path: expect.stringMatching(/^images\//) }))
+    expect(client.rpc).toHaveBeenCalledWith('create_community_submission', expect.objectContaining({ p_kind: 'message', p_object_path: expect.stringMatching(/^images\//), p_music_track_id: null }))
+  })
+
+  it('normalizes a legacy Jamendo id before validating it server-side', async () => {
+    const { client } = makeClient()
+    const body = new FormData()
+    body.set('kind', 'message')
+    body.set('sender', '花子')
+    body.set('content', '本文')
+    body.set('musicTrackId', '1503376')
+
+    const response = await POST({ formData: async () => body } as unknown as NextRequest)
+
+    expect(response.status).toBe(201)
+    expect(music.validateMusicTrackReference).toHaveBeenCalledWith('jamendo:1503376')
+    expect(client.rpc).toHaveBeenCalledWith('create_community_submission', expect.objectContaining({ p_music_track_id: 'jamendo:1503376' }))
+  })
+
+  it('passes a SoundCloud reference through server-side validation', async () => {
+    const { client } = makeClient()
+    const response = await POST(request({ kind: 'message', sender: '花子', content: '本文', musicTrackId: 'soundcloud:123456' }))
+
+    expect(response.status).toBe(201)
+    expect(music.validateMusicTrackReference).toHaveBeenCalledWith('soundcloud:123456')
+    expect(client.rpc).toHaveBeenCalledWith('create_community_submission', expect.objectContaining({ p_music_track_id: 'soundcloud:123456' }))
+  })
+
+  it('rejects non-numeric music track ids before creating a service client', async () => {
+    const response = await POST(request({ kind: 'message', sender: '花子', content: '本文', musicTrackId: 'user-upload' }))
+
+    expect(response.status).toBe(400)
+    expect(server.createServiceClient).not.toHaveBeenCalled()
   })
 
   it('removes uploaded media when the RPC fails and returns a safe error', async () => {

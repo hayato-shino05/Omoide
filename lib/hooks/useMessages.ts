@@ -4,12 +4,15 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
+import { parseMusicTrackReference } from '@/lib/music/reference'
+
 interface Message {
   id: number
   sender: string
   message: string
   birthday_person?: string
   media_object_path?: string
+  music_track_id?: string
   created_at: string
 }
 
@@ -17,7 +20,7 @@ interface UseMessagesReturn {
   messages: Message[]
   isLoading: boolean
   error: string | null
-  sendMessage: (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string) => Promise<boolean>
+  sendMessage: (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string, musicTrackId?: string) => Promise<boolean>
   refetch: () => Promise<void>
 }
 
@@ -55,13 +58,19 @@ export function useMessages(): UseMessagesReturn {
   }, [fetchMessages])
 
   const sendMessage = useCallback(
-    async (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string): Promise<boolean> => {
+    async (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string, musicTrackId?: string): Promise<boolean> => {
       try {
+        if (musicTrackId && !parseMusicTrackReference(musicTrackId)) {
+          setError(tRef.current('sendMessageFailed'))
+          return false
+        }
+
         const { error: insertError } = await supabase.from('messages').insert({
           sender,
           message,
           birthday_person: birthdayPerson || null,
           media_object_path: mediaObjectPath || null,
+          music_track_id: musicTrackId || null,
         })
 
         if (insertError) throw insertError

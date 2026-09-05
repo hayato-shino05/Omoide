@@ -4,11 +4,21 @@ import { useState } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
 import { Icon } from './Icon'
+import SongPickerModal from '@/components/community/SongPickerModal'
 
 export function MusicPlayer() {
   const { t } = useLanguage()
-  const { isPlaying, currentTrack, tracks, toggle, selectTrack, nextTrack, prevTrack } = useMusicPlayer()
-  const [showSelector, setShowSelector] = useState(false)
+  const { isPlaying, currentTrack, toggle, selectTrack, nextTrack, prevTrack } = useMusicPlayer()
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+
+  const handleConfirmTrack = (reference: string) => {
+    const separatorIndex = reference.indexOf(':')
+    const trackId = separatorIndex >= 0 ? reference.slice(separatorIndex + 1) : reference
+    selectTrack(trackId)
+    setIsPickerOpen(false)
+  }
+
+  const currentReference = currentTrack ? `jamendo:${currentTrack.id}` : ''
 
   return (
     <div
@@ -157,11 +167,11 @@ export function MusicPlayer() {
       </span>
 
       <button
-        onClick={() => setShowSelector(!showSelector)}
+        onClick={() => setIsPickerOpen(true)}
         aria-label={t('selectMusic')}
         style={{
           padding: '8px 15px',
-          background: showSelector ? 'rgba(212, 176, 140, 0.3)' : 'transparent',
+          background: isPickerOpen ? 'rgba(212, 176, 140, 0.3)' : 'transparent',
           color: '#854D27',
           border: '2px solid #D4B08C',
           borderRadius: 0,
@@ -173,6 +183,7 @@ export function MusicPlayer() {
           alignItems: 'center',
           gap: '5px',
           transition: 'background 0.3s, filter 0.3s',
+          minHeight: '44px',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.filter = 'brightness(1.15)'
@@ -185,89 +196,12 @@ export function MusicPlayer() {
         <span>{t('selectMusic')}</span>
       </button>
 
-      {/* トラック選択ドロップダウン（プレイヤーの上に絶対配置） */}
-      {showSelector && (
-        <div
-          className="track-selector-dropdown"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            marginBottom: '6px',
-            minWidth: '260px',
-            maxWidth: '90vw',
-            background: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: '6px',
-            padding: '8px 10px',
-            boxShadow: '0 -4px 12px rgba(133, 77, 39, 0.25)',
-            maxHeight: '180px',
-            overflowY: 'auto',
-            zIndex: 10002,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #D4B08C' }}>
-            <span style={{ color: '#854D27', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="Music" size={14} /> {t('selectMusic')}
-            </span>
-            <button
-              onClick={() => setShowSelector(false)}
-              aria-label={t('close')}
-              style={{
-                background: '#854D27',
-                border: 'none',
-                color: '#FFF9F3',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                padding: '3px 6px',
-                borderRadius: '3px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name="X" size={14} />
-            </button>
-          </div>
-          {tracks.length === 0 ? (
-            <p style={{ color: '#854D27', opacity: 0.6, fontSize: '0.65rem', textAlign: 'center', margin: '6px 0' }}>
-              {t('noTracks')}
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {tracks.map((track) => (
-                <button
-                  key={track.id}
-                  onClick={() => {
-                    selectTrack(track.id)
-                    setShowSelector(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 6px',
-                    background: currentTrack?.id === track.id ? 'rgba(212, 176, 140, 0.4)' : 'transparent',
-                    border: currentTrack?.id === track.id ? '1px solid #854D27' : '1px solid #D4B08C',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    color: '#854D27',
-                    fontSize: '0.65rem',
-                    fontFamily: 'var(--font-body)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Icon name={currentTrack?.id === track.id && isPlaying ? 'Volume' : 'Music'} size={12} />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {track.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <SongPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onConfirm={handleConfirmTrack}
+        initialValue={currentReference}
+      />
     </div>
   )
 }

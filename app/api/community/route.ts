@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createCommunitySubmission, type CommunitySubmissionInput } from '@/lib/community/server'
+import { parseMusicTrackReference, toMusicTrackReference } from '@/lib/music/reference'
 import { validateCommunityMediaFile } from '@/lib/validations/upload'
 
 function normalizeMimeType(value: string): string {
@@ -31,7 +32,13 @@ function parseInput(formData: FormData): CommunitySubmissionInput | null {
 
   const birthdayPerson = parseOptionalText(formData, 'birthdayPerson', 100)
   const description = parseOptionalText(formData, 'description', 1000)
-  if (birthdayPerson === undefined || description === undefined) return null
+  const musicTrackValue = formData.get('musicTrackId')
+  const musicReference = musicTrackValue === null || musicTrackValue === ''
+    ? null
+    : parseMusicTrackReference(musicTrackValue)
+  if (birthdayPerson === undefined || description === undefined || (musicReference === null && musicTrackValue !== null && musicTrackValue !== '')) return null
+  const musicTrackId = musicReference ? toMusicTrackReference(musicReference) : null
+  if (musicTrackId && kind !== 'message') return null
   const fileValue = formData.get('media')
   if (fileValue !== null && (typeof fileValue !== 'object' || typeof (fileValue as Blob).size !== 'number' || typeof (fileValue as File).name !== 'string')) return null
 
@@ -46,7 +53,7 @@ function parseInput(formData: FormData): CommunitySubmissionInput | null {
     if (!validateCommunityMediaFile(file).valid) return null
   }
 
-  return { kind, sender, content, birthdayPerson, description, file }
+  return { kind, sender, content, birthdayPerson, description, file, musicTrackId }
 }
 
 export async function POST(request: NextRequest) {

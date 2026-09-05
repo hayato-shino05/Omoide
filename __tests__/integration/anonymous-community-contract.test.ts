@@ -42,7 +42,7 @@ describe('anonymous community contract', () => {
   it('exposes likes through an atomic, narrowly granted RPC', () => {
     const migration = readFileSync(join(process.cwd(), 'supabase', 'migrations', '20260817000000_add_bulletin_post_likes.sql'), 'utf8')
 
-    expect(migration).toContain('add column likes integer not null default 0')
+    expect(migration).toContain('add column if not exists likes integer not null default 0')
     expect(migration).toContain('constraint bulletin_posts_likes_nonnegative check (likes >= 0)')
     expect(migration).toMatch(/update public\.bulletin_posts[\s\S]*set likes = public\.bulletin_posts\.likes \+ 1[\s\S]*returning public\.bulletin_posts\.likes into new_likes/)
     expect(migration).toContain('security definer')

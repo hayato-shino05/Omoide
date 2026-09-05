@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/time-capsule/server'
 import {
   getMediaKind,
+  inspectMediaFile,
+  MEDIA_EXTENSIONS,
   MAX_MULTIPART_UPLOAD_SIZE,
   normalizeMediaFile,
   validateCommunityMediaFile,
@@ -59,20 +61,30 @@ export async function POST(request: NextRequest) {
   }
 
   const validation = validateCommunityMediaFile(file)
-  const mediaKind = getMediaKind(file.type)
-  if (!validation.valid || !mediaKind) {
+  if (!validation.valid) {
     return NextResponse.json({ error: validation.valid ? 'サポートされていないファイル形式です' : validation.error }, { status: 400 })
   }
   if (file.size > MAX_MULTIPART_UPLOAD_SIZE) {
     return NextResponse.json({ error: 'ファイルサイズは4MB以下にしてください' }, { status: 400 })
   }
 
-  const objectPath = `${mediaKind}s/${crypto.randomUUID()}.${file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'}`
+  // 宣言された MIME ではなく先頭バイトの実内容で種別を確定する
+  const inspected = await inspectMediaFile(file)
+  if (!inspected) {
+    return NextResponse.json({ error: 'サポートされていないファイル形式です' }, { status: 400 })
+  }
+  // 実内容が別の許可形式だった場合（例: PNG と宣言して video/mp4 を送る）も、実内容の種別で保存先・メタデータを確定する
+  const mediaKind = getMediaKind(inspected)
+  if (!mediaKind) {
+    return NextResponse.json({ error: 'サポートされていないファイル形式です' }, { status: 400 })
+  }
+  const extension = MEDIA_EXTENSIONS[inspected]
+  const objectPath = `${mediaKind}s/${crypto.randomUUID()}.${extension}`
   try {
     const supabase = createServiceClient()
     const { error: uploadError } = await supabase.storage
       .from('community-media')
-      .upload(objectPath, file, { contentType: file.type, upsert: false })
+      .upload(objectPath, file, { contentType: inspected, upsert: false })
     if (uploadError) throw uploadError
 
     const { data, error: insertError } = await supabase
@@ -81,7 +93,7 @@ export async function POST(request: NextRequest) {
         sender,
         object_path: objectPath,
         media_kind: mediaKind,
-        mime_type: file.type,
+        mime_type: inspected,
         original_name: file.name.trim(),
         size_bytes: file.size,
         birthday_person: birthdayPerson ?? null,

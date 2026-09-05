@@ -213,15 +213,20 @@ describe('Contributor prompts', () => {
     expect(screen.queryByRole('button', { name: 'mockValidCapture' })).not.toBeInTheDocument()
   })
 
-  it('shows an error when text-only message sending returns false', async () => {
-    sendMessage.mockResolvedValue(false)
-    render(<MessageForm />)
+  it('submits a text-only message through the community route', async () => {
+    render(<MessageForm birthdayPerson="太郎" />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'yourName' }), { target: { value: '花子' } })
     fireEvent.change(screen.getByRole('textbox', { name: 'messagePlaceholder' }), { target: { value: 'おめでとう！' } })
     fireEvent.click(screen.getByRole('button', { name: 'sendWish' }))
 
-    await waitFor(() => expect(screen.getByText('sendMessageFailed')).toBeInTheDocument())
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/community', expect.objectContaining({ method: 'POST' })))
+    const request = vi.mocked(fetch).mock.calls[0][1]
+    expect((request?.body as FormData).get('kind')).toBe('message')
+    expect((request?.body as FormData).get('sender')).toBe('花子')
+    expect((request?.body as FormData).get('content')).toBe('おめでとう！')
+    expect((request?.body as FormData).get('birthdayPerson')).toBe('太郎')
+    expect(sendMessage).not.toHaveBeenCalled()
   })
 
   it('keeps the MessageForm success path when saving the sender name fails', async () => {
@@ -255,7 +260,7 @@ describe('Contributor prompts', () => {
   })
 
   it('shows a safe localized error when MessageForm submission throws', async () => {
-    sendMessage.mockRejectedValue(new Error('database details'))
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('database details')))
     render(<MessageForm />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'yourName' }), { target: { value: '花子' } })

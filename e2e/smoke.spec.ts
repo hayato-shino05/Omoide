@@ -29,6 +29,10 @@ async function mockSupabaseRest(page: import('@playwright/test').Page) {
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_MESSAGES) })
   })
+  // メッセージ送信はサーバー側 /api/community へ統一されたため、ここで成功応答をモックする
+  await page.route('**/api/community**', (route) =>
+    route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ data: { id: 1 } }) }),
+  )
 }
 
 test.describe('home shell smoke', () => {
@@ -67,10 +71,10 @@ test.describe('home shell smoke', () => {
     await expect(dialog).not.toBeVisible()
   })
 
-  test('anonymous message POST flows through mocked REST and closes the form', async ({ page }, testInfo) => {
+  test('anonymous message POST flows through /api/community and closes the form', async ({ page }, testInfo) => {
     await page.goto('/')
     const postRequestPromise = page.waitForRequest(
-      (r) => r.method() === 'POST' && r.url().includes('/rest/v1/messages'),
+      (r) => r.method() === 'POST' && r.url().includes('/api/community'),
     )
     await page.getByRole('button', { name: /SEND WISHES|お祝いメッセージ/ }).first().click()
     const modal = page.getByRole('dialog').last()

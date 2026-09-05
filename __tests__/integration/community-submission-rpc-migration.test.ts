@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const migration = readFileSync(join(process.cwd(), 'supabase', 'migrations', '20260901000000_add_community_submission_rpc.sql'), 'utf8')
+// CI (Linux) と Windows で checkout 時の改行が異なるため、読み込み後に正規化して比較する
+const readSql = (path: string): string => readFileSync(join(process.cwd(), 'supabase', 'migrations', path), 'utf8').replace(/\r\n/g, '\n')
+
+const migration = readSql('20260901000000_add_community_submission_rpc.sql')
+const musicMigration = readSql('20260904000000_add_music_track_to_community_submission_rpc.sql')
 
 describe('community submission RPC migration', () => {
   it('keeps the transaction RPC fixed, constrained, and service-only', () => {
@@ -24,5 +28,23 @@ describe('community submission RPC migration', () => {
     expect(migration).not.toMatch(/grant .*delete .*community/i)
     expect(migration).not.toContain("or (p_media_kind = 'video' and p_object_path !~ '^videos/')")
     expect(migration).not.toContain("or (p_media_kind = 'audio' and p_object_path !~ '^audios/')")
+  })
+
+  it('adds music track storage and keeps one backward-compatible RPC signature', () => {
+    expect(musicMigration).toContain('add column if not exists music_track_id text')
+    expect(musicMigration).toContain("check (music_track_id is null or music_track_id ~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$')")
+    expect(musicMigration).toContain("p_music_track_id text default null")
+    expect(musicMigration).toContain("p_music_track_id !~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$'")
+    expect(musicMigration).toContain('music_track_id)')
+    expect(musicMigration).toContain('p_object_path, p_music_track_id')
+    expect(musicMigration).toContain('drop function if exists public.create_community_submission(')
+    expect(musicMigration).toContain('text, text, text, text, text, text, text, text, text, bigint\n);')
+    expect(musicMigration).toContain('messages_music_track_sender_birthday_unique')
+    expect(musicMigration).toContain('create unique index if not exists')
+    expect(musicMigration).toContain('(sender, birthday_person)')
+    expect(musicMigration).toContain('where music_track_id is not null')
+    expect(musicMigration).toContain('on conflict (sender, birthday_person)')
+    expect(musicMigration).toContain('do update set music_track_id = excluded.music_track_id')
+    expect(musicMigration).not.toContain('v_message_id')
   })
 })

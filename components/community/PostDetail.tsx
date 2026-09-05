@@ -5,12 +5,16 @@ import { Post } from '@/lib/hooks/usePosts'
 import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { MusicComment } from './MusicComment'
+import { SelectedMusicTrackRow } from './SelectedMusicTrackRow'
+import SongPickerModal from './SongPickerModal'
 
 interface Reply {
   id: string
   post_id: string
   sender: string
-  message: string
+  message: string | null
+  music_track_id: string | null
   created_at: string
 }
 
@@ -26,6 +30,9 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
   const [loading, setLoading] = useState(true)
   const [replyText, setReplyText] = useState('')
   const [replyName, setReplyName] = useState('')
+  const [musicTrackId, setMusicTrackId] = useState('')
+  const [isMusicPickerOpen, setIsMusicPickerOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [liked, setLiked] = useState(false)
   const [localLikes, setLocalLikes] = useState(post.likes)
@@ -46,6 +53,7 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
         .select('*')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
 
       if (error) throw error
       setReplies(data || [])
@@ -62,28 +70,39 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!replyText.trim() || !replyName.trim()) return
+    const sender = replyName.trim()
+    const content = replyText.trim()
+    const hasContent = content.length > 0
+    const hasMusic = musicTrackId.length > 0
+    if (!sender || (!hasContent && !hasMusic)) return
 
     setSubmitting(true)
+    setSubmitError(null)
     try {
-      const supabase = getSupabase()
-      const { data, error } = await supabase
-        .from('post_replies')
-        .insert({
-          post_id: post.id,
-          sender: replyName.trim(),
-          message: replyText.trim(),
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      setReplies(prev => [...prev, data])
+      const response = await fetch('/api/community/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          sender,
+          content: hasContent ? content : null,
+          musicTrackId: hasMusic ? musicTrackId : null,
+        }),
+      })
+      const payload = (await response.json().catch(() => null)) as { data?: Reply; error?: string } | null
+      if (!response.ok) {
+        setSubmitError(payload?.error ?? t('sendMessageFailed'))
+        return
+      }
+      if (payload?.data) {
+        setReplies(prev => [...prev, payload.data as Reply])
+      }
       // 名前を共有ストレージへ保存する
-      localStorage.setItem('birthday_user_name', replyName.trim())
+      localStorage.setItem('birthday_user_name', sender)
       setReplyText('')
-    } catch (err) {
-      console.error('Error submitting reply:', err)
+      setMusicTrackId('')
+    } catch {
+      setSubmitError(t('sendMessageFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -284,7 +303,13 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
                         </p>
                       </div>
                     </div>
-                    <p style={{ color: '#854D27', margin: 0, fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{reply.message}</p>
+                    {reply.music_track_id ? (
+                      <MusicComment trackReference={reply.music_track_id} />
+                    ) : (
+                      reply.message && (
+                        <p style={{ color: '#854D27', margin: 0, fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{reply.message}</p>
+                      )
+                    )}
                   </div>
                 ))}
               </div>
@@ -326,9 +351,17 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
                 color: '#854D27',
               }}
             />
+            <SelectedMusicTrackRow
+              value={musicTrackId}
+              onChange={setMusicTrackId}
+              onOpenPicker={() => setIsMusicPickerOpen(true)}
+            />
+            {submitError && (
+              <p role="alert" style={{ color: '#dc3545', margin: '0 0 8px 0', fontSize: '0.8rem' }}>{submitError}</p>
+            )}
             <button
               type="submit"
-              disabled={submitting || !replyText.trim() || !replyName.trim()}
+              disabled={submitting || !replyName.trim() || (!replyText.trim() && !musicTrackId)}
               style={{
                 width: '100%',
                 padding: '8px 16px',
@@ -336,15 +369,24 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
                 color: '#FFF9F3',
                 border: 'none',
                 borderRadius: '6px',
-                cursor: submitting ? 'not-allowed' : 'pointer',
+                cursor: submitting || !replyName.trim() || (!replyText.trim() && !musicTrackId) ? 'not-allowed' : 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                opacity: (!replyText.trim() || !replyName.trim()) ? 0.5 : 1,
+                opacity: (!replyName.trim() || (!replyText.trim() && !musicTrackId)) ? 0.5 : 1,
               }}
             >
               {submitting ? t('sending') : t('sendMessage')}
             </button>
           </form>
+          <SongPickerModal
+            isOpen={isMusicPickerOpen}
+            onClose={() => setIsMusicPickerOpen(false)}
+            onConfirm={(reference) => {
+              setMusicTrackId(reference)
+              setIsMusicPickerOpen(false)
+            }}
+            initialValue={musicTrackId}
+          />
         </div>
       </div>
     </div>

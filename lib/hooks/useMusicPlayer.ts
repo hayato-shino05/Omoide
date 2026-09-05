@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
 
 export interface Track {
   id: string
@@ -10,9 +11,13 @@ export interface Track {
   category?: string
 }
 
-const DEFAULT_TRACKS: Track[] = [
-  { id: 'happy-birthday', name: 'Happy Birthday', url: '/audio/happy-birthday.mp3', category: 'Birthday' },
-]
+const DEFAULT_TRACKS: Track[] = JAPAN_PRESET_TRACKS.map((track) => ({
+  id: track.id,
+  name: track.name,
+  url: track.audioUrl,
+  duration: track.duration,
+  category: 'Birthday',
+}))
 
 interface UseMusicPlayerReturn {
   isPlaying: boolean
