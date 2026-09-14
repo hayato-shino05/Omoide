@@ -186,16 +186,16 @@ export default function Modal({
             border: variant === 'music' ? '2px solid #D4B08C' : '3px solid #D4B08C',
             borderRadius: '16px',
             boxShadow: variant === 'music' ? '0 12px 30px rgba(133, 77, 39, 0.18)' : '8px 8px 0 #D4B08C',
-            maxHeight: '90vh',
-            minHeight: size === 'widescreen' ? '80vh' : undefined,
+            maxHeight: '92vh',
             overflow: 'hidden',
             display: size === 'widescreen' ? 'flex' : undefined,
             flexDirection: size === 'widescreen' ? 'column' : undefined,
-            marginTop: '10px',
-            marginBottom: '10px',
+            marginTop: '8px',
+            marginBottom: '8px',
           }}
           className={`
             relative w-full ${sizeClasses[size]} ${variant === 'music' ? 'rounded-xl' : ''}
+            ${size === 'widescreen' ? 'md:min-h-[580px]' : ''}
             transition-all duration-200 ease-out
             pointer-events-auto
             ${isAnimating ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}
@@ -205,13 +205,7 @@ export default function Modal({
           {/* ヘッダー */}
           {(title || showCloseButton) && (
             <div 
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px',
-                borderBottom: variant === 'music' ? '2px solid #D4B08C' : '2px solid #D4B08C',
-              }}
+              className="p-3.5 sm:p-5 flex justify-between items-center border-b-2 border-[#D4B08C]"
             >
               <div>
                 {title && (
@@ -220,7 +214,7 @@ export default function Modal({
                     style={{
                       color: '#854D27',
                       fontFamily: 'var(--font-heading)',
-                      fontSize: '1.5rem',
+                      fontSize: '1.35rem',
                       fontWeight: 'bold',
                       margin: 0,
                     }}
@@ -235,7 +229,7 @@ export default function Modal({
                       color: '#854D27',
                       opacity: 0.7,
                       marginTop: '4px',
-                      fontSize: '0.9rem',
+                      fontSize: '0.85rem',
                     }}
                   >
                     {description}
@@ -245,20 +239,10 @@ export default function Modal({
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5rem',
-                    cursor: 'pointer',
-                    color: '#854D27',
-                    padding: '5px',
-                    minWidth: '44px',
-                    minHeight: '44px',
-                    lineHeight: 1,
-                  }}
+                  className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer text-[#854D27] hover:opacity-80 active:scale-95 transition-all rounded-lg focus-visible:ring-2 focus-visible:ring-[#854D27]"
                   aria-label={t('close')}
                 >
-                  <Icon name="Close" size={24} className="text-rose-500" aria-hidden="true" />
+                  <Icon name="Close" size={22} useSvg className="text-[#854D27]" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -267,11 +251,10 @@ export default function Modal({
           {/* 本文 */}
           <div
             style={{ 
-              padding: '20px',
               flex: size === 'widescreen' ? 1 : undefined,
               minHeight: size === 'widescreen' ? 0 : undefined,
             }}
-            className={scrollBehavior === 'inside' && size !== 'widescreen' ? 'max-h-[60vh] overflow-y-auto' : size === 'widescreen' ? 'overflow-y-auto' : ''}
+            className={`p-3 sm:p-5 ${scrollBehavior === 'inside' && size !== 'widescreen' ? 'max-h-[60vh] overflow-y-auto' : size === 'widescreen' ? 'overflow-y-auto' : ''}`}
           >
             {children}
           </div>

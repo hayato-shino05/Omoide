@@ -8,6 +8,7 @@ import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
 import { buildLineShareUrl } from '@/lib/share'
 import { Icon } from './Icon'
 import SongPickerModal from '@/components/community/SongPickerModal'
+import LyricsDrawer from '@/components/ui/LyricsDrawer'
 
 const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
@@ -29,6 +30,8 @@ export function MobileBottomDock() {
     prevTrack,
     currentTime,
     duration,
+    volume,
+    setVolume,
     seekTo,
     commitReference,
     isLoading,
@@ -37,9 +40,13 @@ export function MobileBottomDock() {
   } = useMusicPlayer()
   const [showMenuSheet, setShowMenuSheet] = useState(false)
   const [showMusicList, setShowMusicList] = useState(false)
+  const [showVolumePopup, setShowVolumePopup] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false)
   const [isCommitting, setIsCommitting] = useState(false)
   const [showShareOptions, setShowShareOptions] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [lastAudibleVolume, setLastAudibleVolume] = useState(0.5)
   const reduceMotion = useReducedMotion()
   const menuId = useId()
   const musicListId = useId()
@@ -47,10 +54,13 @@ export function MobileBottomDock() {
   const menuBtnRef = useRef<HTMLButtonElement>(null)
   const musicListRef = useRef<HTMLDivElement>(null)
   const musicListButtonRef = useRef<HTMLButtonElement>(null)
+  const volumePopupRef = useRef<HTMLDivElement>(null)
+  const volumeButtonRef = useRef<HTMLButtonElement>(null)
   const wasMusicListOpenRef = useRef(false)
 
   const progressMax = duration > 0 ? duration : currentTrack?.duration ?? 0
   const progressPercent = progressMax > 0 ? Math.min(100, (currentTime / progressMax) * 100) : 0
+  const volumePercent = Math.min(100, Math.max(0, volume * 100))
   const currentReference = currentTrack?.reference ?? (currentTrack ? `jamendo:${currentTrack.id}` : '')
 
   const handleConfirmTrack = (reference: string) => {
@@ -67,9 +77,25 @@ export function MobileBottomDock() {
     }).finally(() => setIsCommitting(false))
   }
 
+  const handleMuteToggle = () => {
+    if (isMuted || volume === 0) {
+      setVolume(lastAudibleVolume > 0 ? lastAudibleVolume : 0.5)
+      setIsMuted(false)
+      return
+    }
+    setLastAudibleVolume(volume)
+    setVolume(0)
+    setIsMuted(true)
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (showVolumePopup) {
+          setShowVolumePopup(false)
+          volumeButtonRef.current?.focus()
+          return
+        }
         if (showMusicList) {
           setShowMusicList(false)
           musicListButtonRef.current?.focus()
@@ -100,9 +126,9 @@ export function MobileBottomDock() {
       }
     }
 
-    if (showMusicList || showMenuSheet) window.addEventListener('keydown', handleKeyDown)
+    if (showMusicList || showMenuSheet || showVolumePopup) window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showMenuSheet, showMusicList])
+  }, [showMenuSheet, showMusicList, showVolumePopup])
 
   useEffect(() => {
     if (showMenuSheet) {
@@ -115,9 +141,12 @@ export function MobileBottomDock() {
   }, [showMenuSheet, showMusicList])
 
   useEffect(() => {
-    if (!showMusicList && !showMenuSheet) return
+    if (!showMusicList && !showMenuSheet && !showVolumePopup) return
     const handlePointerDown = (e: PointerEvent) => {
       const target = e.target as Node
+      if (showVolumePopup && volumePopupRef.current && !volumePopupRef.current.contains(target) && !volumeButtonRef.current?.contains(target)) {
+        setShowVolumePopup(false)
+      }
       if (showMusicList && musicListRef.current && !musicListRef.current.contains(target) && !musicListButtonRef.current?.contains(target)) {
         setShowMusicList(false)
       }
@@ -129,7 +158,7 @@ export function MobileBottomDock() {
     }
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [showMenuSheet, showMusicList])
+  }, [showMenuSheet, showMusicList, showVolumePopup])
 
   // PC（SocialButtons.tsx）と完全同一のSNSシェア処理
   const handleShare = async (platform: string) => {
@@ -170,7 +199,7 @@ export function MobileBottomDock() {
     <>
       {/* 1. 上層スリム音楽バー（ミニシークバー＋SongPickerModal起動導線） */}
       <div className="fixed inset-x-3 bottom-[calc(74px+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md md:hidden font-body text-[var(--music-text)]">
-        <div className="relative overflow-hidden rounded-2xl border border-[var(--music-border)] bg-[var(--music-surface-elevated)] shadow-[0_8px_24px_rgba(133,77,39,0.18)] p-2.5 flex flex-col gap-1.5 transition-all">
+        <div className="relative rounded-2xl border border-[var(--music-border)] bg-[var(--music-surface-elevated)] shadow-[0_8px_24px_rgba(133,77,39,0.18)] p-2.5 flex flex-col gap-1.5 transition-all">
           {/* ミニシークバー */}
           <div className="relative w-full h-1.5 bg-[color-mix(in_srgb,var(--music-border)_50%,var(--music-surface))] rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
@@ -202,7 +231,7 @@ export function MobileBottomDock() {
                 {currentTrack && 'albumImage' in currentTrack && typeof currentTrack.albumImage === 'string' ? (
                   <img src={currentTrack.albumImage} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <Icon name="Music" size={18} />
+                  <Icon name="Music" size={18} useSvg />
                 )}
                 {isPlaying && (
                   <div className="absolute inset-x-0 bottom-0.5 flex items-end justify-center gap-0.5 h-2 px-1" aria-hidden="true">
@@ -216,21 +245,115 @@ export function MobileBottomDock() {
                 <span className="text-xs font-bold text-[var(--music-text)] block truncate">
                   {currentTrack?.name || t('birthdaySong')}
                 </span>
-                <span className="text-[10px] text-[var(--music-text-muted)] block truncate mt-0.5">
+                <span className="text-[10px] text-[var(--music-text-muted)] block truncate mt-0.5 font-mono tabular-nums">
                   {formatTime(currentTime)} / {formatTime(progressMax)}
                 </span>
               </div>
+            </button>
+
+            {/* 歌詞ドロワー起動ボタン */}
+            <button
+              type="button"
+              onClick={() => setIsLyricsOpen(true)}
+              className="min-h-[44px] min-w-[36px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+              aria-label={t('lyricsTitle')}
+            >
+              <Icon name="Mic" size={18} useSvg />
             </button>
 
             {/* SongPickerModal起動導線ボタン */}
             <button
               type="button"
               onClick={() => setIsPickerOpen(true)}
-              className="min-h-[44px] px-2 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[var(--music-surface)] active:scale-95 cursor-pointer transition-all"
+              className="min-h-[44px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
               aria-label={t('selectMusic')}
             >
-              <Icon name="Search" size={16} />
+              <Icon name="Search" size={18} useSvg />
             </button>
+
+            {/* 音量ボタン ＆ 調整ポップアップ */}
+            <div className="relative">
+              <button
+                ref={volumeButtonRef}
+                type="button"
+                onClick={() => {
+                  setShowVolumePopup(!showVolumePopup)
+                  if (showMusicList) setShowMusicList(false)
+                }}
+                className={`min-h-[44px] min-w-[36px] px-1.5 flex items-center justify-center rounded-lg ${
+                  showVolumePopup
+                    ? 'bg-[color-mix(in_srgb,var(--music-accent)_15%,var(--music-surface))] text-[var(--music-accent)]'
+                    : 'text-slate-700 dark:text-slate-300'
+                } hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]`}
+                aria-label={t('volume')}
+                aria-expanded={showVolumePopup}
+              >
+                <Icon
+                  name={volume === 0 || isMuted ? 'VolumeX' : volume < 0.5 ? 'Volume1' : 'Volume2'}
+                  size={19}
+                  useSvg
+                  className="text-current"
+                />
+              </button>
+
+              {/* 音量調整ポップアップ */}
+              <AnimatePresence>
+                {showVolumePopup && (
+                  <motion.div
+                    ref={volumePopupRef}
+                    initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: 6, scale: 0.95 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.15 }}
+                    className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--music-border)] bg-[var(--music-surface-elevated)] backdrop-blur-md shadow-[0_8px_24px_rgba(133,77,39,0.22)]"
+                    style={{ minWidth: '190px' }}
+                  >
+                    {/* Tooltip 矢印 */}
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-r border-b border-[var(--music-border)] bg-[var(--music-surface-elevated)] pointer-events-none" />
+
+                    {/* ミュート切替 */}
+                    <button
+                      type="button"
+                      onClick={handleMuteToggle}
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-colors"
+                      aria-label={isMuted || volume === 0 ? t('unmute') : t('mute')}
+                    >
+                      <Icon name={isMuted || volume === 0 ? 'VolumeX' : 'Volume2'} size={18} useSvg className="text-current" />
+                    </button>
+
+                    {/* スライダー */}
+                    <div className="flex-1 flex items-center">
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={volume}
+                        onChange={(e) => {
+                          const val = Number(e.target.value)
+                          setVolume(val)
+                          if (val > 0) {
+                            setLastAudibleVolume(val)
+                            setIsMuted(false)
+                          }
+                        }}
+                        style={{
+                          background: `linear-gradient(to right, var(--music-accent) 0%, var(--music-accent) ${volumePercent}%, color-mix(in srgb, var(--music-border) 60%, var(--music-surface)) ${volumePercent}%, color-mix(in srgb, var(--music-border) 60%, var(--music-surface)) 100%)`,
+                        }}
+                        className="w-full h-1.5 rounded-full appearance-none transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--music-accent)] [&::-webkit-slider-thumb]:shadow-xs [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[var(--music-accent)] [&::-moz-range-thumb]:border-0"
+                        aria-label={t('volume')}
+                        aria-valuetext={`${Math.round(volume * 100)}%`}
+                      />
+                    </div>
+
+                    {/* ％ 表示 */}
+                    <span className="text-[11px] font-mono tabular-nums font-bold text-[var(--music-text)] select-none w-7 text-right">
+                      {Math.round(volume * 100)}%
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {isLoading && <span role="status" aria-live="polite" className="sr-only">{t('loading')}</span>}
             {playbackError && (
@@ -249,10 +372,10 @@ export function MobileBottomDock() {
               {/* 前の曲 */}
               <button
                 onClick={prevTrack}
-                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-[var(--music-text)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
                 aria-label={t('previousTrack')}
               >
-                <Icon name="SkipBack" size={20} useSvg />
+                <Icon name="SkipBack" size={20} useSvg className="text-current" />
               </button>
 
               {/* 再生 / 一時停止 */}
@@ -260,19 +383,23 @@ export function MobileBottomDock() {
                 onClick={toggle}
                 disabled={!currentTrack || isLoading}
                 aria-busy={isLoading}
-                className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full bg-[var(--music-accent)] text-[var(--music-surface)] border border-[var(--music-border)] shadow-xs flex items-center justify-center active:scale-95 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full bg-[var(--music-accent)] text-white shadow-xs flex items-center justify-center active:scale-95 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] hover:brightness-105 transition-all"
                 aria-label={isPlaying ? t('pause') : t('play')}
               >
-                <Icon name={isPlaying ? 'Pause' : 'Play'} size={20} useSvg />
+                {isLoading ? (
+                  <Icon name="LoaderCircle" size={20} useSvg className="animate-spin text-white" />
+                ) : (
+                  <Icon name={isPlaying ? 'Pause' : 'Play'} size={20} useSvg className="text-white fill-current" />
+                )}
               </button>
 
               {/* 次の曲 */}
               <button
                 onClick={nextTrack}
-                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-[var(--music-text)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
                 aria-label={t('nextTrack')}
               >
-                <Icon name="SkipForward" size={20} useSvg />
+                <Icon name="SkipForward" size={20} useSvg className="text-current" />
               </button>
             </div>
           </div>
@@ -333,6 +460,11 @@ export function MobileBottomDock() {
           initialValue={currentReference}
           isConfirming={isCommitting}
         />
+
+        <LyricsDrawer
+          isOpen={isLyricsOpen}
+          onClose={() => setIsLyricsOpen(false)}
+        />
       </div>
 
       {/* 2. PCのGameButtons & SocialButtons を完全統合したメニューシート */}
@@ -369,7 +501,7 @@ export function MobileBottomDock() {
             >
               <div className="flex items-center justify-between pb-3 mb-3 border-b-2 border-[var(--music-border)]">
                 <div className="flex items-center gap-2">
-                  <Icon name="Gamepad" size={22} />
+                  <Icon name="Gamepad" size={22} useSvg className="text-[var(--music-accent)]" />
                   <span className="font-bold text-sm font-body tracking-wider text-[var(--music-accent)]">
                     {t('gamesAndSocial')}
                   </span>
@@ -383,7 +515,7 @@ export function MobileBottomDock() {
                   className="min-w-[44px] min-h-[44px] bg-[var(--music-surface-elevated)] text-[var(--music-accent)] border border-[var(--music-border)] rounded-lg flex items-center justify-center cursor-pointer active:translate-y-0.5"
                   aria-label={t('close')}
                 >
-                  <Icon name="X" size={18} />
+                  <Icon name="X" size={18} useSvg className="text-[var(--music-accent)]" />
                 </button>
               </div>
 
@@ -395,10 +527,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('omikuji')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Sparkles" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Sparkles" size={22} />
                   </div>
                   <span className="truncate">{t('omikujiTitle')}</span>
                 </button>
@@ -409,10 +547,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('flashback')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Calendar" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Calendar" size={22} />
                   </div>
                   <span className="truncate">{t('flashbackTitle')}</span>
                 </button>
@@ -423,10 +567,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('timeCapsule')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer col-span-2"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer col-span-2 hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Archive" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Archive" size={22} />
                   </div>
                   <span className="truncate">{t('timeCapsuleTitle')}</span>
                 </button>
@@ -437,10 +587,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('memoryGame')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Brain" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Brain" size={22} />
                   </div>
                   <span className="truncate">{t('memoryGame')}</span>
                 </button>
@@ -451,10 +607,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('puzzleGame')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Puzzle" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Puzzle" size={22} />
                   </div>
                   <span className="truncate">{t('puzzleGame')}</span>
                 </button>
@@ -465,10 +627,16 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('calendar')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="Calendar" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Calendar" size={22} />
                   </div>
                   <span className="truncate">{t('birthdayCalendar')}</span>
                 </button>
@@ -479,20 +647,32 @@ export function MobileBottomDock() {
                     setShowMenuSheet(false)
                     openModal('quiz')
                   }}
-                  className="min-h-[48px] p-2.5 bg-[var(--music-surface-elevated)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface-elevated))] text-[var(--music-accent)] border border-[var(--music-border)] rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
-                  <div className="w-7 h-7 bg-[color-mix(in_srgb,var(--music-surface)_12%,transparent)] flex items-center justify-center flex-shrink-0 rounded-lg">
-                    <Icon name="HelpCircle" size={20} />
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="HelpCircle" size={22} />
                   </div>
                   <span className="truncate">{t('birthdayQuiz')}</span>
                 </button>
               </div>
 
               {/* PC SocialButtons と 100% 同一の「友達を招待 (Users)」ボタン */}
-              <div className="border-t border-[var(--music-border)]/50 pt-2.5">
+              <div className="border-t-2 border-[var(--music-border)] pt-2.5">
                 <button
                   onClick={() => setShowShareOptions(!showShareOptions)}
-                  className="w-full min-h-[46px] p-2.5 bg-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_82%,var(--music-text)_18%)] text-[var(--music-surface)] border-2 border-[var(--music-border)] rounded-xl flex items-center justify-center gap-2 text-xs font-bold font-body shadow-sm active:translate-y-0.5 cursor-pointer"
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="w-full min-h-[48px] p-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold font-body shadow-sm active:translate-y-0.5 cursor-pointer hover:brightness-110"
                 >
                   <Icon name="Users" size={22} />
                   <span>{t('inviteFriends')}</span>
@@ -541,7 +721,7 @@ export function MobileBottomDock() {
                       onClick={() => handleShare('copy')}
                       className="col-span-2 flex items-center justify-center gap-2 min-h-[44px] p-2 bg-[var(--music-surface-elevated)] border border-[var(--music-border)] rounded-lg text-xs font-body text-[var(--music-text)] cursor-pointer"
                     >
-                      <Icon name="Copy" size={18} />
+                      <Icon name="Copy" size={18} useSvg className="text-[var(--music-text)]" />
                       <span>{t('copyLink')}</span>
                     </button>
                   </div>
@@ -552,22 +732,27 @@ export function MobileBottomDock() {
         )}
       </AnimatePresence>
 
-      {/* 3. 下層ナビバー（touch target ≥48px、コントラスト比 ≥4.5:1） */}
+      {/* 3. 下層ナビバー（touch target ≥48px、コントラスト比 ≥4.5:1、PCと同一のビンテージ木目調＆アセットアイコン） */}
       <nav
         className="mobile-bottom-dock fixed inset-x-3 bottom-2 z-40 mx-auto max-w-md pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label={t('mobileNavDock')}
       >
         <div
-          className="flex items-center justify-around p-1.5 bg-[var(--music-accent)] text-[var(--music-surface)] border-2 border-[var(--music-border)] rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.2)]"
+          style={{
+            background: '#854D27',
+            border: '2px solid #D4B08C',
+            boxShadow: '0 4px 16px rgba(133, 77, 39, 0.4)',
+          }}
+          className="flex items-center justify-around p-1 rounded-2xl"
         >
           {/* 1. アルバムを見る (PC: Camera) */}
           <button
             onClick={() => openModal('album')}
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[var(--music-surface)] hover:text-[var(--music-focus)] active:scale-95 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] rounded-lg"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[#FFF9F3] hover:text-[#D4B08C] active:translate-y-0.5 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4B08C] rounded-lg"
             aria-label={t('viewAlbum')}
           >
-            <Icon name="Camera" size={22} />
-            <span className="text-xs font-bold tracking-tight mt-1 font-body text-[var(--music-surface)]">
+            <Icon name="Camera" size={24} />
+            <span className="text-[11px] font-bold tracking-tight mt-0.5 font-body text-[#FFF9F3]">
               {t('dockAlbum')}
             </span>
           </button>
@@ -575,11 +760,11 @@ export function MobileBottomDock() {
           {/* 2. メッセージを送る (PC: PenLine) */}
           <button
             onClick={() => openModal('message')}
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[var(--music-surface)] hover:text-[var(--music-focus)] active:scale-95 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] rounded-lg"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[#FFF9F3] hover:text-[#D4B08C] active:translate-y-0.5 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4B08C] rounded-lg"
             aria-label={t('sendMessage')}
           >
-            <Icon name="PenLine" size={22} />
-            <span className="text-xs font-bold tracking-tight mt-1 font-body text-[var(--music-surface)]">
+            <Icon name="PenLine" size={24} />
+            <span className="text-[11px] font-bold tracking-tight mt-0.5 font-body text-[#FFF9F3]">
               {t('dockWishes')}
             </span>
           </button>
@@ -587,11 +772,11 @@ export function MobileBottomDock() {
           {/* 3. 掲示板 (PC: ClipboardList) */}
           <button
             onClick={() => openModal('bulletin')}
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[var(--music-surface)] hover:text-[var(--music-focus)] active:scale-95 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] rounded-lg"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[#FFF9F3] hover:text-[#D4B08C] active:translate-y-0.5 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4B08C] rounded-lg"
             aria-label={t('bulletinBoard')}
           >
-            <Icon name="ClipboardList" size={22} />
-            <span className="text-xs font-bold tracking-tight mt-1 font-body text-[var(--music-surface)]">
+            <Icon name="ClipboardList" size={24} />
+            <span className="text-[11px] font-bold tracking-tight mt-0.5 font-body text-[#FFF9F3]">
               {t('dockBoard')}
             </span>
           </button>
@@ -599,11 +784,11 @@ export function MobileBottomDock() {
           {/* 4. グループチャット (PC: MessageCircle) */}
           <button
             onClick={() => openModal('chat')}
-            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[var(--music-surface)] hover:text-[var(--music-focus)] active:scale-95 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] rounded-lg"
+            className="flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 text-[#FFF9F3] hover:text-[#D4B08C] active:translate-y-0.5 transition-transform cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4B08C] rounded-lg"
             aria-label={t('groupChat')}
           >
-            <Icon name="MessageCircle" size={22} />
-            <span className="text-xs font-bold tracking-tight mt-1 font-body text-[var(--music-surface)]">
+            <Icon name="MessageCircle" size={24} />
+            <span className="text-[11px] font-bold tracking-tight mt-0.5 font-body text-[#FFF9F3]">
               {t('dockChat')}
             </span>
           </button>
@@ -617,11 +802,11 @@ export function MobileBottomDock() {
             }}
             aria-expanded={showMenuSheet}
             aria-controls={menuId}
-            className={`flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 ${showMenuSheet ? 'bg-[color-mix(in_srgb,var(--music-accent)_82%,var(--music-text)_18%)] text-[var(--music-focus)]' : 'text-[var(--music-surface)]'} hover:text-[var(--music-focus)] active:scale-95 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] rounded-lg`}
+            className={`flex flex-col items-center justify-center min-w-[50px] min-h-[48px] px-1 py-1 ${showMenuSheet ? 'bg-black/25 text-[#D4B08C]' : 'text-[#FFF9F3]'} hover:text-[#D4B08C] active:translate-y-0.5 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D4B08C] rounded-lg`}
             aria-label={t('gamesAndSocial')}
           >
-            <Icon name="Gamepad" size={22} />
-            <span className="text-xs font-bold tracking-tight mt-1 font-body text-[var(--music-surface)]">
+            <Icon name="Gamepad" size={24} />
+            <span className="text-[11px] font-bold tracking-tight mt-0.5 font-body text-[#FFF9F3]">
               {t('dockGames')}
             </span>
           </button>

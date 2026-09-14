@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MusicPlayer } from '@/components/ui/MusicPlayer'
 import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
+import * as useMusicPlayerModule from '@/lib/hooks/useMusicPlayer'
+import * as toastModule from '@/components/ui/Toast'
 
 vi.mock('@/lib/i18n/LanguageContext', () => ({
   useLanguage: () => ({ locale: 'ja-JP', t: (key: string) => key }),
@@ -18,6 +20,7 @@ const customTrack = {
 
 describe('MusicPlayer component', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined)
     window.HTMLMediaElement.prototype.pause = vi.fn()
     window.HTMLMediaElement.prototype.load = vi.fn()
@@ -30,7 +33,7 @@ describe('MusicPlayer component', () => {
       </MusicPlayerProvider>
     )
 
-    expect(screen.getByText(customTrack.name)).toBeInTheDocument()
+    expect(screen.getAllByText(customTrack.name)[0]).toBeInTheDocument()
     expect(screen.getByText(customTrack.artistName)).toBeInTheDocument()
 
     const playButton = screen.getByRole('button', { name: 'play' })
@@ -74,5 +77,106 @@ describe('MusicPlayer component', () => {
     const selectMusicButton = screen.getByRole('button', { name: 'selectMusic' })
     expect(selectMusicButton).toBeInTheDocument()
     fireEvent.click(selectMusicButton)
+  })
+
+  it('renders spinning loader icon inside play button and disables button when loading', () => {
+    vi.spyOn(useMusicPlayerModule, 'useMusicPlayer').mockReturnValue({
+      isPlaying: false,
+      currentTrack: customTrack,
+      currentTrackIndex: 0,
+      tracks: [customTrack],
+      toggle: vi.fn(),
+      selectTrack: vi.fn(),
+      commitReference: vi.fn().mockResolvedValue(true),
+      nextTrack: vi.fn(),
+      prevTrack: vi.fn(),
+      currentTime: 10,
+      duration: 180,
+      volume: 0.5,
+      setVolume: vi.fn(),
+      seekTo: vi.fn(),
+      isLoading: true,
+      playbackError: null,
+      play: vi.fn(),
+      pause: vi.fn(),
+      addTrack: vi.fn(),
+      removeTrack: vi.fn(),
+      autoPlayOnBirthday: vi.fn(),
+      previewReference: vi.fn().mockResolvedValue(undefined),
+      retry: vi.fn(),
+    })
+
+    const { container } = render(<MusicPlayer />)
+
+    const playButton = screen.getByRole('button', { name: 'play' })
+    expect(playButton).toBeDisabled()
+    expect(playButton).toHaveAttribute('aria-busy', 'true')
+    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(screen.queryByText('loading')).not.toBeInTheDocument()
+  })
+
+  it('triggers toast error notification and does not render bottom error text on playback error', () => {
+    const errorSpy = vi.fn()
+    vi.spyOn(toastModule, 'useToast').mockReturnValue({
+      toasts: [],
+      addToast: vi.fn(),
+      removeToast: vi.fn(),
+      updateToast: vi.fn(),
+      success: vi.fn(),
+      error: errorSpy,
+      warning: vi.fn(),
+      info: vi.fn(),
+      loading: vi.fn(),
+      promise: vi.fn(),
+    })
+
+    vi.spyOn(useMusicPlayerModule, 'useMusicPlayer').mockReturnValue({
+      isPlaying: false,
+      currentTrack: customTrack,
+      currentTrackIndex: 0,
+      tracks: [customTrack],
+      toggle: vi.fn(),
+      selectTrack: vi.fn(),
+      commitReference: vi.fn().mockResolvedValue(true),
+      nextTrack: vi.fn(),
+      prevTrack: vi.fn(),
+      currentTime: 0,
+      duration: 180,
+      volume: 0.5,
+      setVolume: vi.fn(),
+      seekTo: vi.fn(),
+      isLoading: false,
+      playbackError: 'Audio decoding failed',
+      play: vi.fn(),
+      pause: vi.fn(),
+      addTrack: vi.fn(),
+      removeTrack: vi.fn(),
+      autoPlayOnBirthday: vi.fn(),
+      previewReference: vi.fn().mockResolvedValue(undefined),
+      retry: vi.fn(),
+    })
+
+    render(<MusicPlayer />)
+
+    expect(errorSpy).toHaveBeenCalledWith('Audio decoding failed', {
+      title: 'soundPlaybackError',
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText(/soundPlaybackError/i)).not.toBeInTheDocument()
+  })
+
+  it('toggles lyrics drawer when clicking the pull tab handle', () => {
+    render(
+      <MusicPlayerProvider customTracks={[customTrack]}>
+        <MusicPlayer />
+      </MusicPlayerProvider>
+    )
+
+    const tabHandle = screen.getByRole('button', { name: 'lyricsTitle' })
+    expect(tabHandle).toBeInTheDocument()
+    expect(tabHandle).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(tabHandle)
+    expect(screen.getAllByRole('button', { name: 'lyricsClose' })[0]).toBeInTheDocument()
   })
 })

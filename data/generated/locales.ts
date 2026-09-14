@@ -47,6 +47,7 @@ export const translationKeys = [
   "choosePhotoSlot",
   "chooseSong",
   "clear",
+  "clickToSeek",
   "close",
   "closeGameMenu",
   "closeNotification",
@@ -128,6 +129,7 @@ export const translationKeys = [
   "hide",
   "hours",
   "iconsBy",
+  "instrumentalTrack",
   "inviteFriends",
   "japanese",
   "joinChat",
@@ -138,6 +140,10 @@ export const translationKeys = [
   "liked",
   "linkCopied",
   "loading",
+  "lyrics",
+  "lyricsClose",
+  "lyricsSynchronized",
+  "lyricsTitle",
   "mediaAlt",
   "mediaLoadError",
   "memoryGame",
@@ -169,6 +175,7 @@ export const translationKeys = [
   "noBulletinMessages",
   "noCaptions",
   "noData",
+  "noLyricsFound",
   "noMessagesPrompt",
   "noPhotosInAlbum",
   "noRepliesPrompt",
@@ -280,6 +287,7 @@ export const translationKeys = [
   "selectPhoto",
   "selectSong",
   "selectSongHint",
+  "selectSongSubtitle",
   "sendGift",
   "sendMessage",
   "sendMessageFailed",
@@ -671,6 +679,7 @@ export const localePacks = [
       "searchResultsTitle": "Search results",
       "seekPosition": "Seek position",
       "selectSong": "Choose a song",
+      "selectSongSubtitle": "Celebration Music · Select music for wishes",
       "selectSongHint": "Pick one track for your wish.",
       "songClear": "Clear song",
       "songNotFound": "No songs found",
@@ -775,7 +784,14 @@ export const localePacks = [
       "yearsAgoToday": "{count} year(s) ago today",
       "yourName": "Your name",
       "birthdayThreadsTitle": "Birthdays today",
-      "birthdayThreadBadge": "Birthday thread"
+      "birthdayThreadBadge": "Birthday thread",
+      "lyrics": "Lyrics",
+      "lyricsTitle": "Lyrics",
+      "lyricsClose": "Close Lyrics",
+      "lyricsSynchronized": "Live Synced",
+      "instrumentalTrack": "Instrumental - Enjoy the melody",
+      "noLyricsFound": "No lyrics available for this track",
+      "clickToSeek": "Click any line to jump"
     }
   },
   {
@@ -1057,6 +1073,7 @@ export const localePacks = [
       "searchResultsTitle": "検索結果",
       "seekPosition": "再生位置",
       "selectSong": "曲を選択する",
+      "selectSongSubtitle": "想い出の楽曲 · 記念日のBGMを選ぶ",
       "selectSongHint": "お祝いに添える曲を1曲選んでください。",
       "songClear": "曲をクリア",
       "songNotFound": "曲が見つかりません",
@@ -1161,7 +1178,14 @@ export const localePacks = [
       "yearsAgoToday": "{count}年前の今日",
       "yourName": "あなたの名前",
       "birthdayThreadsTitle": "今日のお誕生日",
-      "birthdayThreadBadge": "お誕生日スレッド"
+      "birthdayThreadBadge": "お誕生日スレッド",
+      "lyrics": "歌詞",
+      "lyricsTitle": "歌詞表示",
+      "lyricsClose": "歌詞を閉じる",
+      "lyricsSynchronized": "リアルタイム同期",
+      "instrumentalTrack": "インストゥルメンタル楽曲（メロディをお楽しみください）",
+      "noLyricsFound": "この楽曲の歌詞は見つかりませんでした",
+      "clickToSeek": "タップでその位置へスキップ"
     }
   }
 ] as const satisfies readonly GeneratedLocalePack[]

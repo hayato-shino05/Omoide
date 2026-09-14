@@ -277,6 +277,7 @@
     "searchResultsTitle": "検索結果",
     "seekPosition": "再生位置",
     "selectSong": "曲を選択する",
+    "selectSongSubtitle": "想い出の楽曲 · 記念日のBGMを選ぶ",
     "selectSongHint": "お祝いに添える曲を1曲選んでください。",
     "songClear": "曲をクリア",
     "songNotFound": "曲が見つかりません",
@@ -381,6 +382,13 @@
     "yearsAgoToday": "{count}年前の今日",
     "yourName": "あなたの名前",
     "birthdayThreadsTitle": "今日のお誕生日",
-    "birthdayThreadBadge": "お誕生日スレッド"
+    "birthdayThreadBadge": "お誕生日スレッド",
+    "lyrics": "歌詞",
+    "lyricsTitle": "歌詞表示",
+    "lyricsClose": "歌詞を閉じる",
+    "lyricsSynchronized": "リアルタイム同期",
+    "instrumentalTrack": "インストゥルメンタル楽曲（メロディをお楽しみください）",
+    "noLyricsFound": "この楽曲の歌詞は見つかりませんでした",
+    "clickToSeek": "タップでその位置へスキップ"
   }
 }

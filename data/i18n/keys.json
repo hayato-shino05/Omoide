@@ -275,6 +275,7 @@
   "searchResultsTitle",
   "seekPosition",
   "selectSong",
+  "selectSongSubtitle",
   "selectSongHint",
   "songClear",
   "songNotFound",
@@ -379,5 +380,12 @@
   "yearsAgoToday",
   "yourName",
   "birthdayThreadsTitle",
-  "birthdayThreadBadge"
+  "birthdayThreadBadge",
+  "lyrics",
+  "lyricsTitle",
+  "lyricsClose",
+  "lyricsSynchronized",
+  "instrumentalTrack",
+  "noLyricsFound",
+  "clickToSeek"
 ]

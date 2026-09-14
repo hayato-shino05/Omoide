@@ -579,7 +579,14 @@ body.theme-bunka {
   bottom: 20px;
   left: 20px;
   z-index: 1000;
-  max-width: calc(50% - 250px);
+  max-width: calc(50vw - 420px);
+  transition: bottom 0.25s ease-out;
+}
+
+.fixed-bottom-left .games-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 10px;
 }
 
 .games-mobile-only {
@@ -587,7 +594,7 @@ body.theme-bunka {
 }
 
 .games-desktop-only {
-  display: flex;
+  display: grid;
 }
 
 .mobile-game-menu {
@@ -645,15 +652,28 @@ body.theme-bunka {
   z-index: 1000;
 }
 
-/* ===== タブレットレイアウト（768px - 1024px）===== */
-@media screen and (max-width: 1024px) {
+/* ===== 画面幅が狭く音楽バーと干渉するデスクトップ・ラップトップ（769px - 1599px）===== */
+@media screen and (max-width: 1599px) and (min-width: 769px) {
+  .fixed-bottom-left {
+    bottom: 124px;
+    max-width: calc(100vw - 40px);
+  }
+  
   .fixed-bottom-left .games-container {
+    grid-template-columns: repeat(3, minmax(0, max-content));
     gap: 8px;
   }
   
   .fixed-bottom-left .game-button {
-    padding: 8px 15px;
-    font-size: 0.85em;
+    padding: 8px 14px;
+    font-size: 0.82em;
+  }
+}
+
+@media screen and (max-width: 1100px) and (min-width: 769px) {
+  .fixed-bottom-left .games-container {
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    gap: 8px;
   }
 }
 

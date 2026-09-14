@@ -68,7 +68,7 @@ export function GameButtons() {
         <MobileGameMenu />
       </div>
 
-      <div className="games-container games-desktop-only" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="games-container games-desktop-only">
         {games.map((game) => {
           return (
             <button

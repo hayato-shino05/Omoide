@@ -8,6 +8,7 @@ import { LANGUAGE_COOKIE_NAME } from '@/lib/i18n/cookie'
 import { DEFAULT_LOCALE, resolveLocale } from '@/lib/i18n/resolveLocale'
 import { ThemeProvider } from '@/lib/providers/ThemeProvider'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
+import { ToastProvider } from '@/components/ui/Toast'
 import { MotionConfig } from 'framer-motion'
 
 export const metadata: Metadata = {
@@ -82,10 +83,12 @@ export default async function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <LanguageProvider initialLocale={locale}>
-              {/* prefers-reduced-motion を framer-motion 全体で尊重 */}
-              <MotionConfig reducedMotion="user">
-                {children}
-              </MotionConfig>
+              <ToastProvider position="top-right">
+                {/* prefers-reduced-motion を framer-motion 全体で尊重 */}
+                <MotionConfig reducedMotion="user">
+                  {children}
+                </MotionConfig>
+              </ToastProvider>
             </LanguageProvider>
           </ThemeProvider>
         </QueryProvider>

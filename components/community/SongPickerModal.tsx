@@ -197,9 +197,7 @@ export default function SongPickerModal({
       }
       description={
         <span className="inline-flex items-center gap-1.5 text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
-          <span>想い出の楽曲</span>
-          <span className="opacity-40">·</span>
-          <span>Select Celebration Music</span>
+          <span>{t('selectSongSubtitle')}</span>
         </span>
       }
       size="widescreen"
@@ -208,18 +206,18 @@ export default function SongPickerModal({
     >
       <div className="relative w-full max-w-6xl rounded-xl transition-all duration-200 ease-out pointer-events-auto opacity-100 scale-100 translate-y-0 flex flex-col gap-4 text-[var(--music-text)] font-body">
         {/* 検索バー */}
-        <form id={`${listboxId}-search-form`} className="flex gap-2.5 flex-wrap sm:flex-nowrap" onSubmit={runSearch}>
+        <form id={`${listboxId}-search-form`} className="flex items-center gap-2" onSubmit={runSearch}>
           <label htmlFor={`${listboxId}-input`} className="sr-only">
             {t('songSearchPlaceholder')}
           </label>
-          <div className="relative flex-1 min-w-[240px]">
+          <div className="relative flex-1 min-w-0">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-950/40 dark:text-amber-100/40 pointer-events-none flex items-center justify-center" aria-hidden="true">
               <Icon name="Search" size={18} useSvg />
             </span>
             <input
               ref={searchInputRef}
               id={`${listboxId}-input`}
-              className="w-full min-h-[44px] pl-10 pr-12 py-2.5 rounded-xl border border-[var(--music-border)] bg-[var(--music-surface-elevated)] text-[var(--music-text)] placeholder:text-[var(--music-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] focus-visible:outline-hidden text-sm transition-all duration-150 shadow-2xs hover:border-[var(--music-accent)]/50 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-ms-clear]:hidden"
+              className="w-full min-h-[44px] pl-10 pr-12 py-2.5 rounded-xl border border-[var(--music-border)] bg-[var(--music-surface-elevated)] text-[var(--music-text)] placeholder:text-[var(--music-text-muted)] outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] text-sm transition-all duration-150 shadow-2xs hover:border-[var(--music-accent)]/50 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden [&::-ms-clear]:hidden"
               type="search"
               value={query}
               maxLength={100}
@@ -234,12 +232,12 @@ export default function SongPickerModal({
                 className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full text-[var(--music-text-muted)] hover:text-[var(--music-text)] hover:bg-[var(--music-surface)] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-accent)]"
                 aria-label={t('songClear')}
               >
-                <Icon name="X" size={16} />
+                <Icon name="X" size={16} useSvg />
               </button>
             )}
           </div>
           <button
-            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--music-accent)] text-white font-bold text-sm inline-flex items-center justify-center gap-2 hover:brightness-105 active:translate-y-0.5 active:scale-[0.98] cursor-pointer shadow-xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] transition-all duration-150"
+            className="min-h-[44px] px-3.5 sm:px-5 py-2.5 rounded-xl bg-[var(--music-accent)] text-white font-bold text-sm inline-flex items-center justify-center gap-1.5 shrink-0 hover:brightness-105 active:translate-y-0.5 active:scale-[0.98] cursor-pointer shadow-xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] transition-all duration-150"
             type="submit"
             disabled={isLoading || !query.trim()}
             aria-busy={isLoading}
@@ -288,7 +286,7 @@ export default function SongPickerModal({
           id={listboxId}
           role="list"
           aria-label={t('selectSong')}
-          className="flex-1 min-h-[380px] max-h-[55vh] overflow-y-auto rounded-2xl border border-[var(--music-border)]/70 bg-[var(--music-surface-elevated)] p-2 space-y-1.5 shadow-inner omoide-music-scrollbar"
+          className="flex-1 min-h-[220px] sm:min-h-[380px] max-h-[46vh] sm:max-h-[55vh] overflow-y-auto rounded-2xl border border-[var(--music-border)]/70 bg-[var(--music-surface-elevated)] p-1.5 sm:p-2 space-y-1.5 shadow-inner omoide-music-scrollbar"
         >
           {isLoading && (
             <div role="status" aria-live="polite" className="p-4 space-y-3">
@@ -326,7 +324,7 @@ export default function SongPickerModal({
                 <div
                   key={track.reference}
                   role="listitem"
-                  className={`group/row relative flex items-center justify-between gap-3 p-2.5 sm:p-3 rounded-xl border transition-all duration-150 ${
+                  className={`group/row relative flex items-center justify-between gap-3 p-2 sm:p-3 rounded-xl border transition-all duration-150 ${
                     isSelected
                       ? 'border-amber-700/40 bg-amber-50/70 dark:bg-amber-950/30 dark:border-amber-600/40 shadow-xs ring-1 ring-amber-600/20'
                       : isPreviewing
@@ -354,7 +352,7 @@ export default function SongPickerModal({
                   <button
                     id={optionId(track.reference)}
                     type="button"
-                    className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] rounded-lg p-0.5"
+                    className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 text-left cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[var(--music-accent)] rounded-lg p-0.5"
                     onClick={() => selectTrack(track.reference)}
                     onKeyDown={(event) => handleOptionKeyDown(event, index)}
                     aria-label={`${t('selectSong')}: ${track.name}`}
@@ -363,7 +361,7 @@ export default function SongPickerModal({
                   >
                     {/* アートワーク */}
                     <div
-                      className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-lg overflow-hidden border border-[var(--music-border)]/60 bg-[color-mix(in_srgb,var(--music-accent)_8%,var(--music-surface))] flex items-center justify-center text-[var(--music-accent)] relative flex-shrink-0 shadow-2xs group-hover/row:scale-[1.02] transition-transform duration-200"
+                      className="w-11 h-11 sm:w-12 sm:h-12 min-w-[44px] min-h-[44px] rounded-lg overflow-hidden border border-[var(--music-border)]/60 bg-[color-mix(in_srgb,var(--music-accent)_8%,var(--music-surface))] flex items-center justify-center text-[var(--music-accent)] relative flex-shrink-0 shadow-2xs group-hover/row:scale-[1.02] transition-transform duration-200"
                       aria-hidden="true"
                     >
                       {artworkUrl ? (
@@ -381,28 +379,28 @@ export default function SongPickerModal({
                         />
                       ) : null}
                       <span data-artwork-fallback hidden={Boolean(artworkUrl)}>
-                        <Icon name="Music" size={20} />
+                        <Icon name="Music" size={20} useSvg />
                       </span>
                     </div>
 
                     {/* 楽曲情報 */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <strong className="text-sm font-bold text-[var(--music-text)] truncate group-hover/row:text-[var(--music-accent)] transition-colors">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <strong className="text-xs sm:text-sm font-bold text-[var(--music-text)] truncate group-hover/row:text-[var(--music-accent)] transition-colors">
                           {track.name}
                         </strong>
                         {isSelected && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--music-accent)] text-white shadow-2xs flex-shrink-0">
+                          <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--music-accent)] text-white shadow-2xs flex-shrink-0">
                             <Icon name="CheckCircle2" size={12} useSvg aria-hidden="true" />
                             <span>{t('songSelected')}</span>
                           </span>
                         )}
                       </div>
-                      <span className="block text-xs text-[var(--music-text-muted)] truncate mt-0.5">
+                      <span className="block text-[11px] sm:text-xs text-[var(--music-text-muted)] truncate mt-0.5">
                         {track.artistName || t('music')}
                       </span>
                       {/* メタデータバッジ群 */}
-                      <div className="flex items-center gap-2 flex-wrap mt-1 text-[11px] text-[var(--music-text-muted)]">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mt-1 text-[11px] text-[var(--music-text-muted)]">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold border ${
                           track.provider === 'jamendo'
                             ? 'border-amber-600/30 text-amber-800 dark:text-amber-300 bg-amber-500/10'
@@ -413,7 +411,7 @@ export default function SongPickerModal({
                         <span className="font-mono tabular-nums text-[10px] tracking-tight text-[var(--music-text-muted)] bg-[var(--music-surface)]/60 px-1.5 py-0.5 rounded-md border border-[var(--music-border)]/40">
                           {formatDuration(track.duration)}
                         </span>
-                        <span className="text-[10px] text-[var(--music-text-muted)]/80 truncate max-w-[140px] sm:max-w-none">
+                        <span className="text-[10px] text-[var(--music-text-muted)]/80 truncate max-w-[140px] sm:max-w-none hidden sm:inline">
                           {licenseLabel(track, t)}
                         </span>
                       </div>

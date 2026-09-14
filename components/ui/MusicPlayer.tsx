@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type KeyboardEvent } from 'react'
+import { useState, useEffect, type KeyboardEvent } from 'react'
 import {
   Music,
   Disc3,
@@ -10,11 +10,13 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
-  RotateCcw,
+  LoaderCircle,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
+import { useToast } from '@/components/ui/Toast'
 import SongPickerModal from '@/components/community/SongPickerModal'
+import LyricsDrawer from '@/components/ui/LyricsDrawer'
 
 const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
@@ -34,6 +36,7 @@ const isSafeHttpsUrl = (value: unknown): value is string => {
 
 export function MusicPlayer() {
   const { t } = useLanguage()
+  const toast = useToast()
   const {
     isPlaying,
     currentTrack,
@@ -50,13 +53,19 @@ export function MusicPlayer() {
     seekTo,
     isLoading,
     playbackError,
-    retry,
   } = useMusicPlayer()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false)
   const [isCommitting, setIsCommitting] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [lastAudibleVolume, setLastAudibleVolume] = useState(0.5)
   const [artworkFailedFor, setArtworkFailedFor] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (playbackError) {
+      toast.error(playbackError, { title: t('soundPlaybackError') })
+    }
+  }, [playbackError, t, toast])
 
   const handleConfirmTrack = (reference: string) => {
     const existingTrack = tracks.find((track) => track.reference === reference || `jamendo:${track.id}` === reference)
@@ -114,11 +123,20 @@ export function MusicPlayer() {
   }
 
   return (
-    <>
+    <div className="relative w-full max-w-6xl">
+      {/* 歌詞スライドパネル（MusicPlayerの背面から上へせり上がる） */}
+      <LyricsDrawer
+        isOpen={isLyricsOpen}
+        onClose={() => setIsLyricsOpen(false)}
+        onToggle={() => setIsLyricsOpen((prev) => !prev)}
+      />
+
+      {/* メイン音楽プレイヤー（前面 z-30） */}
       <section
-        className="relative w-full max-w-6xl rounded-2xl transition-all duration-200 ease-out pointer-events-auto opacity-100 scale-100 translate-y-0 min-h-[84px] px-5 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[var(--music-text)] border border-amber-950/10 dark:border-amber-100/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] font-body flex flex-wrap items-center justify-between gap-4"
+        className="relative z-30 w-full rounded-2xl transition-all duration-200 ease-out pointer-events-auto opacity-100 scale-100 translate-y-0 min-h-[84px] px-5 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[var(--music-text)] border border-amber-950/10 dark:border-amber-100/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] font-body flex flex-wrap items-center justify-between gap-4"
         aria-label={t('selectMusic')}
       >
+
         {/* 左ゾーン: アートワーク ＋ 音波インジケーター ＋ 楽曲情報 */}
         <div className="flex items-center gap-3.5 min-w-0 flex-1 basis-64 max-w-xs lg:max-w-sm">
           <div
@@ -182,7 +200,9 @@ export function MusicPlayer() {
               aria-busy={isLoading}
               disabled={!currentTrack || isLoading}
             >
-              {isPlaying ? (
+              {isLoading ? (
+                <LoaderCircle className="w-5 h-5 animate-spin text-white" aria-hidden="true" />
+              ) : isPlaying ? (
                 <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
               ) : (
                 <Play className="w-5 h-5 fill-current ml-0.5" aria-hidden="true" />
@@ -282,26 +302,6 @@ export function MusicPlayer() {
           </button>
         </div>
 
-        {/* 再生エラー / ローディングメッセージ */}
-        {(isLoading || playbackError) && (
-          <div className="w-full flex items-center justify-center gap-2 text-xs text-[var(--music-error)] pt-1" aria-live="polite">
-            {isLoading && <span className="animate-pulse">{t('loading')}</span>}
-            {playbackError && (
-              <>
-                <span role="alert">{t('soundPlaybackError')}: {playbackError}</span>
-                <button
-                  type="button"
-                  onClick={retry}
-                  className="font-bold underline hover:opacity-80 inline-flex items-center gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 rounded-sm"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  {t('retry')}
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
         <SongPickerModal
           isOpen={isPickerOpen}
           onClose={() => setIsPickerOpen(false)}
@@ -310,6 +310,6 @@ export function MusicPlayer() {
           isConfirming={isCommitting}
         />
       </section>
-    </>
+    </div>
   )
 }
