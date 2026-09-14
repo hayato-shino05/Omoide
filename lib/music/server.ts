@@ -1,8 +1,17 @@
 import 'server-only'
 
+import { createClient } from '@supabase/supabase-js'
 import { parseMusicTrackReference } from './reference'
 import { JAPAN_PRESET_TRACKS, getJamendoStreamUrl } from './presets'
 import type { MusicAccess, MusicTrackReference, ResolvedTrack, SearchTrack } from './types'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hvtioiriavbgpavkkuqx.supabase.co'
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+function getSupabase() {
+  if (!SUPABASE_ANON_KEY) return null
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+}
 
 const ALLOWED_LICENSE_PATTERNS = [
   /creativecommons\.org\/publicdomain\//,
@@ -11,7 +20,6 @@ const ALLOWED_LICENSE_PATTERNS = [
 ]
 const REQUEST_TIMEOUT_MS = 8_000
 const SOUNDCLOUD_TOKEN_SKEW_MS = 60_000
-const ALLOWED_SOUNDCLOUD_STREAM_HOSTS = new Set(['api.soundcloud.com', 'cf-media.sndcdn.com'])
 
 interface SoundCloudTrack {
   id?: string | number
@@ -207,6 +215,37 @@ function jamendoResults(payload: unknown): unknown[] {
 }
 
 export async function searchMusicTracks(query: string, limit: number): Promise<SearchTrack[]> {
+  try {
+    const supabase = getSupabase()
+    if (supabase) {
+      const { data: dbTracks } = await supabase
+        .from('music_tracks')
+        .select('id, name, title, artist, duration, url, cover_url, lyrics_url, lyrics_lrc')
+        .or(`name.ilike.%${query}%,artist.ilike.%${query}%,title.ilike.%${query}%`)
+        .limit(limit)
+
+      if (dbTracks && dbTracks.length > 0) {
+        const formatted: SearchTrack[] = dbTracks.map((t: Record<string, unknown>) => ({
+          provider: 'omoide',
+          trackId: String(t.id),
+          reference: `omoide:${t.id}`,
+          access: 'playable',
+          name: typeof t.title === 'string' ? t.title : typeof t.name === 'string' ? t.name : 'Unknown',
+          artistName: typeof t.artist === 'string' ? t.artist : 'Unknown Artist',
+          duration: typeof t.duration === 'number' ? t.duration : 0,
+          albumImage: typeof t.cover_url === 'string' ? t.cover_url : undefined,
+          lyricsLrc: typeof t.lyrics_lrc === 'string' ? t.lyrics_lrc : undefined,
+          sourceUrl: typeof t.url === 'string' ? t.url : undefined,
+        }))
+        if (formatted.length >= limit) {
+          return formatted.slice(0, limit)
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   const soundCloudPayload = await soundCloudRequest('/tracks', { q: query, limit: String(limit) })
   const soundCloudTracks = searchResults(soundCloudPayload).map(asSoundCloudTrack).map((track) => track && mapSoundCloudTrack(track)).filter((track): track is SearchTrack => track !== null)
   if (soundCloudTracks.length > 0) return soundCloudTracks.slice(0, limit)
@@ -282,6 +321,37 @@ export async function resolveSoundCloudCdnUrl(streamUrl: string): Promise<string
 export async function resolveMusicTrack(value: string): Promise<ResolvedTrack | null> {
   const reference = parseMusicTrackReference(value)
   if (!reference) return null
+
+  if (reference.provider === 'omoide') {
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return null
+
+      const { data: track } = await supabase
+        .from('music_tracks')
+        .select('id, name, title, artist, duration, url, cover_url, lyrics_url, lyrics_lrc')
+        .eq('id', reference.trackId)
+        .single()
+
+      if (track && track.url) {
+        return {
+          provider: 'omoide',
+          trackId: String(track.id),
+          reference: `omoide:${track.id}`,
+          access: 'playable',
+          name: track.title || track.name,
+          artistName: track.artist || 'Unknown Artist',
+          duration: track.duration || 0,
+          streamUrl: track.url,
+          albumImage: track.cover_url || undefined,
+          lyricsLrc: track.lyrics_lrc || undefined,
+          sourceUrl: track.url,
+        }
+      }
+    } catch {
+      return null
+    }
+  }
 
   if (reference.provider === 'soundcloud') {
     const payload = await soundCloudRequest(`/tracks/${reference.trackId}`)

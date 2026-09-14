@@ -118,9 +118,20 @@ export function parseLrc(lrcText: string): LyricLine[] {
 }
 
 /**
- * 楽曲 ID または 楽曲名から対応する同期歌詞を取得
+ * 楽曲 ID、楽曲名、または LRC テキストから対応する同期歌詞を取得
  */
-export function getTrackLyrics(trackId?: string | null, trackName?: string | null): TrackLyricsInfo | null {
+export function getTrackLyrics(
+  trackId?: string | null,
+  trackName?: string | null,
+  lyricsLrc?: string | null
+): TrackLyricsInfo | null {
+  if (lyricsLrc && typeof lyricsLrc === 'string' && lyricsLrc.trim().length > 0) {
+    const lines = parseLrc(lyricsLrc)
+    if (lines.length > 0) {
+      return { lines }
+    }
+  }
+
   if (trackId && PRESET_LYRICS[trackId]) {
     return PRESET_LYRICS[trackId]
   }

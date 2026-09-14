@@ -1,4 +1,4 @@
-export const MUSIC_PROVIDERS = ['soundcloud', 'jamendo'] as const
+export const MUSIC_PROVIDERS = ['soundcloud', 'jamendo', 'omoide'] as const
 
 export type MusicProvider = (typeof MUSIC_PROVIDERS)[number]
 export type MusicAccess = 'playable' | 'preview' | 'blocked' | 'unavailable'
@@ -21,6 +21,7 @@ export interface SearchTrack extends MusicTrackReference {
   source?: string
   attribution?: string
   albumImage?: string
+  lyricsLrc?: string
   id?: string
   audioUrl?: string
 }

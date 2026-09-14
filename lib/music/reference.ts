@@ -3,6 +3,7 @@ import type { MusicProvider, MusicTrackReference } from './types'
 const TRACK_ID_PATTERNS: Record<MusicProvider, RegExp> = {
   soundcloud: /^\d{1,20}$/,
   jamendo: /^\d{1,12}$/,
+  omoide: /^\d{1,12}$/,
 }
 
 export function parseMusicTrackReference(value: unknown): MusicTrackReference | null {
