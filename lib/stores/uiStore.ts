@@ -15,9 +15,15 @@ export type ModalType =
   | 'timeCapsule'
   | null
 
+export interface MessageModalPayload {
+  birthdayPerson?: string
+  threadId?: string | number
+}
+
 interface UIState {
   activeModal: ModalType
-  openModal: (modal: ModalType) => void
+  messageModalPayload: MessageModalPayload | null
+  openModal: (modal: ModalType, payload?: MessageModalPayload) => void
   closeModal: () => void
 }
 
@@ -71,7 +77,8 @@ function restoreTriggerFocus(): void {
 
 export const useUIStore = create<UIState>((set, get) => ({
   activeModal: null,
-  openModal: (modal) => {
+  messageModalPayload: null,
+  openModal: (modal, payload) => {
     if (restoreRafId !== null) {
       cancelAnimationFrame(restoreRafId)
       restoreRafId = null
@@ -81,10 +88,18 @@ export const useUIStore = create<UIState>((set, get) => ({
       lastModalTrigger =
         document.activeElement instanceof HTMLElement ? document.activeElement : null
     }
-    set({ activeModal: modal })
+    set({
+      activeModal: modal,
+      messageModalPayload:
+        modal === 'message' && payload !== undefined
+          ? payload
+          : modal === 'message'
+            ? get().messageModalPayload
+            : null,
+    })
   },
   closeModal: () => {
-    set({ activeModal: null })
+    set({ activeModal: null, messageModalPayload: null })
     // lastModalTrigger は次回 open で上書きするため、ここではクリアしない
     restoreTriggerFocus()
   },

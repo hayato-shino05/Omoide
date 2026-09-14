@@ -10,22 +10,71 @@ import SongPickerModal from './SongPickerModal'
 import { normalizeMediaFile, validateCommunityMediaFile } from '@/lib/validations/upload'
 import { Icon } from '@/components/ui/Icon'
 
+interface BirthdayThread {
+  id: string | number
+  sender: string
+  message: string
+  birthday_person: string | null
+  celebration_date: string | null
+  timezone: string | null
+  created_at: string
+  coverUrl: string | null
+}
+
 interface MessageFormProps {
   birthdayPerson?: string
+  initialThreadId?: string | number
   onSuccess?: () => void
 }
 
-export function MessageForm({ birthdayPerson, onSuccess }: MessageFormProps) {
+export function MessageForm({ birthdayPerson, initialThreadId, onSuccess }: MessageFormProps) {
   const { t } = useLanguage()
   const [sender, setSender] = useState('')
+  const [birthdayThreads, setBirthdayThreads] = useState<BirthdayThread[]>([])
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
+    initialThreadId ? String(initialThreadId) : null
+  )
+  const [lastAutoFilledTemplate, setLastAutoFilledTemplate] = useState<string | null>(null)
   
-  // 共有ストレージから自動入力
+  // 共有ストレージから送信者名を自動入力
   useEffect(() => {
     const savedName = localStorage.getItem('birthday_user_name')
     if (savedName) {
       setSender(savedName)
     }
   }, [])
+
+  // 本日のお誕生日スレッド一覧を取得
+  useEffect(() => {
+    let isMounted = true
+    async function fetchBirthdayThreads() {
+      try {
+        const response = await fetch('/api/community/birthday-threads')
+        const payload = (await response.json().catch(() => null)) as { data?: BirthdayThread[] } | null
+        if (isMounted && response.ok && Array.isArray(payload?.data)) {
+          setBirthdayThreads(payload.data)
+          // 初期スレッドIDまたは対象者名が渡されている場合は初期選択
+          if (initialThreadId) {
+            setSelectedThreadId(String(initialThreadId))
+          } else if (birthdayPerson) {
+            const matched = payload.data.find(
+              (th) => th.birthday_person === birthdayPerson || String(th.id) === String(birthdayPerson)
+            )
+            if (matched) {
+              setSelectedThreadId(String(matched.id))
+            }
+          }
+        }
+      } catch {
+        // ネットワークエラー時はフォールバックとして空配列
+      }
+    }
+    void fetchBirthdayThreads()
+    return () => {
+      isMounted = false
+    }
+  }, [birthdayPerson, initialThreadId])
+
   const [message, setMessage] = useState('')
   const [musicTrackId, setMusicTrackId] = useState('')
   const [isMusicPickerOpen, setIsMusicPickerOpen] = useState(false)
@@ -39,6 +88,31 @@ export function MessageForm({ birthdayPerson, onSuccess }: MessageFormProps) {
   const [showCamera, setShowCamera] = useState(false)
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 選択中の誕生日スレッド
+  const selectedThread = birthdayThreads.find((th) => String(th.id) === selectedThreadId)
+
+  // 対象者カード選択時の処理（温かいメッセージテンプレートの提案・自動補完）
+  const handleSelectRecipient = (thread: BirthdayThread | null) => {
+    if (thread) {
+      const threadIdStr = String(thread.id)
+      setSelectedThreadId(threadIdStr)
+      const celebrantName = thread.birthday_person || thread.message
+      const template = t('birthdayWishTemplate', { name: celebrantName })
+      // メッセージが空、または以前の自動補完テンプレートのままの場合は新テンプレートを反映
+      if (!message.trim() || message === lastAutoFilledTemplate) {
+        setMessage(template)
+        setLastAutoFilledTemplate(template)
+      }
+    } else {
+      setSelectedThreadId(null)
+      // 「みんなへ」選択時、自動補完テンプレートのままならクリア
+      if (message === lastAutoFilledTemplate) {
+        setMessage('')
+        setLastAutoFilledTemplate(null)
+      }
+    }
+  }
 
   const handleSelectedFile = (file: File): boolean => {
     const normalizedFile = normalizeMediaFile(file)
@@ -76,11 +150,33 @@ export function MessageForm({ birthdayPerson, onSuccess }: MessageFormProps) {
   const submitMessage = async (
     payload: { sender: string; message: string; birthdayPerson?: string; musicTrackId?: string }
   ): Promise<boolean> => {
+    // 1. 誕生日スレッドが選択されており、メディアファイルがない場合: /api/community/reply へ送信してスレッドに紐付け
+    if (selectedThread && !selectedFile) {
+      const response = await fetch('/api/community/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: String(selectedThread.id),
+          sender: payload.sender,
+          content: payload.message,
+          musicTrackId: payload.musicTrackId || null,
+        }),
+      })
+      if (!response.ok) {
+        const responsePayload = (await response.json().catch(() => null)) as { error?: string } | null
+        setError(responsePayload?.error ?? t('sendMessageFailed'))
+        return false
+      }
+      return true
+    }
+
+    // 2. 全体宛て、またはメディア添付がある場合: /api/community へ送信
     const formData = new FormData()
     formData.set('kind', 'message')
     formData.set('sender', payload.sender)
     formData.set('content', payload.message)
-    if (payload.birthdayPerson) formData.set('birthdayPerson', payload.birthdayPerson)
+    const targetBirthdayPerson = selectedThread?.birthday_person ?? payload.birthdayPerson
+    if (targetBirthdayPerson) formData.set('birthdayPerson', targetBirthdayPerson)
     if (payload.musicTrackId) formData.set('musicTrackId', payload.musicTrackId)
     if (selectedFile) formData.set('media', selectedFile, selectedFile.name)
 
@@ -136,24 +232,23 @@ export function MessageForm({ birthdayPerson, onSuccess }: MessageFormProps) {
     setUploadProgress(0)
 
     try {
-      // メディア付き投稿は server-side の transaction 経路 /api/community に統一し、
-      // メディアアップロードと message 挿入の不整合による孤立 object を防ぐ。
       const success = await submitMessage({
         sender: sender.trim(),
         message: message.trim(),
-        birthdayPerson,
+        birthdayPerson: selectedThread?.birthday_person ?? birthdayPerson,
         musicTrackId: musicTrackId || undefined,
       })
 
       if (success) {
-        // 名前を共有ストレージに保存する（他のフォームと共用）
+        // 送信者名を共有ストレージに保存
         try {
           localStorage.setItem('birthday_user_name', sender.trim())
         } catch {
           console.warn('Failed to save sender name')
         }
-        // 送信者名は保持し、メッセージのみクリアする
+        // 送信者名は保持し、メッセージのみクリア
         setMessage('')
+        setLastAutoFilledTemplate(null)
         removeFile()
         onSuccess?.()
       }
@@ -169,6 +264,265 @@ export function MessageForm({ birthdayPerson, onSuccess }: MessageFormProps) {
 
   return (
     <form onSubmit={handleSubmit}>
+      {/* お祝いする相手の選択（Celebrant Card Selector） */}
+      <div style={{ marginBottom: '16px' }} role="group" aria-labelledby="celebrant-selector-label">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <label
+            id="celebrant-selector-label"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              color: '#854D27',
+              letterSpacing: '0.02em',
+            }}
+          >
+            <Icon name="Sparkles" size={16} style={{ color: '#D95D39' }} />
+            <span>{t('selectCelebrant')}</span>
+          </label>
+          {selectedThread && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: '#D95D39',
+                fontWeight: 600,
+                background: 'rgba(217, 93, 57, 0.08)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+              }}
+            >
+              {t('selectedRecipient', { name: selectedThread.birthday_person || selectedThread.message })}
+            </span>
+          )}
+        </div>
+
+        <div
+          role="radiogroup"
+          aria-labelledby="celebrant-selector-label"
+          style={{
+            display: 'flex',
+            gap: '10px',
+            overflowX: 'auto',
+            paddingBottom: '8px',
+            paddingTop: '2px',
+            paddingLeft: '2px',
+            paddingRight: '2px',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {/* 「みんなへ（全体）」カード */}
+          <motion.button
+            type="button"
+            role="radio"
+            aria-checked={selectedThreadId === null}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => handleSelectRecipient(null)}
+            style={{
+              flex: '0 0 auto',
+              minWidth: '130px',
+              maxWidth: '160px',
+              padding: '10px',
+              background: selectedThreadId === null ? '#FFF9F3' : '#FFFFFF',
+              border: selectedThreadId === null ? '2px solid #854D27' : '1.5px solid #D4B08C',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              boxShadow: selectedThreadId === null ? '3px 3px 0 #854D27' : '1.5px 1.5px 0 rgba(212, 176, 140, 0.4)',
+              transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: selectedThreadId === null ? '#854D27' : 'rgba(133, 77, 39, 0.1)',
+                  color: selectedThreadId === null ? '#FFF9F3' : '#854D27',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name="Sparkles" size={16} />
+              </div>
+              {selectedThreadId === null && (
+                <span
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: '#854D27',
+                    color: '#FFF9F3',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px',
+                  }}
+                >
+                  <Icon name="CircleCheck" size={14} useSvg />
+                </span>
+              )}
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#2C1810',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {t('toEveryone')}
+              </div>
+            </div>
+          </motion.button>
+
+          {/* 本日の誕生日スレッド カード群 */}
+          {birthdayThreads.map((thread) => {
+            const isSelected = selectedThreadId === String(thread.id)
+            const celebrantName = thread.birthday_person || thread.message
+            return (
+              <motion.button
+                key={thread.id}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleSelectRecipient(thread)}
+                style={{
+                  flex: '0 0 auto',
+                  minWidth: '150px',
+                  maxWidth: '190px',
+                  padding: '10px',
+                  background: isSelected ? '#FFF5F0' : '#FFFFFF',
+                  border: isSelected ? '2px solid #D95D39' : '1.5px solid #D4B08C',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  boxShadow: isSelected ? '3px 3px 0 #D95D39' : '1.5px 1.5px 0 rgba(212, 176, 140, 0.4)',
+                  transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  position: 'relative',
+                }}
+              >
+                {/* バースデーバッジ */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(217, 93, 57, 0.12)',
+                      color: '#D95D39',
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Icon name="Cake" size={10} />
+                    <span>{t('todaysBirthday')}</span>
+                  </span>
+                  {isSelected && (
+                    <span
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        background: '#D95D39',
+                        color: '#FFF9F3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                      }}
+                    >
+                      <Icon name="CircleCheck" size={14} useSvg />
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {thread.coverUrl ? (
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        display: 'inline-block',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={thread.coverUrl}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: isSelected ? '#D95D39' : '#854D27',
+                        color: '#FFF9F3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {celebrantName[0]?.toUpperCase() || '?'}
+                    </span>
+                  )}
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        color: '#2C1810',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {celebrantName}
+                    </div>
+                    {thread.celebration_date && (
+                      <div
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#854D27',
+                          opacity: 0.7,
+                        }}
+                      >
+                        {thread.celebration_date}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.button>
+            )
+          })}
+        </div>
+      </div>
       <div style={{ marginBottom: '15px' }}>
         <input
           type="text"

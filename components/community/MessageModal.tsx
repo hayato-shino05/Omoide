@@ -9,9 +9,10 @@ import { Icon } from '@/components/ui/Icon'
 interface MessageModalProps {
   onClose: () => void
   birthdayPerson?: string
+  initialThreadId?: string | number
 }
 
-export function MessageModal({ onClose, birthdayPerson }: MessageModalProps) {
+export function MessageModal({ onClose, birthdayPerson, initialThreadId }: MessageModalProps) {
   const { t } = useLanguage()
 
   return (
@@ -63,7 +64,7 @@ export function MessageModal({ onClose, birthdayPerson }: MessageModalProps) {
 
         {/* メッセージ送信フォーム */}
         <div style={{ marginBottom: '30px' }}>
-          <MessageForm birthdayPerson={birthdayPerson} />
+          <MessageForm birthdayPerson={birthdayPerson} initialThreadId={initialThreadId} onSuccess={onClose} />
         </div>
 
         {/* 最近のメッセージ一覧 */}

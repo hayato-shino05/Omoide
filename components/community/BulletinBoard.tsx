@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { usePosts, Post } from '@/lib/hooks/usePosts'
 import { Icon } from '@/components/ui/Icon'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useUIStore } from '@/lib/stores/uiStore'
 import BulletinPost from './BulletinPost'
 import PostDetail from './PostDetail'
 
@@ -36,6 +37,7 @@ function toPost(thread: BirthdayThread): Post {
 
 export default function BulletinBoard() {
   const { t } = useLanguage()
+  const { openModal } = useUIStore()
   const { posts, loading, error, refetch, likePost } = usePosts()
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [birthdayThreads, setBirthdayThreads] = useState<BirthdayThread[]>([])
@@ -138,10 +140,17 @@ export default function BulletinBoard() {
             }}
           >
             {birthdayThreads.map((thread) => (
-              <button
+              <div
                 key={thread.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedPost(toPost(thread))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedPost(toPost(thread))
+                  }
+                }}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -261,7 +270,48 @@ export default function BulletinBoard() {
                     {thread.celebration_date ?? ''}
                   </span>
                 </span>
-              </button>
+
+                {/* 楽曲を添えてお祝いするボタン */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openModal('message', {
+                      birthdayPerson: thread.birthday_person ?? undefined,
+                      threadId: thread.id,
+                    })
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: '100%',
+                    padding: '8px 12px',
+                    marginTop: '4px',
+                    background: '#854D27',
+                    color: '#FFF9F3',
+                    border: '1.5px solid #D4B08C',
+                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '1px 1px 0 #D4B08C',
+                    transition: 'background 0.2s, border-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#D95D39'
+                    e.currentTarget.style.borderColor = '#D95D39'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#854D27'
+                    e.currentTarget.style.borderColor = '#D4B08C'
+                  }}
+                >
+                  <Icon name="Music" size={14} />
+                  <span>{t('celebrateWithMusic')}</span>
+                </button>
+              </div>
             ))}
           </div>
         </section>
