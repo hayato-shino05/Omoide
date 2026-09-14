@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
 import Image from 'next/image'
@@ -35,10 +35,13 @@ const isSafeHttpsUrl = (value: string | undefined): value is string => {
   }
 }
 
-const providerLabel = (provider: Track['provider'], t: (key: TranslationKey) => string): string =>
-  t(provider === 'jamendo' ? 'provider_jamendo' : 'provider_soundcloud')
+const providerLabel = (provider: Track['provider'], t: (key: TranslationKey) => string): string => {
+  if (provider === 'omoide') return '想い出・BGM'
+  return t(provider === 'jamendo' ? 'provider_jamendo' : 'provider_soundcloud')
+}
 
 const licenseLabel = (track: Track, t: (key: TranslationKey) => string): string => {
+  if (track.provider === 'omoide') return '想い出・Selected'
   const license = track.license ?? (track.licenseUrl?.includes('by-sa') ? 'CC BY-SA' : 'CC BY')
   return `${t('license')}: ${license}`
 }
@@ -59,20 +62,47 @@ export default function SongPickerModal({
   const [activeIndex, setActiveIndex] = useState(-1)
   const [selected, setSelected] = useState<string | null>(initialValue ?? null)
   const [preview, setPreview] = useState<PreviewState | null>(null)
+  const [curatedTracks, setCuratedTracks] = useState<Track[] | null>(null)
   const listboxId = useId()
   const listRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const previewRequestRef = useRef(0)
 
+  useEffect(() => {
+    let isCancelled = false
+    fetch('/api/music/curated')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload: { data?: Track[] } | null) => {
+        if (!isCancelled && payload && Array.isArray(payload.data) && payload.data.length > 0) {
+          setCuratedTracks(payload.data)
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  const previewRef = useRef<PreviewState | null>(null)
+
+  useEffect(() => {
+    previewRef.current = preview
+  }, [preview])
+
   const stopPreview = useCallback(() => {
     previewRequestRef.current += 1
-    pause()
-    setPreview(null)
+    if (previewRef.current !== null) {
+      pause()
+      setPreview(null)
+    }
   }, [pause])
 
   useEffect(() => {
     if (!isOpen) {
-      stopPreview()
+      if (previewRef.current !== null) {
+        stopPreview()
+      }
       return
     }
     setSelected(initialValue ?? null)
@@ -80,10 +110,15 @@ export default function SongPickerModal({
     setResults(null)
     setError(null)
     setActiveIndex(-1)
-    stopPreview()
   }, [initialValue, isOpen, stopPreview])
 
-  useEffect(() => stopPreview, [stopPreview])
+  useEffect(() => {
+    return () => {
+      if (previewRef.current !== null) {
+        stopPreview()
+      }
+    }
+  }, [stopPreview])
 
   useEffect(() => {
     if (!preview || preview.status !== 'loading') return
@@ -94,8 +129,20 @@ export default function SongPickerModal({
     }
   }, [isPlaying, playbackError, playbackLoading, preview])
 
-  const tracks: Track[] = results ?? JAPAN_PRESET_TRACKS
-  const sectionLabel = results === null ? t('presetSongsHint') : t('searchResultsTitle')
+  const normalizedQuery = query.trim().toLowerCase()
+  const localMatches = useMemo(() => {
+    if (!normalizedQuery) return null
+    const pool = curatedTracks ?? JAPAN_PRESET_TRACKS
+    return pool.filter((track) => {
+      const nameMatch = track.name.toLowerCase().includes(normalizedQuery)
+      const artistMatch = track.artistName?.toLowerCase().includes(normalizedQuery)
+      const albumMatch = 'albumName' in track && typeof track.albumName === 'string' && track.albumName.toLowerCase().includes(normalizedQuery)
+      return nameMatch || artistMatch || albumMatch
+    })
+  }, [normalizedQuery, curatedTracks])
+
+  const tracks: Track[] = results ?? localMatches ?? curatedTracks ?? JAPAN_PRESET_TRACKS
+  const sectionLabel = results !== null || normalizedQuery.length > 0 ? t('searchResultsTitle') : t('presetSongsHint')
   const selectedTrack = tracks.find((track) => track.reference === selected)
   const optionId = (reference: string) => `${listboxId}-option-${reference.replace(/[^a-zA-Z0-9_-]/g, '_')}`
   const activeTrack = activeIndex >= 0 ? tracks[activeIndex] : undefined
@@ -105,18 +152,46 @@ export default function SongPickerModal({
     if (!trimmed) return
     setIsLoading(true)
     setError(null)
-    setResults(null)
     setActiveIndex(-1)
     stopPreview()
+
+    const normalizedTerm = trimmed.toLowerCase()
+    const pool = curatedTracks ?? JAPAN_PRESET_TRACKS
+    const currentLocalMatches = pool.filter((track) => {
+      const nameMatch = track.name.toLowerCase().includes(normalizedTerm)
+      const artistMatch = track.artistName?.toLowerCase().includes(normalizedTerm)
+      const albumMatch = 'albumName' in track && typeof track.albumName === 'string' && track.albumName.toLowerCase().includes(normalizedTerm)
+      return nameMatch || artistMatch || albumMatch
+    })
+
+    setResults(currentLocalMatches)
+
     try {
-      const response = await fetch(`/api/music/search?q=${encodeURIComponent(trimmed)}&limit=20`)
+      const response = await fetch(`/api/music/search?q=${encodeURIComponent(trimmed)}&limit=30`)
       const payload: unknown = await response.json().catch(() => null)
-      const data = payload && typeof payload === 'object' && 'data' in payload && Array.isArray(payload.data) ? payload.data : null
-      if (!response.ok || !data) throw new Error('music search failed')
-      setResults(data as SearchTrack[])
+      const data = payload && typeof payload === 'object' && 'data' in payload && Array.isArray(payload.data) ? (payload.data as SearchTrack[]) : null
+      if (!response.ok || !data) {
+        if (currentLocalMatches.length === 0) {
+          throw new Error('music search failed')
+        }
+        return
+      }
+
+      // Merge local matches and remote API results without duplicates
+      const seen = new Set(currentLocalMatches.map((t) => t.reference))
+      const combined = [...currentLocalMatches]
+      for (const item of data) {
+        if (!seen.has(item.reference)) {
+          seen.add(item.reference)
+          combined.push(item)
+        }
+      }
+      setResults(combined)
     } catch {
-      setError(t('songSearchFailed'))
-      setResults([])
+      if (currentLocalMatches.length === 0) {
+        setError(t('songSearchFailed'))
+        setResults([])
+      }
     } finally {
       setIsLoading(false)
     }

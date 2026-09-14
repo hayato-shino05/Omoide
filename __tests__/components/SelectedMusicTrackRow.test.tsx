@@ -84,4 +84,53 @@ describe('SongPickerModal listbox keyboard (via SelectedMusicTrackRow → modal)
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }))
     expect(onConfirm).toHaveBeenCalledWith('jamendo:1503376')
   })
+
+  it('does not pause background music when opening or closing without playing a preview', async () => {
+    const pauseSpy = vi.fn()
+    const useMusicPlayerSpy = vi.spyOn(await import('@/lib/hooks/useMusicPlayer'), 'useMusicPlayer').mockReturnValue({
+      isPlaying: true,
+      currentTrack: { id: 'track-1', name: 'Now Playing', url: 'https://example.com/audio.mp3' },
+      currentTrackIndex: 0,
+      tracks: [{ id: 'track-1', name: 'Now Playing', url: 'https://example.com/audio.mp3' }],
+      toggle: vi.fn(),
+      selectTrack: vi.fn(),
+      commitReference: vi.fn().mockResolvedValue(true),
+      nextTrack: vi.fn(),
+      prevTrack: vi.fn(),
+      currentTime: 30,
+      duration: 180,
+      volume: 0.5,
+      setVolume: vi.fn(),
+      seekTo: vi.fn(),
+      isLoading: false,
+      playbackError: null,
+      isShuffle: false,
+      repeatMode: 'all',
+      play: vi.fn(),
+      pause: pauseSpy,
+      toggleShuffle: vi.fn(),
+      setShuffle: vi.fn(),
+      toggleRepeat: vi.fn(),
+      setRepeatMode: vi.fn(),
+      addTrack: vi.fn(),
+      removeTrack: vi.fn(),
+      autoPlayOnBirthday: vi.fn(),
+      previewReference: vi.fn().mockResolvedValue(undefined),
+      retry: vi.fn(),
+    })
+
+    const SongPickerModal = (await import('@/components/community/SongPickerModal')).default
+    const { rerender } = render(
+      <SongPickerModal isOpen={true} onClose={() => {}} onConfirm={() => {}} initialValue="" />
+    )
+
+    expect(pauseSpy).not.toHaveBeenCalled()
+
+    rerender(
+      <SongPickerModal isOpen={false} onClose={() => {}} onConfirm={() => {}} initialValue="" />
+    )
+
+    expect(pauseSpy).not.toHaveBeenCalled()
+    useMusicPlayerSpy.mockRestore()
+  })
 })

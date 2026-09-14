@@ -132,7 +132,7 @@ describe('Contributor prompts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'postMessage' }))
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/community', expect.objectContaining({ method: 'POST' })))
-    const request = vi.mocked(fetch).mock.calls[0][1]
+    const request = vi.mocked(fetch).mock.calls.find((call) => call[0] === '/api/community')?.[1]
     expect((request?.body as FormData).get('kind')).toBe('post')
     expect((request?.body as FormData).get('sender')).toBe('花子')
     expect((request?.body as FormData).get('content')).toBe('おめでとう！')
@@ -152,7 +152,7 @@ describe('Contributor prompts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'postMessage' }))
 
     await waitFor(() => expect(fetch).toHaveBeenCalled())
-    const request = vi.mocked(fetch).mock.calls[0][1]
+    const request = vi.mocked(fetch).mock.calls.find((call) => call[0] === '/api/community')?.[1]
     expect((request?.body as FormData).get('media')).toBeInstanceOf(File)
     expect(((request?.body as FormData).get('media') as File).type).toBe('video/webm')
     expect(onSubmit).not.toHaveBeenCalled()
@@ -225,7 +225,7 @@ describe('Contributor prompts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'sendWish' }))
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/community', expect.objectContaining({ method: 'POST' })))
-    const request = vi.mocked(fetch).mock.calls[0][1]
+    const request = vi.mocked(fetch).mock.calls.find((call) => call[0] === '/api/community')?.[1]
     expect((request?.body as FormData).get('kind')).toBe('message')
     expect((request?.body as FormData).get('sender')).toBe('花子')
     expect((request?.body as FormData).get('content')).toBe('おめでとう！')

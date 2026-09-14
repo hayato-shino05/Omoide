@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
+import { useMusicStore } from '@/lib/stores/musicStore'
 
 export interface Track {
   id: string
@@ -12,6 +13,7 @@ export interface Track {
   reference?: string
   albumImage?: string
   artistName?: string
+  lyricsLrc?: string
 }
 
 const DEFAULT_TRACKS: Track[] = JAPAN_PRESET_TRACKS.map((track) => ({
@@ -25,6 +27,8 @@ const DEFAULT_TRACKS: Track[] = JAPAN_PRESET_TRACKS.map((track) => ({
   artistName: track.artistName,
 }))
 
+export type RepeatMode = 'off' | 'all' | 'one'
+
 export interface UseMusicPlayerReturn {
   isPlaying: boolean
   currentTrack: Track | null
@@ -35,6 +39,8 @@ export interface UseMusicPlayerReturn {
   duration: number
   isLoading: boolean
   playbackError: string | null
+  isShuffle: boolean
+  repeatMode: RepeatMode
   play: () => void
   pause: () => void
   toggle: () => void
@@ -43,6 +49,10 @@ export interface UseMusicPlayerReturn {
   nextTrack: () => void
   prevTrack: () => void
   seekTo: (time: number) => void
+  toggleShuffle: () => void
+  setShuffle: (shuffle: boolean) => void
+  toggleRepeat: () => void
+  setRepeatMode: (mode: RepeatMode) => void
   addTrack: (track: Track) => void
   removeTrack: (trackId: string) => void
   autoPlayOnBirthday: (isBirthday: boolean) => void
@@ -62,23 +72,133 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
   const [duration, setDuration] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [playbackError, setPlaybackError] = useState<string | null>(null)
+  const [isShuffle, setIsShuffle] = useState(false)
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('all')
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const volumeRef = useRef(volume)
   const isPlayingRef = useRef(isPlaying)
   const currentTrackRef = useRef<Track | null>(null)
   const tracksRef = useRef(tracks)
+  const isShuffleRef = useRef(isShuffle)
+  const repeatModeRef = useRef(repeatMode)
+  const currentTrackIndexRef = useRef(currentTrackIndex)
   const audioModeRef = useRef<'track' | 'preview'>('track')
   const previewAbortRef = useRef<AbortController | null>(null)
   const previewReferenceRef = useRef<string | null>(null)
   const previewRequestRef = useRef(0)
   const sourceGenerationRef = useRef(0)
   const playbackRequestRef = useRef(0)
+  const initialSeekTimeRef = useRef<number | null>(null)
+  const lastSaveTimeRef = useRef(0)
+  const isHydratedRef = useRef(false)
 
   const currentTrack = tracks[currentTrackIndex] || null
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = useMusicStore.getState()
+      if (typeof stored.volume === 'number' && Number.isFinite(stored.volume)) {
+        setVolumeState(stored.volume)
+        volumeRef.current = stored.volume
+        if (audioRef.current) audioRef.current.volume = stored.volume
+      }
+      if (typeof stored.isShuffle === 'boolean') {
+        setIsShuffle(stored.isShuffle)
+      }
+      if (stored.repeatMode === 'off' || stored.repeatMode === 'all' || stored.repeatMode === 'one') {
+        setRepeatMode(stored.repeatMode)
+      }
+      if (stored.savedTrack) {
+        const foundIdx = tracksRef.current.findIndex(
+          (t) => (stored.savedTrack!.id && t.id === stored.savedTrack!.id) || (stored.savedTrack!.reference && t.reference === stored.savedTrack!.reference)
+        )
+        if (foundIdx >= 0) {
+          setCurrentTrackIndex(foundIdx)
+        } else {
+          setTracks([stored.savedTrack, ...tracksRef.current])
+          setCurrentTrackIndex(0)
+        }
+      } else if (stored.lastTrackId || stored.lastTrackReference) {
+        const foundIdx = tracksRef.current.findIndex(
+          (t) => (stored.lastTrackId && t.id === stored.lastTrackId) || (stored.lastTrackReference && t.reference === stored.lastTrackReference)
+        )
+        if (foundIdx >= 0) {
+          setCurrentTrackIndex(foundIdx)
+        }
+      }
+      if (typeof stored.savedTime === 'number' && stored.savedTime > 0) {
+        initialSeekTimeRef.current = stored.savedTime
+        setCurrentTime(stored.savedTime)
+      }
+    } catch {
+    } finally {
+      isHydratedRef.current = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let isCancelled = false
+    fetch('/api/music/curated')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload: { data?: Array<Record<string, unknown>> } | null) => {
+        if (isCancelled || !payload || !Array.isArray(payload.data) || payload.data.length === 0) return
+        const loadedTracks: Track[] = payload.data.map((item) => ({
+          id: String(item.id),
+          name: typeof item.name === 'string' ? item.name : 'Unknown',
+          url: typeof item.audioUrl === 'string' ? item.audioUrl : typeof item.url === 'string' ? item.url : '',
+          duration: typeof item.duration === 'number' ? item.duration : 0,
+          category: typeof item.artistName === 'string' ? item.artistName : 'Omoide',
+          reference: typeof item.reference === 'string' ? item.reference : undefined,
+          albumImage: typeof item.albumImage === 'string' ? item.albumImage : undefined,
+          artistName: typeof item.artistName === 'string' ? item.artistName : undefined,
+          lyricsLrc: typeof item.lyricsLrc === 'string' ? item.lyricsLrc : undefined,
+        })).filter((t) => t.url.length > 0)
+
+        if (loadedTracks.length > 0) {
+          try {
+            const stored = useMusicStore.getState()
+            let nextTracks = loadedTracks
+            let targetIdx = 0
+            if (stored.savedTrack) {
+              const inLoaded = loadedTracks.findIndex(
+                (t) => (stored.savedTrack!.id && t.id === stored.savedTrack!.id) || (stored.savedTrack!.reference && t.reference === stored.savedTrack!.reference)
+              )
+              if (inLoaded >= 0) {
+                targetIdx = inLoaded
+              } else {
+                nextTracks = [stored.savedTrack, ...loadedTracks]
+                targetIdx = 0
+              }
+            } else if (stored.lastTrackId || stored.lastTrackReference) {
+              const inLoaded = loadedTracks.findIndex(
+                (t) => (stored.lastTrackId && t.id === stored.lastTrackId) || (stored.lastTrackReference && t.reference === stored.lastTrackReference)
+              )
+              if (inLoaded >= 0) {
+                targetIdx = inLoaded
+              }
+            }
+            setTracks(nextTracks)
+            setCurrentTrackIndex(targetIdx)
+          } catch {
+            setTracks(loadedTracks)
+          }
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isCancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     volumeRef.current = volume
     if (audioRef.current) audioRef.current.volume = volume
+    try {
+      useMusicStore.getState().setVolume(volume)
+    } catch {
+    }
   }, [volume])
 
   useEffect(() => {
@@ -87,11 +207,55 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
 
   useEffect(() => {
     currentTrackRef.current = currentTrack
+    if (isHydratedRef.current && currentTrack && audioModeRef.current === 'track') {
+      try {
+        useMusicStore.getState().setLastTrack(currentTrack)
+      } catch {
+      }
+    }
   }, [currentTrack])
 
   useEffect(() => {
     isPlayingRef.current = isPlaying
   }, [isPlaying])
+
+  useEffect(() => {
+    isShuffleRef.current = isShuffle
+    try {
+      useMusicStore.getState().setShuffle(isShuffle)
+    } catch {
+    }
+  }, [isShuffle])
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode
+    try {
+      useMusicStore.getState().setRepeatMode(repeatMode)
+    } catch {
+    }
+  }, [repeatMode])
+
+  useEffect(() => {
+    currentTrackIndexRef.current = currentTrackIndex
+  }, [currentTrackIndex])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleUnload = () => {
+      if (audioRef.current && audioModeRef.current === 'track') {
+        try {
+          useMusicStore.getState().setSavedTime(audioRef.current.currentTime || 0)
+        } catch {
+        }
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload)
+    window.addEventListener('pagehide', handleUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload)
+      window.removeEventListener('pagehide', handleUnload)
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -100,14 +264,34 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
     audio.volume = volumeRef.current
     audioRef.current = audio
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime || 0)
+    const handleTimeUpdate = () => {
+      const t = audio.currentTime || 0
+      setCurrentTime(t)
+      const now = Date.now()
+      if (audioModeRef.current === 'track' && now - lastSaveTimeRef.current > 1500) {
+        lastSaveTimeRef.current = now
+        try {
+          useMusicStore.getState().setSavedTime(t)
+        } catch {
+        }
+      }
+    }
     const handleLoadedMetadata = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
+      const audioDuration = Number.isFinite(audio.duration) ? audio.duration : 0
+      setDuration(audioDuration)
       setIsLoading(false)
+      if (initialSeekTimeRef.current !== null && initialSeekTimeRef.current > 0) {
+        const target = Math.min(initialSeekTimeRef.current, audioDuration > 0 ? audioDuration - 0.5 : initialSeekTimeRef.current)
+        audio.currentTime = target
+        setCurrentTime(target)
+        initialSeekTimeRef.current = null
+      }
     }
     const handleLoadStart = () => {
       setIsLoading(true)
-      setCurrentTime(0)
+      if (initialSeekTimeRef.current === null) {
+        setCurrentTime(0)
+      }
       setDuration(0)
     }
     const handleCanPlay = () => setIsLoading(false)
@@ -129,7 +313,30 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
         setIsPlaying(false)
         return
       }
-      setCurrentTrackIndex((index) => (index + 1) % count)
+
+      const currentRepeat = repeatModeRef.current
+      if (currentRepeat === 'one') {
+        audio.currentTime = 0
+        void audio.play().catch(() => {})
+        return
+      }
+
+      if (isShuffleRef.current && count > 1) {
+        const offset = 1 + Math.floor(Math.random() * (count - 1))
+        const nextIndex = (currentTrackIndexRef.current + offset) % count
+        setCurrentTrackIndex(nextIndex)
+        return
+      }
+
+      if (currentRepeat === 'off') {
+        if (currentTrackIndexRef.current >= count - 1) {
+          setIsPlaying(false)
+          return
+        }
+        setCurrentTrackIndex((index) => index + 1)
+      } else {
+        setCurrentTrackIndex((index) => (index + 1) % count)
+      }
     }
     const handleError = () => {
       setIsPlaying(false)
@@ -252,14 +459,44 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
     const count = tracksRef.current.length
     if (count === 0) return
     setPlaybackError(null)
-    setCurrentTrackIndex((index) => (index + 1) % count)
+    if (isShuffleRef.current && count > 1) {
+      const offset = 1 + Math.floor(Math.random() * (count - 1))
+      setCurrentTrackIndex((index) => (index + offset) % count)
+    } else {
+      setCurrentTrackIndex((index) => (index + 1) % count)
+    }
   }, [])
 
   const prevTrack = useCallback(() => {
     const count = tracksRef.current.length
     if (count === 0) return
     setPlaybackError(null)
-    setCurrentTrackIndex((index) => (index - 1 + count) % count)
+    if (isShuffleRef.current && count > 1) {
+      const offset = 1 + Math.floor(Math.random() * (count - 1))
+      setCurrentTrackIndex((index) => (index + offset) % count)
+    } else {
+      setCurrentTrackIndex((index) => (index - 1 + count) % count)
+    }
+  }, [])
+
+  const toggleShuffle = useCallback(() => {
+    setIsShuffle((prev) => !prev)
+  }, [])
+
+  const setShuffle = useCallback((shuffle: boolean) => {
+    setIsShuffle(shuffle)
+  }, [])
+
+  const toggleRepeat = useCallback(() => {
+    setRepeatMode((prev) => {
+      if (prev === 'off') return 'all'
+      if (prev === 'all') return 'one'
+      return 'off'
+    })
+  }, [])
+
+  const setRepeatModeState = useCallback((mode: RepeatMode) => {
+    setRepeatMode(mode)
   }, [])
 
   const seekTo = useCallback((time: number) => {
@@ -268,6 +505,12 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
     const nextTime = Math.max(0, Math.min(time, Number.isFinite(audio.duration) ? audio.duration : time))
     audio.currentTime = nextTime
     setCurrentTime(nextTime)
+    if (audioModeRef.current === 'track') {
+      try {
+        useMusicStore.getState().setSavedTime(nextTime)
+      } catch {
+      }
+    }
   }, [])
 
   const addTrack = useCallback((track: Track) => {
@@ -472,6 +715,8 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
     duration,
     isLoading,
     playbackError,
+    isShuffle,
+    repeatMode,
     play,
     pause,
     toggle,
@@ -480,13 +725,17 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
     nextTrack,
     prevTrack,
     seekTo,
+    toggleShuffle,
+    setShuffle,
+    toggleRepeat,
+    setRepeatMode: setRepeatModeState,
     addTrack,
     removeTrack,
     autoPlayOnBirthday,
     previewReference,
     commitReference,
     retry,
-  }), [isPlaying, currentTrack, currentTrackIndex, volume, tracks, currentTime, duration, isLoading, playbackError, play, pause, toggle, setVolume, selectTrack, nextTrack, prevTrack, seekTo, addTrack, removeTrack, autoPlayOnBirthday, previewReference, commitReference, retry])
+  }), [isPlaying, currentTrack, currentTrackIndex, volume, tracks, currentTime, duration, isLoading, playbackError, isShuffle, repeatMode, play, pause, toggle, setVolume, selectTrack, nextTrack, prevTrack, seekTo, toggleShuffle, setShuffle, toggleRepeat, setRepeatModeState, addTrack, removeTrack, autoPlayOnBirthday, previewReference, commitReference, retry])
 }
 
 export function MusicPlayerProvider({ children, customTracks }: { children: ReactNode; customTracks?: Track[] }) {

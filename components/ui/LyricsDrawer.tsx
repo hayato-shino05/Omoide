@@ -39,8 +39,8 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
 
   // 歌詞データの取得
   const lyricsInfo = useMemo(() => {
-    return getTrackLyrics(currentTrack?.id, currentTrack?.name)
-  }, [currentTrack?.id, currentTrack?.name])
+    return getTrackLyrics(currentTrack?.id, currentTrack?.name, currentTrack?.lyricsLrc)
+  }, [currentTrack?.id, currentTrack?.name, currentTrack?.lyricsLrc])
 
   const lyrics = lyricsInfo?.lines ?? []
   const hasLyrics = lyrics.length > 0 && !lyricsInfo?.isInstrumental
@@ -231,9 +231,9 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
             /* インストゥルメンタル・歌詞なし表示 */
             <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center">
               <div className="relative w-16 h-16 flex items-center justify-center rounded-2xl bg-amber-50 dark:bg-slate-800 border border-amber-950/10 dark:border-amber-100/10 shadow-sm text-[#D95D39] mb-4">
-                <Music className="w-8 h-8 animate-bounce" />
+                <Music className="w-8 h-8 opacity-90" />
                 {isPlaying && (
-                  <div className="absolute -inset-1 rounded-2xl border border-[#D95D39]/30 animate-ping opacity-30" />
+                  <div className="absolute -inset-1 rounded-2xl border border-[#D95D39]/30 animate-pulse opacity-40" />
                 )}
               </div>
               <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">

@@ -97,8 +97,14 @@ describe('MusicPlayer component', () => {
       seekTo: vi.fn(),
       isLoading: true,
       playbackError: null,
+      isShuffle: false,
+      repeatMode: 'all',
       play: vi.fn(),
       pause: vi.fn(),
+      toggleShuffle: vi.fn(),
+      setShuffle: vi.fn(),
+      toggleRepeat: vi.fn(),
+      setRepeatMode: vi.fn(),
       addTrack: vi.fn(),
       removeTrack: vi.fn(),
       autoPlayOnBirthday: vi.fn(),
@@ -147,8 +153,14 @@ describe('MusicPlayer component', () => {
       seekTo: vi.fn(),
       isLoading: false,
       playbackError: 'Audio decoding failed',
+      isShuffle: false,
+      repeatMode: 'all',
       play: vi.fn(),
       pause: vi.fn(),
+      toggleShuffle: vi.fn(),
+      setShuffle: vi.fn(),
+      toggleRepeat: vi.fn(),
+      setRepeatMode: vi.fn(),
       addTrack: vi.fn(),
       removeTrack: vi.fn(),
       autoPlayOnBirthday: vi.fn(),
@@ -163,6 +175,57 @@ describe('MusicPlayer component', () => {
     })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByText(/soundPlaybackError/i)).not.toBeInTheDocument()
+  })
+
+  it('handles shuffle and repeat toggle button interactions', () => {
+    const toggleShuffleMock = vi.fn()
+    const toggleRepeatMock = vi.fn()
+
+    vi.spyOn(useMusicPlayerModule, 'useMusicPlayer').mockReturnValue({
+      isPlaying: false,
+      currentTrack: customTrack,
+      currentTrackIndex: 0,
+      tracks: [customTrack],
+      toggle: vi.fn(),
+      selectTrack: vi.fn(),
+      commitReference: vi.fn().mockResolvedValue(true),
+      nextTrack: vi.fn(),
+      prevTrack: vi.fn(),
+      currentTime: 0,
+      duration: 180,
+      volume: 0.5,
+      setVolume: vi.fn(),
+      seekTo: vi.fn(),
+      isLoading: false,
+      playbackError: null,
+      isShuffle: true,
+      repeatMode: 'one',
+      play: vi.fn(),
+      pause: vi.fn(),
+      toggleShuffle: toggleShuffleMock,
+      setShuffle: vi.fn(),
+      toggleRepeat: toggleRepeatMock,
+      setRepeatMode: vi.fn(),
+      addTrack: vi.fn(),
+      removeTrack: vi.fn(),
+      autoPlayOnBirthday: vi.fn(),
+      previewReference: vi.fn().mockResolvedValue(undefined),
+      retry: vi.fn(),
+    })
+
+    render(<MusicPlayer />)
+
+    const shuffleBtn = screen.getByRole('button', { name: 'shuffleOn' })
+    expect(shuffleBtn).toBeInTheDocument()
+    expect(shuffleBtn).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(shuffleBtn)
+    expect(toggleShuffleMock).toHaveBeenCalledTimes(1)
+
+    const repeatBtn = screen.getByRole('button', { name: 'repeatOne' })
+    expect(repeatBtn).toBeInTheDocument()
+    expect(repeatBtn).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(repeatBtn)
+    expect(toggleRepeatMock).toHaveBeenCalledTimes(1)
   })
 
   it('toggles lyrics drawer when clicking the pull tab handle', () => {

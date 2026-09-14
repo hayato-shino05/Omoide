@@ -8,6 +8,9 @@ import {
   Pause,
   SkipBack,
   SkipForward,
+  Shuffle,
+  Repeat,
+  Repeat1,
   Volume2,
   VolumeX,
   LoaderCircle,
@@ -53,6 +56,10 @@ export function MusicPlayer() {
     seekTo,
     isLoading,
     playbackError,
+    isShuffle,
+    repeatMode,
+    toggleShuffle,
+    toggleRepeat,
   } = useMusicPlayer()
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [isLyricsOpen, setIsLyricsOpen] = useState(false)
@@ -182,6 +189,23 @@ export function MusicPlayer() {
         <div className="flex flex-col items-center justify-center gap-2 flex-1 basis-80 max-w-md mx-auto min-w-[220px]">
           {/* コントロールボタン群 */}
           <div className="flex items-center gap-3" aria-label={t('selectMusic')}>
+            {/* シャッフル（再生コントローラー左側） */}
+            <button
+              type="button"
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden ${
+                isShuffle
+                  ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
+                  : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
+              }`}
+              onClick={toggleShuffle}
+              aria-label={isShuffle ? t('shuffleOn') : t('shuffleOff')}
+              aria-pressed={isShuffle}
+              title={isShuffle ? t('shuffleOn') : t('shuffleOff')}
+            >
+              <Shuffle className="w-4 h-4" aria-hidden="true" />
+            </button>
+
+            {/* 前の曲 */}
             <button
               type="button"
               className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-95 flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
@@ -191,6 +215,7 @@ export function MusicPlayer() {
               <SkipBack className="w-4 h-4" aria-hidden="true" />
             </button>
 
+            {/* メイン再生 / 一時停止ボタン */}
             <button
               type="button"
               className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-full bg-[#D95D39] hover:bg-[#c44e2b] text-white shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#D95D39]/60 focus-visible:ring-offset-2 focus-visible:outline-hidden"
@@ -209,6 +234,7 @@ export function MusicPlayer() {
               )}
             </button>
 
+            {/* 次の曲 */}
             <button
               type="button"
               className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-95 flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
@@ -216,6 +242,26 @@ export function MusicPlayer() {
               aria-label={t('nextTrack')}
             >
               <SkipForward className="w-4 h-4" aria-hidden="true" />
+            </button>
+
+            {/* リピート（再生コントローラー右側） */}
+            <button
+              type="button"
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden relative ${
+                repeatMode !== 'off'
+                  ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
+                  : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
+              }`}
+              onClick={toggleRepeat}
+              aria-label={repeatMode === 'one' ? t('repeatOne') : repeatMode === 'all' ? t('repeatAll') : t('repeatOff')}
+              aria-pressed={repeatMode !== 'off'}
+              title={repeatMode === 'one' ? t('repeatOne') : repeatMode === 'all' ? t('repeatAll') : t('repeatOff')}
+            >
+              {repeatMode === 'one' ? (
+                <Repeat1 className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Repeat className="w-4 h-4" aria-hidden="true" />
+              )}
             </button>
           </div>
 
