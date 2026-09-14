@@ -51,3 +51,6 @@ happy-birthday-production/
 tmp-*.png
 smoke-snapshot.txt
 canonical-home.network-response
+*.log
+.impeccable/
+artifacts/

@@ -45,14 +45,20 @@ describe('resolveMusicTrack', () => {
     expect(track?.streamUrl).toBe('https://mp3l.jamendo.com/?trackid=1503376&format=mp31&from=app-devsite')
   })
 
-  it('returns null for a Jamendo ID that is not in the curated set when JAMENDO_CLIENT_ID is missing', async () => {
+  it('resolves a Jamendo ID with fallback stream URL when JAMENDO_CLIENT_ID is missing', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     const { resolveMusicTrack } = await import('@/lib/music/server')
 
     const track = await resolveMusicTrack('jamendo:999999999999')
 
-    expect(track).toBeNull()
+    expect(track).toMatchObject({
+      provider: 'jamendo',
+      trackId: '999999999999',
+      reference: 'jamendo:999999999999',
+      access: 'playable',
+      streamUrl: 'https://mp3l.jamendo.com/?trackid=999999999999&format=mp31&from=app-devsite',
+    })
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -87,7 +93,7 @@ describe('resolveMusicTrack', () => {
         id: 123,
         title: 'Birthday',
         access: 'playable',
-        stream_url: 'https://api.soundcloud.com/streams/123',
+        stream_url: 'https://cf-media.sndcdn.com/streams/123',
         user: { username: 'Artist' },
       }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
@@ -99,7 +105,7 @@ describe('resolveMusicTrack', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({ Authorization: 'Basic Y2xpZW50LWlkOmNsaWVudC1zZWNyZXQ=' })
     expect(fetchMock.mock.calls[1][1]?.headers).toMatchObject({ Authorization: 'OAuth secret-token' })
-    expect(first).toMatchObject({ access: 'playable', streamUrl: 'https://api.soundcloud.com/streams/123' })
+    expect(first).toMatchObject({ access: 'playable', streamUrl: 'https://cf-media.sndcdn.com/streams/123' })
     expect(second).toMatchObject({ access: 'playable' })
     expect(JSON.stringify(first)).not.toContain('secret-token')
   })
@@ -109,9 +115,9 @@ describe('resolveMusicTrack', () => {
     process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'first-token', expires_in: 1 }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 1, title: 'First', access: 'playable', stream_url: 'https://api.soundcloud.com/streams/1' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 1, title: 'First', access: 'playable', stream_url: 'https://cf-media.sndcdn.com/streams/1' }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'second-token', expires_in: 3600 }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 2, title: 'Second', access: 'playable', stream_url: 'https://api.soundcloud.com/streams/2' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 2, title: 'Second', access: 'playable', stream_url: 'https://cf-media.sndcdn.com/streams/2' }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const { resolveMusicTrack } = await import('@/lib/music/server')
 
@@ -139,12 +145,26 @@ describe('resolveMusicTrack', () => {
     expect(tracks).toMatchObject([{ access: expectedAccess }])
   })
 
+  it('maps SoundCloud array search responses', async () => {
+    process.env.SOUNDCLOUD_CLIENT_ID = 'client-id'
+    process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'secret-token', expires_in: 3600 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: 123, title: 'Vaundy', access: 'playable' }]), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { searchMusicTracks } = await import('@/lib/music/server')
+
+    const tracks = await searchMusicTracks('vaundy', 10)
+
+    expect(tracks).toMatchObject([{ reference: 'soundcloud:123', name: 'Vaundy', access: 'playable' }])
+  })
+
   it.each(['preview', 'blocked'] as const)('does not resolve SoundCloud %s tracks into full playback', async (access) => {
     process.env.SOUNDCLOUD_CLIENT_ID = 'client-id'
     process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'secret-token', expires_in: 3600 }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 123, title: 'Birthday', access, stream_url: 'https://api.soundcloud.com/streams/123' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 123, title: 'Birthday', access, stream_url: 'https://cf-media.sndcdn.com/streams/123' }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const { resolveMusicTrack } = await import('@/lib/music/server')
 
@@ -167,6 +187,21 @@ describe('resolveMusicTrack', () => {
     expect(track).toBeNull()
   })
 
+  it('resolves SoundCloud api stream endpoint to CDN URL via redirect or http_mp3_128_url', async () => {
+    process.env.SOUNDCLOUD_CLIENT_ID = 'client-id'
+    process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'secret-token', expires_in: 3600 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 123, title: 'Birthday', access: 'playable', stream_url: 'https://api.soundcloud.com/tracks/123/stream' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ http_mp3_128_url: 'https://cf-media.sndcdn.com/tracks/123/audio.mp3' }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { resolveMusicTrack } = await import('@/lib/music/server')
+
+    const track = await resolveMusicTrack('soundcloud:123')
+
+    expect(track?.streamUrl).toBe('https://cf-media.sndcdn.com/tracks/123/audio.mp3')
+  })
+
   it('uses a fresh timeout signal for each SoundCloud retry', async () => {
     process.env.SOUNDCLOUD_CLIENT_ID = 'client-id'
     process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
@@ -179,7 +214,7 @@ describe('resolveMusicTrack', () => {
       })
       .mockImplementationOnce(async (_input, init) => {
         signals.push(init?.signal as AbortSignal)
-        return new Response(JSON.stringify({ id: 123, title: 'Birthday', access: 'playable', stream_url: 'https://api.soundcloud.com/streams/123' }), { status: 200 })
+        return new Response(JSON.stringify({ id: 123, title: 'Birthday', access: 'playable', stream_url: 'https://cf-media.sndcdn.com/streams/123' }), { status: 200 })
       })
     vi.stubGlobal('fetch', fetchMock)
     const { resolveMusicTrack } = await import('@/lib/music/server')
@@ -191,7 +226,7 @@ describe('resolveMusicTrack', () => {
     expect(signals[0]).not.toBe(signals[1])
   })
 
-  it('marks a SoundCloud track without a stream as unavailable', async () => {
+  it('marks a SoundCloud track with playable access as playable in search results', async () => {
     process.env.SOUNDCLOUD_CLIENT_ID = 'client-id'
     process.env.SOUNDCLOUD_CLIENT_SECRET = 'client-secret'
     const fetchMock = vi.fn()
@@ -202,7 +237,7 @@ describe('resolveMusicTrack', () => {
 
     const tracks = await searchMusicTracks('birthday', 10)
 
-    expect(tracks).toMatchObject([{ access: 'unavailable' }])
+    expect(tracks).toMatchObject([{ access: 'playable' }])
   })
 
   it('returns null for a SoundCloud upstream error without exposing its body', async () => {

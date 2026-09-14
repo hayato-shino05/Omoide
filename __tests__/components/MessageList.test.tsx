@@ -47,7 +47,10 @@ describe('MessageList music playback', () => {
     expect(fetch).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'play' }))
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/music/resolve?ref=jamendo%3A1503376'))
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+      '/api/music/resolve?ref=jamendo%3A1503376',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    ))
     expect(await screen.findByText('Birthday Song')).toBeInTheDocument()
     expect(document.querySelector('audio')).toHaveAttribute('src', 'https://resolver.example/stream')
   })

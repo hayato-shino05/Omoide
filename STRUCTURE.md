@@ -46,28 +46,52 @@ app/
 │
 └── api/                    # REST 形式の API ルート
     ├── birthdays/
-    │   ├── route.ts        # GET (一覧), POST (作成)
-    │   ├── [id]/route.ts   # GET, PUT, DELETE by ID
-    │   ├── check/route.ts  # 今日が誕生日かチェック
-    │   └── next/route.ts   # 次の誕生日を取得
+    │   ├── route.ts        # GET（一覧・月 / limit 絞り込み）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   ├── check/route.ts  # GET（指定日 or 今日が誕生日か）
+    │   └── next/route.ts   # GET（次に来る誕生日を計算）
     │
     ├── messages/
-    │   ├── route.ts        # GET, POST メッセージ
-    │   ├── [id]/route.ts   # GET, PUT, DELETE by ID
-    │   └── latest/route.ts # 最新メッセージを取得
+    │   ├── route.ts        # GET（一覧）, POST（テキスト投稿）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   └── latest/route.ts # GET（最新メッセージ）
+    │
+    ├── community/          # コミュニティ投稿（service_role 経由で DB に書き込む）
+    │   ├── route.ts        # POST（メッセージ / 掲示板投稿。メディア・楽曲付きに対応）
+    │   ├── birthday-threads/route.ts  # GET（今日の誕生日スレッド一覧）
+    │   ├── reply/route.ts  # POST（誕生日スレッドへの返信。テキスト or 楽曲）
+    │   └── media/
+    │       ├── route.ts          # POST（multipart 直接アップロード + metadata 登録）
+    │       ├── sign/route.ts     # POST（署名付き直接アップロード用トークン発行）
+    │       └── finalize/route.ts # POST（アップロード実体の検証 + media_submissions 確定）
     │
     ├── media/
-    │   ├── route.ts        # メディア一覧取得
-    │   ├── [id]/route.ts   # 単一メディア取得 / 削除
-    │   └── tags/route.ts   # メディアタグの取得
+    │   ├── route.ts        # GET（一覧・検索・集計）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   └── tags/route.ts   # GET（タグ一覧。現在は常に空を返す）
     │
     ├── gifts/
-    │   ├── route.ts        # GET, POST バーチャルギフト
-    │   └── [id]/route.ts   # 単一ギフト取得 / 削除
+    │   ├── route.ts        # GET, POST（バーチャルギフト）
+    │   └── [id]/route.ts   # GET（単件取得）
     │
-    ├── audio/route.ts      # 音声メッセージ API
-    ├── video/route.ts      # 動画メッセージ API
-    └── upload/route.ts     # ファイルアップロード処理
+    ├── music/              # 厳選楽曲（Jamendo / SoundCloud）
+    │   ├── search/route.ts # GET（キーワード検索）
+    │   └── resolve/route.ts # GET（provider:trackId → 再生 URL を解決）
+    │
+    ├── audio/route.ts      # GET（音声メッセージ一覧）
+    ├── video/route.ts      # GET（動画メッセージ一覧）
+    ├── upload/route.ts     # POST（常に 405。ブラウザから直接アップロードへ誘導）
+    │
+    ├── time-capsules/      # 認証ユーザー所有のタイムカプセル
+    │   ├── route.ts        # GET（自分の一覧）, POST（作成）
+    │   ├── [id]/route.ts   # GET（単件。所有者 or 招待トークン）
+    │   ├── [id]/access/route.ts  # POST（招待トークンで開封）
+    │   ├── [id]/revoke/route.ts  # POST（招待トークン無効化）
+    │   ├── access/route.ts # POST（アクセスコードで開封）
+    │   └── uploads/route.ts # POST（写真の署名付きアップロード準備）, DELETE（取消）
+    │
+    └── internal/
+        └── birthday-scheduler/route.ts # POST（誕生日スレッド定期生成。シークレット認証付き）
 ```
 
 ---
@@ -96,11 +120,9 @@ app/
 
 | Component | 説明 |
 |-----------|------|
-| `MusicPlayer.tsx` | メインの音楽プレーヤー |
-| `MusicControls.tsx` | 再生 / 一時停止 / スキップ操作 |
-| `MusicLibrary.tsx` | 楽曲ライブラリブラウザ |
-| `MusicUploader.tsx` | カスタム音源のアップロード UI |
-| `TrackSelector.tsx` | トラック選択 UI |
+| `MusicPlayer.tsx` | デスクトップ向け常駐プレーヤー。再生 / 一時停止・音量・シーク・曲送りに加え、楽曲選択とプレビューに対応 |
+
+> 楽曲の選択 UI（`SongPickerModal.tsx`）、選択済み楽曲の表示（`SelectedMusicTrackRow.tsx`）、楽曲付き投稿のサウンドカード（`MusicComment.tsx`）は `/components/community/` に配置しています。モバイル向けのプレーヤー操作は `/components/ui/MobileBottomDock.tsx` に統合されています。
 
 **ナビゲーションコンポーネント**
 
@@ -141,6 +163,7 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `CountdownTimer.tsx` | 誕生日までのカウントダウンロジック |
 | `CountdownDisplay.tsx` | カウントダウン表示 |
 | `BirthdayChecker.tsx` | 今日が誕生日かどうかのチェック |
+| `BirthdayHub.tsx` | 誕生日イベントのハブ画面（今日 / これから / 過去の誕生日を整理） |
 | `BirthdayHero.tsx` | ヒーローセクション |
 | `BirthdayMessage.tsx` | お祝いメッセージ表示 |
 | `DailyOmikuji.tsx` | 3D おみくじと連動した運勢表示（和歌・4大運勢・ラッキーアイテム・localStorage 永続化） |
@@ -182,6 +205,7 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `BulletinPost.tsx` | 単一投稿表示 |
 | `PostForm.tsx` | 投稿作成フォーム |
 | `PostDetail.tsx` | 返信を含む投稿詳細 |
+| `ContributorPromptButtons.tsx` | 投稿内容の提案ボタン群（メッセージ / 投稿フォーム用） |
 | `TimeCapsule.tsx` | 未来の指定日に届くタイムカプセル（手紙・写真・音声封入） |
 
 **メディアメッセージ**
@@ -200,6 +224,14 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 |-----------|------|
 | `GiftSelector.tsx` | ギフト選択 UI |
 | `GiftAnimation.tsx` | ギフト演出アニメーション |
+
+**楽曲付きメッセージ・返信**
+
+| Component | 説明 |
+|-----------|------|
+| `SongPickerModal.tsx` | 楽曲を検索 / プリセットから選ぶモーダル（プレビュー再生付き） |
+| `SelectedMusicTrackRow.tsx` | 選択済み楽曲の表示行（プレビュー / 変更 / 解除） |
+| `MusicComment.tsx` | 楽曲付きメッセージ・返信のサウンドカード表示（`provider:trackId` を解決して再生） |
 
 ---
 
@@ -266,7 +298,7 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 
 | Hook | 説明 |
 |------|------|
-| `useMusicPlayer.ts` | 音楽プレーヤーの制御 |
+| `useMusicPlayer.tsx` | 音楽プレーヤーの状態管理（Context Provider）。再生制御に加え `/api/music/resolve` 経由の楽曲プレビューに対応 |
 | `useSlideshow.ts` | スライドショー制御 |
 | `useVideoMessages.ts` | 動画メッセージ管理 |
 | `useAudioMessages.ts` | 音声メッセージ管理 |
@@ -302,7 +334,7 @@ Zustand を使ったグローバル状態管理レイヤーです。必要に応
 |-------|------|
 | `birthdayStore.ts` | 誕生日データの状態（CRUD / 次の誕生日など） |
 | `themeStore.ts` | テーマ選択（季節・日本 / 国際イベントから自動判定） |
-| `musicStore.ts` | 音楽プレーヤーの状態（プレイリスト / ボリューム / リピート / シャッフル） |
+| `musicStore.ts` | 音楽プレーヤー設定の永続化（音量 / リピート / シャッフル）。再生状態そのものは `useMusicPlayer` が管理 |
 | `gameStore.ts` | ゲームスコアやハイスコア管理 |
 | `uiStore.ts` | モーダル / トーストなど UI 状態 |
 | `index.ts` | 各ストアのエクスポート集約 |
@@ -369,7 +401,7 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 
 | File | 説明 |
 |------|------|
-| `server.ts` | タイムカプセル API のサーバー側ヘルパー |
+| `server.ts` | タイムカプセル API のサーバー側ヘルパー。`createServiceClient` や署名付きアップロード用トークンを提供し、community / birthday / music のサーバー処理からも共用する |
 
 ---
 
@@ -378,6 +410,9 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 | ディレクトリ | 説明 |
 |-------------|------|
 | `/lib/supabase/` | Supabase クライアントとクエリ関連ユーティリティ |
+| `/lib/music/` | 厳選楽曲（Jamendo / SoundCloud）。`types.ts`（provider / reference 型）、`reference.ts`（`provider:trackId` の parse / serialize）、`presets.ts`（Jamendo プリセット）、`server.ts`（server-only の検索・解決） |
+| `/lib/community/` | コミュニティ投稿のサーバー側処理。`server.ts`（投稿 + メディア + 楽曲）、`reply.ts`（誕生日スレッド返信） |
+| `/lib/birthday/` | 誕生日スレッド生成。`date.ts`（営業日 / タイムゾーン）、`thread.ts`（スレッド検索・生成・カバー選択） |
 | `/lib/animations/` | `variants.ts` による Framer Motion 用バリアント定義 |
 | `/lib/utils/` | 汎用ユーティリティ関数（`birthday.ts`, `media.ts`, `theme.ts`, `videoThumbnail.ts`） |
 | `/lib/validations/` | Zod を使ったバリデーションスキーマ |
@@ -418,7 +453,7 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 | File | 説明 |
 |------|------|
 | `themes.ts` | 季節・イベントごとのテーマ設定（色・背景・エフェクトなど） |
-| `music.ts` | デフォルトの楽曲リスト定義 |
+| `music.ts` | デフォルト楽曲リスト（`lib/music/presets.ts` の Jamendo プリセットを整形）と ID 検索ヘルパー |
 
 ---
 
@@ -464,11 +499,21 @@ Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検
 
 | File | 対象 |
 |------|------|
-| `birthdays-route.test.ts` | `/api/birthdays` 一覧 / 作成ルート |
+| `birthdays-route.test.ts` | `/api/birthdays` 一覧ルート |
 | `route-limit-validation.test.ts` | ルート共通のレートリミット・バリデーション |
 | `time-capsules-route.test.ts` | `/api/time-capsules` ルート |
 | `time-capsules-access-route.test.ts` | `/api/time-capsules/access` ルート |
 | `time-capsules-invite-access-route.test.ts` | 招待経由のアクセスルート |
+| `community-route.test.ts` | `/api/community` ルート |
+| `community-media-route.test.ts` | `/api/community/media`（multipart 直接アップロード）ルート |
+| `community-media-signed-route.test.ts` | `/api/community/media/sign` / `finalize`（署名付きアップロード）ルート |
+| `community-reply-route.test.ts` | `/api/community/reply` ルート |
+| `community-birthday-threads-route.test.ts` | `/api/community/birthday-threads` ルート |
+| `music-search-route.test.ts` | `/api/music/search` ルート |
+| `music-resolve-route.test.ts` | `/api/music/resolve` ルート |
+| `birthday-scheduler-route.test.ts` | `/api/internal/birthday-scheduler` ルート |
+
+> `/api/media`（GET 一覧）のルートテストは `__tests__/app/api/media-route.test.ts` にあります。
 
 ### コンポーネント（`/__tests__/components/`）
 
@@ -480,8 +525,11 @@ Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検
 | `DailyOmikuji.test.tsx` | `DailyOmikuji` 機能 |
 | `PhotoCard.keyboard.test.tsx` | `PhotoCard` のキーボード操作 |
 | `ContributorPromptButtons.test.tsx` | 投稿プロンプトボタン群 |
+| `MessageList.test.tsx` | `MessageList` の楽曲付きメッセージ表示 |
+| `SelectedMusicTrackRow.test.tsx` | `SelectedMusicTrackRow`（楽曲選択行） |
 | `ChatRoom.test.ts` | `ChatRoom` コミュニティ |
 | `TimeCapsule.test.tsx` | `TimeCapsule` コミュニティ |
+| `features/BirthdayHub.events.test.ts` | `BirthdayHub` のイベント判定（midnight 跨ぎ） |
 | `mobile-touch-targets.test.ts` | モバイルのタッチターゲット検証 |
 
 ### 統合テスト（`/__tests__/integration/`）
@@ -492,12 +540,20 @@ Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検
 | `anonymous-flow.local.test.ts` | 匿名フローのローカル実行 |
 | `production-snapshot-regression.test.ts` | 本番スナップショットに対する回帰検証 |
 | `theme-provider-smoke.test.tsx` | `ThemeProvider` のスモークテスト |
+| `community-submission-rpc-migration.test.ts` | `create_community_submission` RPC の migration 整合 |
+| `birthday-thread-reply-migration.test.ts` | 誕生日スレッド + `create_birthday_reply` の migration 整合 |
+| `revoke-anonymous-music-upload-migration.test.ts` | music 匿名アップロード取り消しの migration 整合 |
 
 ### ライブラリ（`/__tests__/lib/`）
 
 | File | 対象 |
 |------|------|
 | `community-media.test.ts` | `lib/supabase/communityMedia.ts` |
+| `birthday-date.test.ts` | `lib/birthday/date.ts` |
+| `birthday-thread.test.ts` | `lib/birthday/thread.ts` |
+| `music-presets.test.ts` | `lib/music/presets.ts` |
+| `music-reference.test.ts` | `lib/music/reference.ts` |
+| `music-server.test.ts` | `lib/music/server.ts` |
 | `healthcheck.test.ts` | `lib/healthcheck.ts` |
 | `media-objecturl.test.ts` | `lib/utils/media.ts` の ObjectURL 処理 |
 | `omikujiData.test.ts` | おみくじデータ整合性 |
@@ -557,6 +613,7 @@ CLI から実行する Node スクリプト群です。対応するテストは 
 | `collect-festival-snapshot.mjs` | 祝祭日カタログのスナップショット収集 |
 | `compare-festival-catalogs.mjs` | 祝祭日カタログの差分比較 |
 | `generate-data-manifest.mjs` | `data/generated/` のマニフェスト再生成 |
+| `local-healthcheck-mock.mjs` | CI の Supabase read-only 検証（psql attestation）をローカルで再現するモック |
 
 ---
 

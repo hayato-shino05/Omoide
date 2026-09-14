@@ -58,7 +58,7 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | `Timer` | Real-time countdown | Shows the remaining time until the next birthday or milestone using Supabase data. |
 | `Cake` | Interactive cake | 2D/3D cake with microphone-enabled candle blowing interaction. |
 | `Scroll` | 3D Omikuji Fortune (Three.js) | Interactive 3D Japanese Omikuji cylinder with 360-degree orbit, haptic shake physics, bamboo stick reveal, Waka/Haiku poems, 4 life categories (Bond, Health, Wish, Blessing), and lucky items. |
-| `Music` | Music player | Plays celebration songs and nostalgic/vintage tracks with Howler.js. |
+| `Music` | Music player & song picker | Plays a curated Jamendo preset playlist (10 tracks by default). Search across SoundCloud and Jamendo via `/api/music/search`, resolve a `provider:id` reference to a playable stream via `/api/music/resolve`, and play or preview the stream with the browser Audio API. |
 | `PartyPopper` | Visual effects | Displays confetti, fireworks, balloons, and seasonal particle effects. |
 
 ### MEDIA & KEEPSAKES
@@ -66,9 +66,9 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | Icon | Feature | Description |
 |------|---------|-------------|
 | `Image` | Photo & video album | Organizes memories with Supabase Storage. |
-| `Camera` | Photo booth / frame | Takes photos via WebRTC camera and frames them with custom seasonal borders. |
+| `Camera` | Photo booth / frame | Applies seasonal frames to WebRTC camera captures or library images and downloads the result as an image. |
 | `Clock` | On This Day Flashback | Revisit memories and photos from past milestones on the same calendar day. |
-| `Mail` | Time Capsule | Seal letters, photos, and audio recordings to be unlocked on future milestone dates. |
+| `Mail` | Time Capsule | Seal a letter with an optional photo for a future milestone date, share it with an access code, and print an unlocked capsule as a keepsake card. |
 | `Tags` | Tag management | Adds searchable tags to media files. |
 | `Upload` | Media upload | Supports image and video uploads through `react-dropzone`. |
 | `Search` | Search | Helps users find media by tags or text. |
@@ -91,7 +91,7 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | `Mic` | Voice messages | Browser voice recording and audio message sharing. |
 | `Video` | Video messages | Record and save video greetings directly from the webcam. |
 | `Gift` | Virtual gifts | Select and send digital celebration gifts. |
-| `Share2` | Sharing links | Share invite links directly to social platforms. |
+| `Share2` | Sharing links | Share the celebration page through social platforms, the Web Share API, or a copied link. |
 
 ### THEMES & MOBILE OPTIMIZATION
 
@@ -136,7 +136,6 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | lucide-react | 0.556.0 | UI Icons |
 | Zustand | 5.0.9 | Global state |
 | TanStack Query | 5.90.12 | Server state & caching |
-| Howler.js | 2.2.4 | Audio playback |
 | react-dropzone | 14.3.8 | Drag-and-drop file upload |
 | date-fns | 4.1.0 | Date utilities |
 
@@ -148,25 +147,181 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | Supabase Storage | Media asset storage |
 | Supabase Realtime | Real-time messaging subscription |
 | Next.js API Routes | Serverless backend endpoints |
+| Jamendo API / SoundCloud API | Music search and stream resolution (`lib/music/server.ts`) |
 | Vercel Analytics | Web analytics |
 | Vercel | Hosting platform |
 
-## HOW TO USE
+> Music playback runs on the browser's native Audio API. The curated preset catalog and any provider stream resolved by `/api/music/resolve` are loaded directly as audio sources.
+
+## ENVIRONMENT
+
+### PREREQUISITES
+
+| Item | Version or requirement |
+|------|------------------------|
+| Node.js | 20.9.0 or later |
+| npm | Bundled with Node.js |
+| Supabase | Project URL and anonymous key required |
+| Browser | Chrome 111+, Edge 111+, Firefox 111+, Safari 16.4+ |
+
+### ENVIRONMENT VARIABLES
+
+Copy `.env.example` to `.env.local` to get started.
 
 ```bash
-# 1. Clone repository
+cp .env.example .env.local
+```
+
+Among the variables in `.env.example`, `NEXT_PUBLIC_*` variables are public and get inlined into the client bundle. Everything else is server-only. See `.env.example` for the full list of variable names.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Required | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Required | Supabase anonymous (public) key, used together with RLS |
+| `NEXT_PUBLIC_BASE_URL` | Optional | Site base URL used for sitemap canonical URLs and as the scheduler target URL in GitHub Actions |
+
+| Variable | Purpose |
+|----------|---------|
+| `BIRTHDAY_SCHEDULER_SECRET` | Shared secret for the daily birthday-thread scheduler. `POST /api/internal/birthday-scheduler` compares the request header `x-birthday-scheduler-secret` against this value. Set the same value in the deployment environment and GitHub Actions. |
+| `JAMENDO_CLIENT_ID` | Jamendo API client ID used for music search. When unset, only Jamendo search is disabled; the curated presets still play. |
+| `SOUNDCLOUD_CLIENT_ID`, `SOUNDCLOUD_CLIENT_SECRET` | SoundCloud OAuth client credentials used to search and resolve SoundCloud streams. |
+
+> Do not put server-only variables into the client bundle. `.env.example` only contains placeholder values; store real values in Vercel environment variables or GitHub Actions secrets.
+
+> The i18n language preference is stored in a cookie named `birthday-locale` (defined as `LANGUAGE_COOKIE_NAME` in `lib/i18n/cookie.ts`). SSR language detection and the UI switch both read this cookie.
+
+## HOW TO USE
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/hayato-shino05/happy-birthday-website.git
 cd happy-birthday-website
+```
 
-# 2. Install dependencies
+### 2. Install dependencies
+
+```bash
 npm install
+```
 
-# 3. Configure environment
+### 3. Configure environment variables
+
+```bash
 cp .env.example .env.local
+```
 
-# 4. Start development server
+Edit `.env.local`.
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+### 4. Prepare Supabase
+
+See [DATABASE.md](./DATABASE.md) for the required tables, Storage buckets, and RLS policies.
+
+### 5. Start the development server
+
+```bash
 npm run dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 6. Verify locally
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+## DEPLOY
+
+### Deploying to Vercel
+
+[Open this repository in Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhayato-shino05%2Fhappy-birthday-website&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_BASE_URL&envDescription=Supabase%20configuration%20and%20public%20base%20URL&envLink=https%3A%2F%2Fsupabase.com%2Fdocs)
+
+To deploy manually, import the repository into Vercel and configure the required environment variables.
+
+### Daily birthday-thread generation
+
+Every day at 09:05 (JST), the schedule in `.github/workflows/supabase-healthcheck.yml` (`cron: '5 0 * * *'` / `Asia/Tokyo`) calls `POST /api/internal/birthday-scheduler`, which generates threads for members whose birthday is today.
+
+- The endpoint only processes requests whose `x-birthday-scheduler-secret` header matches the `BIRTHDAY_SCHEDULER_SECRET` environment variable (compared with `timingSafeEqual`).
+- Register the shared `BIRTHDAY_SCHEDULER_SECRET` and the target URL `NEXT_PUBLIC_BASE_URL` as GitHub Actions secrets, and set the same `BIRTHDAY_SCHEDULER_SECRET` on the deployment (Vercel) side.
+- To run it outside the schedule, trigger the workflow manually with `workflow_dispatch`.
+
+## SECURITY
+
+| Item | Handling |
+|------|----------|
+| Supabase anonymous key | A public key used from the frontend. It is combined with RLS to scope access. |
+| Supabase service role key | Never expose it. Do not put it in `.env.local`, this README, or the client bundle. |
+| Server-only secrets | Variables outside `NEXT_PUBLIC_*` (for example `BIRTHDAY_SCHEDULER_SECRET`, `SOUNDCLOUD_CLIENT_SECRET`) must not be exposed to clients. Reference them only in server execution contexts such as API Routes. |
+| RLS | Enable RLS on the Supabase side. |
+| Uploads | Manage file size, type, and visibility through Supabase settings and app-side validation. |
+
+## PROJECT STRUCTURE
+
+See [STRUCTURE.md](./STRUCTURE.md) for architecture details.
+
+```text
+omoide/
+├── app/                      # Next.js App Router and API Routes
+├── components/               # UI, feature, community, game, and effect components
+├── config/                   # Theme and music configuration
+├── data/                     # i18n and festival data packs
+├── lib/                      # hooks, stores, Supabase, i18n, music, providers
+├── public/                   # Static assets
+├── types/                    # TypeScript type definitions
+├── __tests__/                # Vitest tests
+├── e2e/                      # Playwright E2E tests
+├── scripts/                  # Data generation and maintenance scripts
+├── DATABASE.md               # Supabase schema
+├── STRUCTURE.md              # Architecture overview
+└── package.json              # Scripts and dependencies
+```
+
+## NPM SCRIPTS
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the development server. |
+| `npm run build` | Create a production build. |
+| `npm run start` | Start the production server. |
+| `npm run lint` | Run ESLint. |
+| `npm run typecheck` | Run TypeScript type checking (`tsc --noEmit`). |
+| `npm run test` | Run Vitest once. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run test:coverage` | Run tests with coverage. |
+| `npm run test:e2e` | Run E2E tests with Playwright. |
+| `npm run generate:data` | Regenerate the manifests under `data/generated/`. |
+
+## DOCUMENTS
+
+| Document | Contents |
+|----------|----------|
+| [README.md](./README.md) | Japanese README |
+| [STRUCTURE.md](./STRUCTURE.md) | Directory layout and architecture |
+| [DATABASE.md](./DATABASE.md) | Supabase schema and policies |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guide |
+| [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | Code of conduct |
+
+## CONTRIBUTING
+
+Contributions are welcome. For large spec or design changes, open an Issue first to discuss the direction.
+
+1. Fork and clone the repository.
+2. Create a working branch.
+3. Update the implementation or documentation.
+4. Run `npm run lint`, `npm run test`, and `npm run build` when relevant.
+5. Open a Pull Request.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## AUTHOR
 

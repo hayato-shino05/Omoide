@@ -1,11 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useId } from 'react'
+import { type ReactElement, useId } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MessageForm } from '@/components/community/MessageForm'
 import PostForm from '@/components/community/PostForm'
+import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
 
 const sendMessage = vi.fn()
 const uploadCommunityMedia = vi.hoisted(() => vi.fn())
+
+const renderWithMusicProvider = (ui: ReactElement) =>
+  render(<MusicPlayerProvider>{ui}</MusicPlayerProvider>)
 
 vi.mock('@/lib/i18n/LanguageContext', () => ({
   useLanguage: () => ({
@@ -55,7 +59,7 @@ beforeEach(() => {
 
 describe('Contributor prompts', () => {
   it('fills an empty message form without submitting and protects existing text', () => {
-    render(<MessageForm />)
+    renderWithMusicProvider(<MessageForm />)
 
     const textarea = screen.getByRole('textbox', { name: 'messagePlaceholder' })
     const prompt = screen.getByRole('button', { name: 'contributorPromptBirthday' })
@@ -74,7 +78,7 @@ describe('Contributor prompts', () => {
 
   it('fills an empty post form without submitting and protects existing text', () => {
     const onSubmit = vi.fn().mockResolvedValue(true)
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     const textarea = screen.getByPlaceholderText('typeMessage')
     const prompt = screen.getByRole('button', { name: 'contributorPromptMemory' })
@@ -93,7 +97,7 @@ describe('Contributor prompts', () => {
 
   it('keeps text-only submission state when onSubmit returns false', async () => {
     const onSubmit = vi.fn().mockResolvedValue(false)
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: '失敗する投稿' } })
@@ -106,7 +110,7 @@ describe('Contributor prompts', () => {
 
   it('keeps text-only submission state when onSubmit rejects', async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error('submit failed'))
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: '例外になる投稿' } })
@@ -119,7 +123,7 @@ describe('Contributor prompts', () => {
 
   it('submits post media through the transactional community route', async () => {
     const onSubmit = vi.fn().mockResolvedValue(true)
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: 'おめでとう！' } })
@@ -139,7 +143,7 @@ describe('Contributor prompts', () => {
 
   it('normalizes codec-qualified post media MIME types before the transactional route', async () => {
     const onSubmit = vi.fn().mockResolvedValue(true)
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: '動画です' } })
@@ -157,7 +161,7 @@ describe('Contributor prompts', () => {
   it('does not invoke the legacy callback when transactional media submission fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: '投稿を送信できません' }), { status: 500 })))
     const onSubmit = vi.fn().mockRejectedValue(new Error('legacy callback must not run'))
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: '失敗する投稿' } })
@@ -172,7 +176,7 @@ describe('Contributor prompts', () => {
   })
 
   it('closes the PostForm camera only after media validation succeeds', () => {
-    render(<PostForm onSubmit={vi.fn()} />)
+    renderWithMusicProvider(<PostForm onSubmit={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'takePhoto' }))
     fireEvent.click(screen.getByRole('button', { name: 'mockValidCapture' }))
@@ -181,7 +185,7 @@ describe('Contributor prompts', () => {
   })
 
   it('closes the PostForm camera and shows the validation error when capture is rejected', () => {
-    render(<PostForm onSubmit={vi.fn()} />)
+    renderWithMusicProvider(<PostForm onSubmit={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'takePhoto' }))
     fireEvent.click(screen.getByRole('button', { name: 'mockInvalidCapture' }))
@@ -193,7 +197,7 @@ describe('Contributor prompts', () => {
   })
 
   it('closes the MessageForm camera and shows the validation error when capture is rejected', () => {
-    render(<MessageForm />)
+    renderWithMusicProvider(<MessageForm />)
 
     fireEvent.click(screen.getByRole('button', { name: 'takePhoto' }))
     fireEvent.click(screen.getByRole('button', { name: 'mockInvalidCapture' }))
@@ -205,7 +209,7 @@ describe('Contributor prompts', () => {
   })
 
   it('closes the MessageForm camera after media validation succeeds', () => {
-    render(<MessageForm />)
+    renderWithMusicProvider(<MessageForm />)
 
     fireEvent.click(screen.getByRole('button', { name: 'takePhoto' }))
     fireEvent.click(screen.getByRole('button', { name: 'mockValidCapture' }))
@@ -214,7 +218,7 @@ describe('Contributor prompts', () => {
   })
 
   it('submits a text-only message through the community route', async () => {
-    render(<MessageForm birthdayPerson="太郎" />)
+    renderWithMusicProvider(<MessageForm birthdayPerson="太郎" />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'yourName' }), { target: { value: '花子' } })
     fireEvent.change(screen.getByRole('textbox', { name: 'messagePlaceholder' }), { target: { value: 'おめでとう！' } })
@@ -235,7 +239,7 @@ describe('Contributor prompts', () => {
       throw new Error('storage quota exceeded')
     })
     const onSuccess = vi.fn()
-    render(<MessageForm onSuccess={onSuccess} />)
+    renderWithMusicProvider(<MessageForm onSuccess={onSuccess} />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'yourName' }), { target: { value: '花子' } })
     fireEvent.change(screen.getByRole('textbox', { name: 'messagePlaceholder' }), { target: { value: 'おめでとう！' } })
@@ -249,7 +253,7 @@ describe('Contributor prompts', () => {
 
   it('shows a safe localized error when PostForm submission throws', async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error('database details'))
-    render(<PostForm onSubmit={onSubmit} />)
+    renderWithMusicProvider(<PostForm onSubmit={onSubmit} />)
 
     fireEvent.change(screen.getByPlaceholderText('yourName'), { target: { value: '花子' } })
     fireEvent.change(screen.getByPlaceholderText('typeMessage'), { target: { value: 'おめでとう！' } })
@@ -261,7 +265,7 @@ describe('Contributor prompts', () => {
 
   it('shows a safe localized error when MessageForm submission throws', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('database details')))
-    render(<MessageForm />)
+    renderWithMusicProvider(<MessageForm />)
 
     fireEvent.change(screen.getByRole('textbox', { name: 'yourName' }), { target: { value: '花子' } })
     fireEvent.change(screen.getByRole('textbox', { name: 'messagePlaceholder' }), { target: { value: 'おめでとう！' } })
@@ -272,7 +276,7 @@ describe('Contributor prompts', () => {
   })
 
   it('rejects unsupported post media before upload', () => {
-    render(<PostForm onSubmit={vi.fn()} />)
+    renderWithMusicProvider(<PostForm onSubmit={vi.fn()} />)
     const file = new File(['audio'], 'post.mp3', { type: 'audio/mpeg' })
 
     fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } })
@@ -281,7 +285,7 @@ describe('Contributor prompts', () => {
   })
 
   it('rejects post media larger than the canonical 50MB limit', () => {
-    render(<PostForm onSubmit={vi.fn()} />)
+    renderWithMusicProvider(<PostForm onSubmit={vi.fn()} />)
     const file = new File(['image'], 'post.png', { type: 'image/png' })
     Object.defineProperty(file, 'size', { value: 50 * 1024 * 1024 + 1 })
 

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SelectedMusicTrackRow } from '@/components/community/SelectedMusicTrackRow'
+import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
 
 vi.mock('@/lib/i18n/LanguageContext', () => ({
   useLanguage: () => ({ locale: 'ja-JP', t: (key: string) => key }),
@@ -19,6 +20,16 @@ describe('SelectedMusicTrackRow', () => {
     expect(button).toBeInTheDocument()
     fireEvent.click(button)
     expect(onOpenPicker).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows retry for a non-OK resolve response and preserves SoundCloud metadata', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'unavailable' }), { status: 503 })))
+    render(<SelectedMusicTrackRow value="soundcloud:42" onChange={() => undefined} onOpenPicker={() => undefined} />)
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+    expect(screen.getByText('songSearchFailed')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'songSearchButton' }))
+    expect(fetch).toHaveBeenCalledWith('/api/music/resolve?ref=soundcloud%3A42')
   })
 
   it('renders selected preset track with Change and Clear buttons', () => {
@@ -53,16 +64,18 @@ describe('SongPickerModal listbox keyboard (via SelectedMusicTrackRow → modal)
 
     const SongPickerModal = (await import('@/components/community/SongPickerModal')).default
     render(
-      <SongPickerModal isOpen={true} onClose={onClose} onConfirm={onConfirm} initialValue="" />
+      <MusicPlayerProvider>
+        <SongPickerModal isOpen={true} onClose={onClose} onConfirm={onConfirm} initialValue="" />
+      </MusicPlayerProvider>
     )
 
-    const listbox = await screen.findByRole('listbox')
-    expect(listbox).toHaveAttribute('tabindex', '0')
-    const options = screen.getAllByRole('option')
-    expect(options.length).toBeGreaterThan(0)
+    const songList = await screen.findByRole('list', { name: 'selectSong' })
+    expect(songList).toBeInTheDocument()
+    const songButtons = screen.getAllByRole('button', { name: /selectSong:/ })
+    expect(songButtons.length).toBeGreaterThan(0)
 
-    fireEvent.keyDown(listbox, { key: 'ArrowDown' })
-    fireEvent.keyDown(listbox, { key: 'Enter' })
+    songButtons[0].focus()
+    fireEvent.keyDown(songButtons[0], { key: 'Enter' })
     await waitFor(() => {
       expect(
         screen.getByRole('button', { name: 'confirm' })

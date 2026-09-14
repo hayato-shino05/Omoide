@@ -3,6 +3,16 @@
 @theme {
   --font-sans: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+
+  --color-music-surface: var(--music-surface);
+  --color-music-surface-elevated: var(--music-surface-elevated);
+  --color-music-text: var(--music-text);
+  --color-music-text-muted: var(--music-text-muted);
+  --color-music-border: var(--music-border);
+  --color-music-accent: var(--music-accent);
+  --color-music-focus: var(--music-focus);
+  --color-music-error: var(--music-error);
+  --color-music-success: var(--music-success);
 }
 
 /* ===== ボタンのテキストカラーを白に固定 ===== */
@@ -23,7 +33,16 @@ span.text-white\! {
   --color-surface: #FFF9F3;
   --color-text: #2C1810;
   --color-accent: #8B4513;
-  
+  --music-surface: #F3F6F7;
+  --music-surface-elevated: #FFFFFF;
+  --music-text: #102A43;
+  --music-text-muted: #486581;
+  --music-border: #9FB3C8;
+  --music-accent: #D95D39;
+  --music-focus: #0B7285;
+  --music-error: #B42318;
+  --music-success: #167D4B;
+
   /* テーマ固有の設定（テーマによって上書きされる） */
   --theme-primary: #854D27;
   --theme-secondary: #D4B08C;
@@ -39,6 +58,32 @@ span.text-white\! {
   --font-heading: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-accent: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --music-surface: #102A43;
+    --music-surface-elevated: #243B53;
+    --music-text: #F0F4F8;
+    --music-text-muted: #BCCCDC;
+    --music-border: #486581;
+    --music-accent: #E76F51;
+    --music-focus: #67E8F9;
+    --music-error: #FFB4AB;
+    --music-success: #86EFAC;
+  }
+}
+
+.dark {
+  --music-surface: #102A43;
+  --music-surface-elevated: #243B53;
+  --music-text: #F0F4F8;
+  --music-text-muted: #BCCCDC;
+  --music-border: #486581;
+  --music-accent: #E76F51;
+  --music-focus: #67E8F9;
+  --music-error: #FFB4AB;
+  --music-success: #86EFAC;
 }
 
 /* ===== ベーススタイル ===== */
@@ -586,8 +631,9 @@ body.theme-bunka {
 
 .fixed-bottom-center {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
+  width: min(980px, calc(100vw - 560px));
   transform: translateX(-50%);
   z-index: 1001;
 }
@@ -745,42 +791,6 @@ body.theme-bunka {
     font-size: 0.45em !important;
   }
   
-  /* ミュージックプレイヤー - 左下にコンパクト配置（タップしやすさ維持） */
-  .fixed-bottom-center {
-    bottom: 5px;
-    left: 5px;
-    right: auto;
-    transform: none;
-    max-width: 55%;
-  }
-  
-  .fixed-bottom-center .music-player {
-    padding: 5px 8px !important;
-    gap: 5px !important;
-  }
-  
-  .fixed-bottom-center .music-player button {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    font-size: 0.8rem !important;
-  }
-  
-  .fixed-bottom-center .music-player .song-title {
-    display: none !important;
-  }
-  
-  /* 「曲を選ぶ」のアイコンだけを表示 */
-  .fixed-bottom-center .music-player > button:last-of-type {
-    padding: 4px 8px !important;
-    width: auto !important;
-    height: auto !important;
-  }
-  
-  .fixed-bottom-center .music-player > button:last-of-type span:last-child {
-    display: none !important;
-  }
-  
   .main-content {
     padding: 130px 8px 60px;
   }
@@ -791,6 +801,37 @@ body.theme-bunka {
   }
 }
 
+/* ===== 和風音波インジケーターアニメーション ===== */
+@keyframes omoide-soundbar {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.45;
+  }
+  50% {
+    height: 18px;
+    opacity: 1;
+  }
+}
+
+.animate-soundbar-1 {
+  animation: omoide-soundbar 1.1s ease-in-out infinite;
+}
+
+.animate-soundbar-2 {
+  animation: omoide-soundbar 0.85s ease-in-out 0.2s infinite;
+}
+
+.animate-soundbar-3 {
+  animation: omoide-soundbar 1.25s ease-in-out 0.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-soundbar-1,
+  .animate-soundbar-2,
+  .animate-soundbar-3 {
+    animation: none !important;
+  }
+}
 
 /* ===== カスタムアニメーション ===== */
 @keyframes ripple {
@@ -934,6 +975,14 @@ body.theme-bunka {
   animation-name: slide-in-from-bottom;
 }
 
+/* ===== スクロールバー矢印ボタンの非表示（Windowsネイティブ対策） ===== */
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ===== カスタムスクロールバー ===== */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -941,17 +990,64 @@ body.theme-bunka {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(212, 176, 140, 0.35);
   border-radius: 3px;
+  transition: background-color 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(212, 176, 140, 0.65);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 176, 140, 0.35) transparent;
+}
+
+/* ===== 和風ミュージックモーダル用カスタムスクロールバー ===== */
+.omoide-music-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--music-border) 40%, transparent);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--music-border) 75%, transparent);
+}
+
+.omoide-music-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--music-border) 40%, transparent) transparent;
+}
+
+/* 検索入力のブラウザネイティブクリアボタンを無効化 */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+input[type="search"]::-ms-clear,
+input[type="search"]::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ===== フォーカス時のスタイル ===== */

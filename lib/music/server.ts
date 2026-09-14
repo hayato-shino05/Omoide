@@ -54,7 +54,11 @@ function isLicenseAllowed(licenseUrl: string): boolean {
 function isAllowedSoundCloudStreamUrl(value: string): boolean {
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' && ALLOWED_SOUNDCLOUD_STREAM_HOSTS.has(url.hostname)
+    return url.protocol === 'https:' && (
+      url.hostname === 'api.soundcloud.com' ||
+      url.hostname.endsWith('.sndcdn.com') ||
+      url.hostname === 'sndcdn.com'
+    )
   } catch {
     return false
   }
@@ -77,7 +81,7 @@ function asJamendoTrack(value: unknown): JamendoTrack | null {
 function mapSoundCloudTrack(track: SoundCloudTrack): SearchTrack | null {
   const reference = parseMusicTrackReference(`soundcloud:${track.id}`)
   if (!reference || !track.title) return null
-  const access = track.access === 'playable' && typeof track.stream_url === 'string' && isAllowedSoundCloudStreamUrl(track.stream_url)
+  const access = track.access === 'playable'
     ? 'playable'
     : track.access === 'preview'
       ? 'preview'
@@ -194,6 +198,7 @@ async function jamendoRequest(query: Record<string, string>): Promise<unknown | 
 }
 
 function searchResults(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload
   return isRecord(payload) && Array.isArray(payload.collection) ? payload.collection : []
 }
 
@@ -233,6 +238,47 @@ function presetToResolved(preset: (typeof JAPAN_PRESET_TRACKS)[number]): Resolve
   }
 }
 
+export async function resolveSoundCloudCdnUrl(streamUrl: string): Promise<string | null> {
+  if (!isAllowedSoundCloudStreamUrl(streamUrl)) return null
+  try {
+    const url = new URL(streamUrl)
+    if (url.hostname.endsWith('.sndcdn.com')) return streamUrl
+
+    const token = await getSoundCloudToken()
+    if (!token) return null
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `OAuth ${token}`,
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+
+    if (response.status === 302 || response.status === 301 || response.status === 307) {
+      const location = response.headers.get('location')
+      if (location && isAllowedSoundCloudStreamUrl(location)) {
+        return location
+      }
+    }
+
+    if (response.ok) {
+      const payload: unknown = await response.json().catch(() => null)
+      if (isRecord(payload) && typeof payload.http_mp3_128_url === 'string' && isAllowedSoundCloudStreamUrl(payload.http_mp3_128_url)) {
+        return payload.http_mp3_128_url
+      }
+      if (response.url && isAllowedSoundCloudStreamUrl(response.url) && response.url !== streamUrl) {
+        return response.url
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 export async function resolveMusicTrack(value: string): Promise<ResolvedTrack | null> {
   const reference = parseMusicTrackReference(value)
   if (!reference) return null
@@ -241,18 +287,43 @@ export async function resolveMusicTrack(value: string): Promise<ResolvedTrack | 
     const payload = await soundCloudRequest(`/tracks/${reference.trackId}`)
     const track = asSoundCloudTrack(payload)
     const mapped = track && mapSoundCloudTrack(track)
-    if (!mapped || mapped.access !== 'playable' || typeof track.stream_url !== 'string' || !isAllowedSoundCloudStreamUrl(track.stream_url)) return null
-    return { ...mapped, streamUrl: track.stream_url }
+    if (!mapped || mapped.access !== 'playable' || typeof track.stream_url !== 'string') return null
+    const streamUrl = await resolveSoundCloudCdnUrl(track.stream_url)
+    if (!streamUrl || !isAllowedSoundCloudStreamUrl(streamUrl)) return null
+    return { ...mapped, streamUrl }
   }
 
   const preset = findPresetJamendoTrack(reference.trackId)
   if (preset) return presetToResolved(preset)
 
+  const fallbackStream = getJamendoStreamUrl(reference.trackId)
   const payload = await jamendoRequest({ id: reference.trackId, limit: '1' })
   const track = asJamendoTrack(jamendoResults(payload)[0])
   const mapped = track && mapJamendoTrack(track)
-  if (!mapped || typeof track.audio !== 'string' || !track.audio.startsWith('https://')) return null
-  return { ...mapped, streamUrl: track.audio }
+
+  if (mapped) {
+    const streamUrl = (typeof track.audio === 'string' && track.audio.startsWith('https://'))
+      ? track.audio
+      : fallbackStream
+    if (streamUrl) {
+      return { ...mapped, streamUrl }
+    }
+  }
+
+  if (fallbackStream) {
+    return {
+      provider: 'jamendo',
+      trackId: reference.trackId,
+      reference: `jamendo:${reference.trackId}`,
+      access: 'playable',
+      name: `Track ${reference.trackId}`,
+      artistName: 'Jamendo Artist',
+      duration: 0,
+      streamUrl: fallbackStream,
+    }
+  }
+
+  return null
 }
 
 export async function validateMusicTrackReference(value: string): Promise<string | null> {
