@@ -8,15 +8,14 @@ Omoide is a birthday-memory web app: a shared place to celebrate, record, and re
 
 Let a user choose one song, preview it, confirm it, and keep listening while they remain in the birthday-memory experience. The selected reference must be safe to carry between the picker, player, composer, and published memory card.
 
-## In-scope surfaces
+## Core capabilities
 
-The redesign covers exactly five existing surfaces:
-
-1. `MusicPlayer`: desktop now-playing bar for play/pause, previous/next, seeking, volume, retry, and opening the picker.
-2. `MobileBottomDock`: mobile listening bar and navigation entry, with safe-area-aware placement.
-3. `SongPickerModal`: search-first picker for curated presets and provider results; preview is temporary, confirmation is explicit.
-4. `SelectedMusicTrackRow`: one-song selection in the post composer; changing or clearing music must not erase the message body.
-5. `MusicComment`: read-only player card attached to a published memory; it preserves the memory text when resolution or playback fails.
+1. `MusicPlayer`: desktop now-playing bar with Play/Pause, previous/next, shuffle (🔀), repeat modes (🔁 off/all/one), custom progress-filled seek bar, volume control, lyrics drawer toggle, and song picker button.
+2. `LyricsDrawer`: expandable/collapsible drawer presenting real-time synchronized LRC lyrics with smooth auto-scroll.
+3. `MobileBottomDock`: mobile listening bar and navigation entry, with safe-area-aware placement.
+4. `SongPickerModal`: search-first picker for curated presets (Cloudflare R2 + Supabase) and provider results (Jamendo, SoundCloud); preview is temporary, confirmation is explicit.
+5. `State Persistence`: playback position, active track, shuffle, and repeat modes persist across browser refreshes and sessions via Zustand and `localStorage`.
+6. `SelectedMusicTrackRow` & `MusicComment`: selection in post composer and memory cards preserving attached track references.
 
 ## Core interaction
 

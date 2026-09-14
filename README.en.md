@@ -58,7 +58,7 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | `Timer` | Real-time countdown | Shows the remaining time until the next birthday or milestone using Supabase data. |
 | `Cake` | Interactive cake | 2D/3D cake with microphone-enabled candle blowing interaction. |
 | `Scroll` | 3D Omikuji Fortune (Three.js) | Interactive 3D Japanese Omikuji cylinder with 360-degree orbit, haptic shake physics, bamboo stick reveal, Waka/Haiku poems, 4 life categories (Bond, Health, Wish, Blessing), and lucky items. |
-| `Music` | Music player & song picker | Plays a curated Jamendo preset playlist (10 tracks by default). Search across SoundCloud and Jamendo via `/api/music/search`, resolve a `provider:id` reference to a playable stream via `/api/music/resolve`, and play or preview the stream with the browser Audio API. |
+| `Music` | Music player, live lyrics, and song picker | Stream curated high-quality celebration music hosted on Cloudflare R2 + Supabase, or search across SoundCloud and Jamendo (`/api/music/search`, `/api/music/resolve`). Features a live synchronized LRC lyrics drawer (`LyricsDrawer`), playback controls (Shuffle 🔀, Repeat modes 🔁 all/one/off, custom progress-fill seekbar, volume control), and state persistence across page reloads (Zustand + `localStorage`). |
 | `PartyPopper` | Visual effects | Displays confetti, fireworks, balloons, and seasonal particle effects. |
 
 ### MEDIA & KEEPSAKES
@@ -195,8 +195,8 @@ Among the variables in `.env.example`, `NEXT_PUBLIC_*` variables are public and 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/hayato-shino05/happy-birthday-website.git
-cd happy-birthday-website
+git clone https://github.com/hayato-shino05/Omoide.git
+cd Omoide
 ```
 
 ### 2. Install dependencies
@@ -239,11 +239,23 @@ npm run test
 npm run build
 ```
 
+### 7. Add and sync music & lyrics
+
+To manage or upload custom music tracks and synchronized lyrics, use the automated sync script powered by Cloudflare R2 and Supabase. See [DATABASE.md](./DATABASE.md#音楽と歌詞の追加管理手順) for full details.
+
+```bash
+# Convert local audio (FLAC/MP3), covers, and .lrc lyrics, then upload to R2 and Supabase
+node scripts/sync-local-music-to-r2-and-supabase.mjs
+
+# Reorder tracks by sort order
+node scripts/reorder-music-tracks.mjs
+```
+
 ## DEPLOY
 
 ### Deploying to Vercel
 
-[Open this repository in Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhayato-shino05%2Fhappy-birthday-website&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_BASE_URL&envDescription=Supabase%20configuration%20and%20public%20base%20URL&envLink=https%3A%2F%2Fsupabase.com%2Fdocs)
+[Open this repository in Vercel](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhayato-shino05%2FOmoide&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_BASE_URL&envDescription=Supabase%20configuration%20and%20public%20base%20URL&envLink=https%3A%2F%2Fsupabase.com%2Fdocs)
 
 To deploy manually, import the repository into Vercel and configure the required environment variables.
 

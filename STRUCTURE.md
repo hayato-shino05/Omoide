@@ -74,8 +74,9 @@ app/
     │   ├── route.ts        # GET, POST（バーチャルギフト）
     │   └── [id]/route.ts   # GET（単件取得）
     │
-    ├── music/              # 厳選楽曲（Jamendo / SoundCloud）
-    │   ├── search/route.ts # GET（キーワード検索）
+    ├── music/              # 厳選楽曲（Cloudflare R2 + Supabase / Jamendo / SoundCloud）
+    │   ├── curated/route.ts # GET（Supabase + R2 キュレーション楽曲一覧・歌詞・並び順取得）
+    │   ├── search/route.ts  # GET（キーワード検索）
     │   └── resolve/route.ts # GET（provider:trackId → 再生 URL を解決）
     │
     ├── audio/route.ts      # GET（音声メッセージ一覧）
@@ -120,7 +121,8 @@ app/
 
 | Component | 説明 |
 |-----------|------|
-| `MusicPlayer.tsx` | デスクトップ向け常駐プレーヤー。再生 / 一時停止・音量・シーク・曲送りに加え、楽曲選択とプレビューに対応 |
+| `MusicPlayer.tsx` | デスクトップ向け常駐プレーヤー。再生 / 一時停止・音量・シーク（進行度フィル付き）・曲送り・シャッフル・リピートに加え、歌詞トグルと楽曲選択に対応 |
+| `LyricsDrawer.tsx` | リアルタイム同期歌詞ドロワー。LRC 形式のタイムスタンプ解析と再生時間に合わせた自動スクロール表示 |
 
 > 楽曲の選択 UI（`SongPickerModal.tsx`）、選択済み楽曲の表示（`SelectedMusicTrackRow.tsx`）、楽曲付き投稿のサウンドカード（`MusicComment.tsx`）は `/components/community/` に配置しています。モバイル向けのプレーヤー操作は `/components/ui/MobileBottomDock.tsx` に統合されています。
 
@@ -251,13 +253,23 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 
 ### エフェクトコンポーネント（`/components/effects/`）
 
-| `Confetti.tsx` | 紙吹雪エフェクト |
-| `FallingPetals.tsx` | 桜の花びらが舞うエフェクト |
-| `FallingLeaves.tsx` | 紅葉が舞うエフェクト |
-| `FallingSnow.tsx` | 雪のエフェクト |
-| `FloatingLanterns.tsx` | 提灯が浮かぶエフェクト |
-| `VideoBackground.tsx` | 動画背景コンポーネント |
-| `ThemeEffects.tsx` | テーマに応じたエフェクト切り替え |
+| Component | 説明 |
+|-----------|------|
+| `ThemeEffects.tsx` | テーマに応じたエフェクト切り替えディスパッチャー |
+| `Bats.tsx` | コウモリが羽ばたき横断するハロウィン用エフェクト |
+| `ChristmasLights.tsx` | 画面上部に吊るされた多色イルミネーション電飾エフェクト |
+| `Confetti.tsx` | 4種形状・物理演算対応の汎用高機能紙吹雪エフェクト |
+| `FallingLeaves.tsx` | モミジ・イチョウが3D回転しながら舞い落ちる秋エフェクト |
+| `FallingPetals.tsx` | 桜の花びらが3Dフリップ回転で舞い散る春エフェクト |
+| `FallingSnow.tsx` | 遠近感のある複数レイヤーで舞い散る雪結晶エフェクト |
+| `Fireflies.tsx` | 夏・七夕の夜間に浮遊する有機的ホタル光エフェクト |
+| `FloatingLanterns.tsx` | 温かな光を放ちながら上昇する日本の伝統提灯エフェクト |
+| `Ghosts.tsx` | 半透明の愛らしいお化けが揺らめくハロウィン用エフェクト |
+| `Koinobori.tsx` | 空を泳ぐ真鯉・緋鯉・子鯉のこどもの日エフェクト |
+| `MoonGlow.tsx` | お月見用の満月神秘円形光背（コロナ）エフェクト |
+| `ParticleSystem.tsx` | HTML5 Canvas 高性能パーティクル（5種プリセット・マウス追従） |
+| `Sparkles.tsx` | 四芒星のゴールドキラキラパーティクルエフェクト |
+| `VideoBackground.tsx` | サーバー時間同期再生対応の動画背景コンポーネント |
 
 ---
 
@@ -410,7 +422,7 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 | ディレクトリ | 説明 |
 |-------------|------|
 | `/lib/supabase/` | Supabase クライアントとクエリ関連ユーティリティ |
-| `/lib/music/` | 厳選楽曲（Jamendo / SoundCloud）。`types.ts`（provider / reference 型）、`reference.ts`（`provider:trackId` の parse / serialize）、`presets.ts`（Jamendo プリセット）、`server.ts`（server-only の検索・解決） |
+| `/lib/music/` | 厳選楽曲（Cloudflare R2 + Supabase / Jamendo / SoundCloud）。`types.ts`（provider / reference / TrackLyrics 型）、`reference.ts`（`provider:trackId` の parse / serialize）、`lyrics.ts`（LRC タイムスタンプ解析・リアルタイム同期歌詞ヘルパー）、`presets.ts`（Jamendo プリセット）、`server.ts`（server-only の検索・解決） |
 | `/lib/community/` | コミュニティ投稿のサーバー側処理。`server.ts`（投稿 + メディア + 楽曲）、`reply.ts`（誕生日スレッド返信） |
 | `/lib/birthday/` | 誕生日スレッド生成。`date.ts`（営業日 / タイムゾーン）、`thread.ts`（スレッド検索・生成・カバー選択） |
 | `/lib/animations/` | `variants.ts` による Framer Motion 用バリアント定義 |

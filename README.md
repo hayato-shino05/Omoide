@@ -56,9 +56,7 @@
 |----------|------|------|
 | `Timer` | リアルタイムカウントダウン | Supabase の誕生日データをもとに、次の誕生日や記念日までの残り時間を表示します。 |
 | `Cake` | インタラクティブケーキ | 2D/3D ケーキとマイク入力によるロウソク吹き消し演出に対応します。 |
-| `Scroll` | 3D 想い出みくじ（Three.js） | 360 度回転・ドラッグ＆クリック物理シェイク対応の 3D おみくじ筒。和歌・俳句、4 大運勢（縁・健・志・祝）、ラッキー色・品・数を含む全 12 種の本格運勢を提供します。 |
-| `Music` | ミュージックプレイヤー / 楽曲ピッカー | キュレーション済み Jamendo プリセット（既定 10 曲）を再生します。SoundCloud / Jamendo の楽曲検索（`/api/music/search`）と、`provider:id` 参照から再生ストリームを解決する `/api/music/resolve` を備え、解決したストリームをブラウザの Audio API で再生・プレビューできます。 |
-| `PartyPopper` | ビジュアルエフェクト | 紙吹雪、花火、風船、季節のパーティクル演出を表示します。 |
+| `Music` | ミュージックプレイヤー / リアルタイム歌詞 / 楽曲検索 | Cloudflare R2 および Supabase から配信されるキュレーション楽曲の再生、SoundCloud / Jamendo の楽曲検索（`/api/music/search`）とストリーム解決（`/api/music/resolve`）に対応します。LRC 形式のリアルタイム同期歌詞ドロワー（`LyricsDrawer`）、シャッフル（🔀）・リピート（🔁 全曲/1曲/オフ）再生、進行状況フィル付きシークバー、音量調整、および F5 リロード後も再生位置と楽曲を保持する状態永続化（Zustand + `localStorage`）を備えています。 |
 
 ### メディア・思い出機能
 
@@ -201,8 +199,8 @@ cp .env.example .env.local
 ### 1. リポジトリを取得する
 
 ```bash
-git clone https://github.com/hayato-shino05/happy-birthday-website.git
-cd happy-birthday-website
+git clone https://github.com/hayato-shino05/Omoide.git
+cd Omoide
 ```
 
 ### 2. 依存パッケージをインストールする
@@ -245,11 +243,23 @@ npm run test
 npm run build
 ```
 
+### 7. 音楽と歌詞を追加・同期する
+
+独自の楽曲や歌詞を追加する場合は、Cloudflare R2 および Supabase と連携する同期スクリプトを利用できます。詳細は [DATABASE.md](./DATABASE.md#音楽と歌詞の追加管理手順) を参照してください。
+
+```bash
+# ローカル音源 (FLAC/MP3)、カバー画像、.lrc 歌詞を一括変換・同期
+node scripts/sync-local-music-to-r2-and-supabase.mjs
+
+# 楽曲の再生順序を更新
+node scripts/reorder-music-tracks.mjs
+```
+
 ## デプロイ
 
 ### Vercel へのデプロイ
 
-[Vercel でこのリポジトリを開く](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhayato-shino05%2Fhappy-birthday-website&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_BASE_URL&envDescription=Supabase%20configuration%20and%20public%20base%20URL&envLink=https%3A%2F%2Fsupabase.com%2Fdocs)
+[Vercel でこのリポジトリを開く](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhayato-shino05%2FOmoide&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_BASE_URL&envDescription=Supabase%20configuration%20and%20public%20base%20URL&envLink=https%3A%2F%2Fsupabase.com%2Fdocs)
 
 手動でデプロイする場合は、Vercel にリポジトリをインポートし、必要な環境変数を設定してください。
 
