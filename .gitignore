@@ -54,3 +54,4 @@ canonical-home.network-response
 *.log
 .impeccable/
 artifacts/
+.cache/
