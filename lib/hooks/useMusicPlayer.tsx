@@ -91,6 +91,8 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
   const initialSeekTimeRef = useRef<number | null>(null)
   const lastSaveTimeRef = useRef(0)
   const isHydratedRef = useRef(false)
+  // ユーザーが曲を明示的に選択・操作したかどうかのフラグ（初期マウント時の先行自動保存を防止）
+  const userSelectedTrackRef = useRef(false)
 
   const currentTrack = tracks[currentTrackIndex] || null
 
@@ -110,21 +112,38 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
         setRepeatMode(stored.repeatMode)
       }
       if (stored.savedTrack) {
-        const foundIdx = tracksRef.current.findIndex(
-          (t) => (stored.savedTrack!.id && t.id === stored.savedTrack!.id) || (stored.savedTrack!.reference && t.reference === stored.savedTrack!.reference)
-        )
-        if (foundIdx >= 0) {
-          setCurrentTrackIndex(foundIdx)
-        } else {
-          setTracks([stored.savedTrack, ...tracksRef.current])
-          setCurrentTrackIndex(0)
+        // 過去のバグで先行自動保存された Jamendo プリセット曲はフォールバックとみなし、ユーザー明示選択と扱わない
+        const isPresetFallback =
+          Boolean(JAPAN_PRESET_TRACKS[0] && (
+            (stored.savedTrack.reference && stored.savedTrack.reference === JAPAN_PRESET_TRACKS[0].reference) ||
+            (stored.savedTrack.id && stored.savedTrack.id === JAPAN_PRESET_TRACKS[0].id)
+          ))
+        if (!isPresetFallback) {
+          userSelectedTrackRef.current = true
+          const foundIdx = tracksRef.current.findIndex(
+            (t) => (stored.savedTrack!.id && t.id === stored.savedTrack!.id) || (stored.savedTrack!.reference && t.reference === stored.savedTrack!.reference)
+          )
+          if (foundIdx >= 0) {
+            setCurrentTrackIndex(foundIdx)
+          } else {
+            setTracks([stored.savedTrack, ...tracksRef.current])
+            setCurrentTrackIndex(0)
+          }
         }
       } else if (stored.lastTrackId || stored.lastTrackReference) {
-        const foundIdx = tracksRef.current.findIndex(
-          (t) => (stored.lastTrackId && t.id === stored.lastTrackId) || (stored.lastTrackReference && t.reference === stored.lastTrackReference)
-        )
-        if (foundIdx >= 0) {
-          setCurrentTrackIndex(foundIdx)
+        const isPresetFallback =
+          Boolean(JAPAN_PRESET_TRACKS[0] && (
+            (stored.lastTrackReference && stored.lastTrackReference === JAPAN_PRESET_TRACKS[0].reference) ||
+            (stored.lastTrackId && stored.lastTrackId === JAPAN_PRESET_TRACKS[0].id)
+          ))
+        if (!isPresetFallback) {
+          userSelectedTrackRef.current = true
+          const foundIdx = tracksRef.current.findIndex(
+            (t) => (stored.lastTrackId && t.id === stored.lastTrackId) || (stored.lastTrackReference && t.reference === stored.lastTrackReference)
+          )
+          if (foundIdx >= 0) {
+            setCurrentTrackIndex(foundIdx)
+          }
         }
       }
       if (typeof stored.savedTime === 'number' && stored.savedTime > 0) {
@@ -160,7 +179,7 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
             const stored = useMusicStore.getState()
             let nextTracks = loadedTracks
             let targetIdx = 0
-            if (stored.savedTrack) {
+            if (userSelectedTrackRef.current && stored.savedTrack) {
               const inLoaded = loadedTracks.findIndex(
                 (t) => (stored.savedTrack!.id && t.id === stored.savedTrack!.id) || (stored.savedTrack!.reference && t.reference === stored.savedTrack!.reference)
               )
@@ -170,18 +189,23 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
                 nextTracks = [stored.savedTrack, ...loadedTracks]
                 targetIdx = 0
               }
-            } else if (stored.lastTrackId || stored.lastTrackReference) {
+            } else if (userSelectedTrackRef.current && (stored.lastTrackId || stored.lastTrackReference)) {
               const inLoaded = loadedTracks.findIndex(
                 (t) => (stored.lastTrackId && t.id === stored.lastTrackId) || (stored.lastTrackReference && t.reference === stored.lastTrackReference)
               )
               if (inLoaded >= 0) {
                 targetIdx = inLoaded
               }
+            } else {
+              // ユーザーが過去に明示的に選択した曲が存在しない場合、Supabase の先頭曲を初期 currentTrack として採用
+              targetIdx = 0
+              nextTracks = loadedTracks
             }
             setTracks(nextTracks)
             setCurrentTrackIndex(targetIdx)
           } catch {
             setTracks(loadedTracks)
+            setCurrentTrackIndex(0)
           }
         }
       })
@@ -207,7 +231,8 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
 
   useEffect(() => {
     currentTrackRef.current = currentTrack
-    if (isHydratedRef.current && currentTrack && audioModeRef.current === 'track') {
+    // ユーザーが明示的に操作・選択した場合のみ localStorage (musicStore) に同期する
+    if (isHydratedRef.current && currentTrack && audioModeRef.current === 'track' && userSelectedTrackRef.current) {
       try {
         useMusicStore.getState().setLastTrack(currentTrack)
       } catch {
@@ -444,6 +469,7 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
   }, [])
 
   const selectTrack = useCallback((trackId: string) => {
+    userSelectedTrackRef.current = true
     const index = tracksRef.current.findIndex((track) => track.id === trackId)
     if (index < 0) return
     if (index === currentTrackIndex) {
@@ -456,6 +482,7 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
   }, [currentTrackIndex, play])
 
   const nextTrack = useCallback(() => {
+    userSelectedTrackRef.current = true
     const count = tracksRef.current.length
     if (count === 0) return
     setPlaybackError(null)
@@ -468,6 +495,7 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
   }, [])
 
   const prevTrack = useCallback(() => {
+    userSelectedTrackRef.current = true
     const count = tracksRef.current.length
     if (count === 0) return
     setPlaybackError(null)
@@ -655,6 +683,7 @@ function useMusicPlayerState(customTracks?: Track[]): UseMusicPlayerReturn {
         artistName: 'artistName' in resolved && typeof resolved.artistName === 'string' ? resolved.artistName : undefined,
       }
 
+      userSelectedTrackRef.current = true
       setTracks((currentTracks) => {
         const existingIndex = currentTracks.findIndex((track) => track.reference === nextTrack.reference || track.id === nextTrack.id)
         if (existingIndex >= 0) {

@@ -41,7 +41,7 @@ export function MessageModal({ onClose, birthdayPerson, initialThreadId }: Messa
           border: '3px solid #D4B08C',
           borderRadius: '16px',
           padding: '30px',
-          maxWidth: '500px',
+          maxWidth: '560px',
           width: '100%',
           maxHeight: '80vh',
           overflow: 'auto',
