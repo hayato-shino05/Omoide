@@ -7,6 +7,8 @@ import { CameraCapture } from './CameraCapture'
 import { ContributorPromptButtons } from './ContributorPromptButtons'
 import { SelectedMusicTrackRow } from './SelectedMusicTrackRow'
 import SongPickerModal from './SongPickerModal'
+import { SelectedPostRow } from './SelectedPostRow'
+import PostPickerModal, { type TargetPostItem } from './PostPickerModal'
 import { normalizeMediaFile, validateCommunityMediaFile } from '@/lib/validations/upload'
 import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
@@ -14,17 +16,8 @@ import { getSupabase } from '@/lib/supabase/client'
 /** 投稿モーダルの選択モード（新規投稿 vs 既存投稿へ返信） */
 export type MessageFormMode = 'new' | 'reply'
 
-/** 返信先として選択可能な投稿／スレッドの項目データ */
-export interface TargetPostItem {
-  id: string | number
-  type: 'thread' | 'post'
-  sender: string
-  birthdayPerson: string | null
-  message: string
-  celebrationDate: string | null
-  coverUrl: string | null
-  createdAt: string
-}
+/** 他コンポーネントとの互換性のための再エクスポート */
+export type { TargetPostItem } from './PostPickerModal'
 
 interface MessageFormProps {
   birthdayPerson?: string
@@ -45,6 +38,7 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
   const [message, setMessage] = useState('')
   const [musicTrackId, setMusicTrackId] = useState('')
   const [isMusicPickerOpen, setIsMusicPickerOpen] = useState(false)
+  const [isPostPickerOpen, setIsPostPickerOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -474,240 +468,14 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
         {mode === 'new' ? t('createPostSubtitle') : t('replyToPostSubtitle')}
       </div>
 
-      {/* モードB専用: 既存投稿・スレッドの視覚的カード選択エリア */}
+      {/* モードB専用: 既存投稿・スレッドのスマートな選択エリア */}
       {mode === 'reply' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                color: '#854D27',
-              }}
-            >
-              <Icon name="ClipboardList" size={16} style={{ color: '#D95D39' }} />
-              <span>{t('selectPostToReply')}</span>
-            </label>
-            {selectedTarget && (
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  color: '#D95D39',
-                  fontWeight: 700,
-                  background: 'rgba(217, 93, 57, 0.1)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  maxWidth: '180px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {t('replyTargetPost', {
-                  name: selectedTarget.birthdayPerson || selectedTarget.sender,
-                })}
-              </span>
-            )}
-          </div>
-
-          {isLoadingTargets ? (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                color: '#854D27',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <Icon name="LoaderCircle" size={18} className="animate-spin" />
-              <span>{t('loading')}</span>
-            </div>
-          ) : targetPosts.length === 0 ? (
-            <div
-              style={{
-                padding: '18px',
-                textAlign: 'center',
-                background: '#FFF9F3',
-                border: '1.5px dashed #D4B08C',
-                borderRadius: '8px',
-                color: '#854D27',
-                fontSize: '0.85rem',
-              }}
-            >
-              <p style={{ margin: 0, opacity: 0.8 }}>{t('noPostsToReply')}</p>
-            </div>
-          ) : (
-            <div
-              role="radiogroup"
-              aria-label={t('selectPostToReply')}
-              style={{
-                display: 'flex',
-                gap: '10px',
-                overflowX: 'auto',
-                paddingBottom: '8px',
-                paddingTop: '2px',
-                paddingLeft: '2px',
-                paddingRight: '2px',
-                WebkitOverflowScrolling: 'touch',
-              }}
-            >
-              {targetPosts.map((target) => {
-                const isSelected = selectedTargetId === String(target.id)
-                const isThread = target.type === 'thread'
-                const displayName = target.birthdayPerson || target.sender
-
-                return (
-                  <motion.button
-                    key={`${target.type}-${target.id}`}
-                    type="button"
-                    role="radio"
-                    aria-checked={isSelected}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleSelectTarget(target)}
-                    style={{
-                      flex: '0 0 auto',
-                      minWidth: '160px',
-                      maxWidth: '210px',
-                      padding: '10px',
-                      background: isSelected ? '#FFF5F0' : '#FFFFFF',
-                      border: isSelected ? '2px solid #D95D39' : '1.5px solid #D4B08C',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      boxShadow: isSelected ? '3px 3px 0 #D95D39' : '1.5px 1.5px 0 rgba(212, 176, 140, 0.4)',
-                      transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      position: 'relative',
-                    }}
-                  >
-                    {/* 種別バッジ＆選択チェック */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          background: isThread ? 'rgba(233, 30, 99, 0.12)' : 'rgba(45, 140, 255, 0.12)',
-                          color: isThread ? '#E91E63' : '#2D8CFF',
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Icon name={isThread ? 'Cake' : 'ClipboardList'} size={11} />
-                        <span>{isThread ? t('postTypeThread') : t('postTypeBulletin')}</span>
-                      </span>
-                      {isSelected && (
-                        <span
-                          style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            background: '#D95D39',
-                            color: '#FFF9F3',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                          }}
-                        >
-                          <Icon name="CircleCheck" size={14} useSvg />
-                        </span>
-                      )}
-                    </div>
-
-                    {/* 送信者・対象者＆サムネイル */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {target.coverUrl ? (
-                        <span
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            flexShrink: 0,
-                            display: 'inline-block',
-                          }}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={target.coverUrl}
-                            alt=""
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            background: isSelected ? '#D95D39' : '#854D27',
-                            color: '#FFF9F3',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {displayName[0]?.toUpperCase() || '?'}
-                        </span>
-                      )}
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div
-                          style={{
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            color: '#2C1810',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {displayName}
-                        </div>
-                        {target.celebrationDate && (
-                          <div style={{ fontSize: '0.68rem', color: '#854D27', opacity: 0.7 }}>
-                            {target.celebrationDate}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* 本文プレビュー */}
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: '0.75rem',
-                        color: '#5D4037',
-                        lineHeight: '1.3',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {target.message}
-                    </p>
-                  </motion.button>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <SelectedPostRow
+          post={selectedTarget}
+          onOpenPicker={() => setIsPostPickerOpen(true)}
+          onClear={() => setSelectedTargetId(null)}
+          isLoading={isLoadingTargets}
+        />
       )}
 
       {/* 送信者名入力 */}
@@ -1081,6 +849,19 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
           setIsMusicPickerOpen(false)
         }}
         initialValue={musicTrackId}
+      />
+
+      {/* 返信用投稿選択モーダル */}
+      <PostPickerModal
+        isOpen={isPostPickerOpen}
+        onClose={() => setIsPostPickerOpen(false)}
+        onConfirm={(target) => {
+          handleSelectTarget(target)
+          setIsPostPickerOpen(false)
+        }}
+        initialSelectedId={selectedTargetId}
+        posts={targetPosts}
+        isLoading={isLoadingTargets}
       />
     </form>
   )
