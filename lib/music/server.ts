@@ -255,7 +255,7 @@ export async function searchMusicTracks(query: string, limit: number): Promise<S
 }
 
 function findPresetJamendoTrack(trackId: string) {
-  return JAPAN_PRESET_TRACKS.find((track) => track.trackId === trackId) ?? null
+  return JAPAN_PRESET_TRACKS.find((track) => track.provider === 'jamendo' && track.trackId === trackId) ?? null
 }
 
 function presetToResolved(preset: (typeof JAPAN_PRESET_TRACKS)[number]): ResolvedTrack | null {

@@ -12,6 +12,7 @@
 
 # テスト関連
 /coverage
+/__tests__/
 
 # Next.js 関連
 /.next/

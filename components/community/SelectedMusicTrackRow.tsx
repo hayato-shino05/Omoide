@@ -38,7 +38,7 @@ const isSafeHttpsUrl = (value: unknown): value is string => {
 const isSearchTrack = (value: unknown): value is SearchTrack => {
   if (!value || typeof value !== 'object') return false
   const track = value as Record<string, unknown>
-  return typeof track.reference === 'string' && (track.provider === 'jamendo' || track.provider === 'soundcloud') && typeof track.trackId === 'string' && typeof track.name === 'string' && typeof track.artistName === 'string' && typeof track.duration === 'number' && (track.access === undefined || ['playable', 'preview', 'blocked', 'unavailable'].includes(String(track.access)))
+  return typeof track.reference === 'string' && (track.provider === 'jamendo' || track.provider === 'soundcloud' || track.provider === 'omoide') && typeof track.trackId === 'string' && typeof track.name === 'string' && typeof track.artistName === 'string' && typeof track.duration === 'number' && (track.access === undefined || ['playable', 'preview', 'blocked', 'unavailable'].includes(String(track.access)))
 }
 
 export function SelectedMusicTrackRow({ value, onChange, onOpenPicker }: SelectedMusicTrackRowProps) {
@@ -104,7 +104,9 @@ export function SelectedMusicTrackRow({ value, onChange, onOpenPicker }: Selecte
           <strong className="block truncate text-[0.95rem] font-bold text-[var(--music-text)]">{track.name}</strong>
           <span className="mt-0.5 block truncate text-sm text-[var(--music-text-muted)]">{track.artistName || t('music')}</span>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--music-text-muted)]">
-            <span className="rounded-full border border-[var(--music-border)] px-2 py-0.5">{track.provider === 'jamendo' ? t('provider_jamendo') : t('provider_soundcloud')}</span>
+            <span className="rounded-full border border-[var(--music-border)] px-2 py-0.5">
+              {track.provider === 'omoide' ? 'Omoide' : track.provider === 'jamendo' ? t('provider_jamendo') : t('provider_soundcloud')}
+            </span>
             <span className="tabular-nums">{formatDuration(track.duration)}</span>
           </div>
         </div>
