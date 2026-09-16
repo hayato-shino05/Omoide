@@ -17,6 +17,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
   const [streakMinutes, setStreakMinutes] = useState<number>(0)
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const targetEndTimeRef = useRef<number | null>(null)
   const onCycleCompleteRef = useRef(onCycleComplete)
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
       const gain = audioCtx.createGain()
 
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(528, audioCtx.currentTime) // Tần số 528Hz (Solfeggio frequency - Transformation & Miracles)
+      osc.frequency.setValueAtTime(528, audioCtx.currentTime) // Tần số 528Hz (Solfeggio frequency)
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5)
 
@@ -50,57 +51,80 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
     }
   }, [])
 
-  // Timer countdown loop
+  // Xử lý khi hoàn thành chu kỳ (tách riêng ngoài state updater)
+  const handleCycleFinished = useCallback(() => {
+    playChime()
+    setIsRunning(false)
+    targetEndTimeRef.current = null
+
+    let nextMode: PomodoroMode = 'short_break'
+    let nextCompleted = completedCycles
+    let nextStreak = streakMinutes
+
+    if (mode === 'focus') {
+      nextCompleted = completedCycles + 1
+      nextStreak = streakMinutes + 25
+      setCompletedCycles(nextCompleted)
+      setStreakMinutes(nextStreak)
+      nextMode = nextCompleted % 4 === 0 ? 'long_break' : 'short_break'
+    } else {
+      nextMode = 'focus'
+    }
+
+    setMode(nextMode)
+    setTimeLeft(DURATIONS[nextMode])
+    onCycleCompleteRef.current?.(mode, nextStreak)
+  }, [mode, completedCycles, streakMinutes, playChime])
+
+  // Timer countdown loop dựa trên clock thời gian thực để chống drift khi ẩn tab
   useEffect(() => {
     if (isRunning) {
+      if (!targetEndTimeRef.current) {
+        targetEndTimeRef.current = Date.now() + timeLeft * 1000
+      }
+
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            // Hết giờ chu kỳ
-            playChime()
-            clearInterval(timerRef.current!)
+        if (!targetEndTimeRef.current) return
+        const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000))
+        setTimeLeft(remaining)
 
-            let nextMode: PomodoroMode = 'short_break'
-            let nextCompleted = completedCycles
-            let nextStreak = streakMinutes
-
-            if (mode === 'focus') {
-              nextCompleted = completedCycles + 1
-              nextStreak = streakMinutes + 25
-              setCompletedCycles(nextCompleted)
-              setStreakMinutes(nextStreak)
-
-              // Cứ mỗi 4 chu kỳ focus sẽ chuyển sang long break
-              nextMode = nextCompleted % 4 === 0 ? 'long_break' : 'short_break'
-            } else {
-              nextMode = 'focus'
-            }
-
-            setMode(nextMode)
-            setIsRunning(false)
-            onCycleCompleteRef.current?.(mode, nextStreak)
-            return DURATIONS[nextMode]
-          }
-          return prev - 1
-        })
-      }, 1000)
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current)
+        if (remaining <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current)
+          handleCycleFinished()
+        }
+      }, 500)
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current)
+      targetEndTimeRef.current = null
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [isRunning, mode, completedCycles, streakMinutes, playChime])
+  }, [isRunning, timeLeft, handleCycleFinished])
 
-  const start = useCallback(() => setIsRunning(true), [])
-  const pause = useCallback(() => setIsRunning(false), [])
+  const start = useCallback(() => {
+    targetEndTimeRef.current = Date.now() + timeLeft * 1000
+    setIsRunning(true)
+  }, [timeLeft])
+
+  const pause = useCallback(() => {
+    if (targetEndTimeRef.current) {
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000))
+      setTimeLeft(remaining)
+    }
+    targetEndTimeRef.current = null
+    setIsRunning(false)
+  }, [])
+
   const reset = useCallback(() => {
+    targetEndTimeRef.current = null
     setIsRunning(false)
     setTimeLeft(DURATIONS[mode])
   }, [mode])
 
   const switchMode = useCallback((newMode: PomodoroMode) => {
+    targetEndTimeRef.current = null
     setIsRunning(false)
     setMode(newMode)
     setTimeLeft(DURATIONS[newMode])

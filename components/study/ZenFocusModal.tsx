@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Maximize2,
   Minimize2,
@@ -57,18 +57,26 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     }
   }
 
+  // Guarded close handler
+  const handleGuardedClose = useCallback(() => {
+    if (!pomodoro.isRunning || confirm(t('studyExitZenConfirm'))) {
+      if (typeof document !== 'undefined' && document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {})
+      }
+      onClose()
+    }
+  }, [pomodoro.isRunning, onClose, t])
+
   // Keyboard shortcut Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        if (!pomodoro.isRunning || confirm(t('studyExitZenConfirm'))) {
-          onClose()
-        }
+        handleGuardedClose()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose, pomodoro.isRunning, t])
+  }, [isOpen, handleGuardedClose])
 
   if (!isOpen) return null
 
@@ -185,7 +193,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           {/* Close button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleGuardedClose}
             aria-label={t('studyCloseZen')}
             className="p-2.5 rounded-xl bg-white/5 hover:bg-rose-500/20 active:scale-95 text-stone-300 hover:text-rose-200 border border-white/10 hover:border-rose-500/30 backdrop-blur-md transition-all shadow-sm"
           >

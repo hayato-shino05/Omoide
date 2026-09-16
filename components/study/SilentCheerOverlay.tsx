@@ -23,7 +23,7 @@ function CheerIcon({ type }: { type: CheerType }) {
     case 'fire':
       return (
         <div className="p-2.5 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.4)] backdrop-blur-md">
-          <Flame size={24} className="animate-bounce" />
+          <Flame size={24} className="animate-pulse" />
         </div>
       )
     case 'sparkle':
@@ -95,13 +95,13 @@ export function SilentCheerOverlay() {
             initial={{
               opacity: 0,
               y: '85vh',
-              x: `calc(50% + ${cheer.xOffset}vw)`,
+              x: `${cheer.xOffset}vw`,
               scale: 0.7,
             }}
             animate={{
               opacity: [0, 1, 1, 0.9, 0],
               y: '22vh',
-              x: `calc(50% + ${cheer.xOffset + cheer.driftOffset}vw)`,
+              x: `${cheer.xOffset + cheer.driftOffset}vw`,
               scale: [0.7, 1.15, 1, 0.95],
             }}
             exit={{ opacity: 0 }}
@@ -109,7 +109,7 @@ export function SilentCheerOverlay() {
               duration: 3,
               ease: [0.16, 1, 0.3, 1], // 優雅なイージングカーブ
             }}
-            className="absolute flex flex-col items-center -translate-x-1/2"
+            className="absolute left-1/2 flex flex-col items-center -translate-x-1/2"
           >
             <CheerIcon type={cheer.cheer_type} />
             <span className="mt-2 px-2.5 py-1 rounded-full text-[11px] font-medium bg-stone-950/80 text-stone-100 border border-white/15 backdrop-blur-xl shadow-lg select-none whitespace-nowrap">

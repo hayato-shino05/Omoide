@@ -6,7 +6,7 @@ create table if not exists public.study_rooms (
   name text not null check (char_length(btrim(name)) between 1 and 100),
   description text check (description is null or char_length(description) <= 500),
   host_id text not null check (char_length(btrim(host_id)) between 1 and 100),
-  current_track_id text references public.music_tracks(id) on delete set null,
+  current_track_id text check (current_track_id is null or char_length(current_track_id) <= 200),
   epoch_started_at timestamptz not null default now(),
   playback_state text not null default 'playing' check (playback_state in ('playing', 'paused', 'stopped')),
   theme_override text check (theme_override is null or char_length(theme_override) <= 50),

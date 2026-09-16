@@ -15,7 +15,8 @@ import {
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { fetchStudyRooms, createStudyRoom, joinStudyRoom } from '@/lib/study/client'
+import { useAmbientAudio } from '@/lib/hooks/useAmbientAudio'
+import { fetchStudyRooms, createStudyRoom, joinStudyRoom, getStudyRoom } from '@/lib/study/client'
 import { StudyRoomView } from './StudyRoomView'
 import { ZenFocusModal } from './ZenFocusModal'
 import SongPickerModal from '@/components/community/SongPickerModal'
@@ -25,6 +26,9 @@ export function StudyRoomHub() {
   const { currentRoom, userIdentifier, displayName, setRoom, setUserProfile } =
     useStudyRoomStore()
   const { t } = useLanguage()
+
+  // Mount ambient audio engine để bộ trộn âm thanh môi trường luôn hoạt động
+  useAmbientAudio()
 
   const [rooms, setRooms] = useState<StudyRoom[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -70,6 +74,25 @@ export function StudyRoomHub() {
     setRooms(data)
     setIsLoading(false)
   }, [])
+
+  // Tự động kiểm tra URL query param ?studyRoom=... hoặc #studyRoom=...
+  useEffect(() => {
+    if (typeof window === 'undefined' || currentRoom) return
+    const urlParams = new URLSearchParams(window.location.search)
+    const roomIdParam = urlParams.get('studyRoom')
+    if (roomIdParam) {
+      getStudyRoom(roomIdParam).then((room) => {
+        if (room && !room.is_private) {
+          joinStudyRoom(room.id, {
+            user_identifier: userIdentifier,
+            display_name: displayName,
+          }).then((m) => {
+            if (m) setRoom(room)
+          })
+        }
+      })
+    }
+  }, [currentRoom, userIdentifier, displayName, setRoom])
 
   useEffect(() => {
     let isMounted = true

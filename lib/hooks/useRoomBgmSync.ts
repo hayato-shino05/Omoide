@@ -29,6 +29,7 @@ export function useRoomBgmSync(roomId: string | null) {
     if (typeof window === 'undefined') return
     const audio = new Audio()
     audio.preload = 'auto'
+    audio.loop = true
     audioRef.current = audio
 
     return () => {
@@ -54,8 +55,10 @@ export function useRoomBgmSync(roomId: string | null) {
       return null
     }
 
+    const cleanId = trackId.includes(':') ? trackId.split(':')[1] : trackId
+
     // 1. Thử tìm trong preset
-    const preset = JAPAN_PRESET_TRACKS.find((t) => t.id === trackId)
+    const preset = JAPAN_PRESET_TRACKS.find((t) => t.id === cleanId || t.id === trackId)
     if (preset) {
       const track = {
         id: preset.id,
@@ -76,7 +79,7 @@ export function useRoomBgmSync(roomId: string | null) {
       const { data } = await supabase
         .from('music_tracks')
         .select('*')
-        .eq('id', trackId)
+        .eq('id', cleanId)
         .maybeSingle()
 
       if (data) {
@@ -200,6 +203,24 @@ export function useRoomBgmSync(roomId: string | null) {
           current_streak_minutes: 0,
           joined_at: new Date().toISOString(),
         })
+
+        // Tải ngay trạng thái phát bài hát ban đầu của phòng
+        try {
+          const { data: roomData } = await supabase
+            .from('study_rooms')
+            .select('current_track_id, epoch_started_at, playback_state')
+            .eq('id', roomId)
+            .maybeSingle()
+
+          if (roomData && roomData.current_track_id) {
+            const track = await resolveTrack(roomData.current_track_id)
+            if (track && track.url) {
+              syncPlayback(track.url, roomData.epoch_started_at, roomData.playback_state as PlaybackState)
+            }
+          }
+        } catch (e) {
+          console.error('[RoomBgmSync] Error loading initial playback:', e)
+        }
       }
     })
 
@@ -247,6 +268,20 @@ export function useRoomBgmSync(roomId: string | null) {
       .eq('id', roomId)
   }, [roomId, resolveTrack, syncPlayback])
 
+  // Hàm cập nhật Presence theo Pomodoro
+  const updatePresenceStatus = useCallback(async (focusStatus: 'focusing' | 'short_break' | 'long_break' | 'idle', streakMinutes: number) => {
+    const channel = channelRef.current
+    if (channel) {
+      await channel.track({
+        user_identifier: userIdentifier,
+        display_name: displayName,
+        focus_status: focusStatus,
+        current_streak_minutes: streakMinutes,
+        joined_at: new Date().toISOString(),
+      })
+    }
+  }, [userIdentifier, displayName])
+
   // Hàm gửi Silent Cheer
   const sendSilentCheer = useCallback((cheerType: CheerType) => {
     const cheerPayload: SilentCheerPayload = {
@@ -274,5 +309,6 @@ export function useRoomBgmSync(roomId: string | null) {
     currentTrack,
     changeRoomTrack,
     sendSilentCheer,
+    updatePresenceStatus,
   }
 }

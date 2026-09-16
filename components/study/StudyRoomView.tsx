@@ -25,7 +25,7 @@ interface StudyRoomViewProps {
 
 export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   const { currentRoom, userIdentifier, resetRoom } = useStudyRoomStore()
-  const { changeRoomTrack, sendSilentCheer } = useRoomBgmSync(roomId)
+  const { changeRoomTrack, sendSilentCheer, updatePresenceStatus } = useRoomBgmSync(roomId)
   const { t } = useLanguage()
 
   const [isZenOpen, setIsZenOpen] = useState(false)
@@ -41,15 +41,18 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
 
   const handleCopyLink = () => {
     if (typeof window === 'undefined') return
-    const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('studyRoom', roomId)
+    navigator.clipboard.writeText(url.toString()).then(() => {
       setIsCopied(true)
       setTimeout(() => setIsCopied(false), 2000)
     })
   }
 
   const handleCycleComplete = async (mode: string, streakMinutes: number) => {
-    await updateMemberStatus(roomId, userIdentifier, mode === 'focus' ? 'focusing' : 'short_break', streakMinutes)
+    const status = mode === 'focus' ? 'focusing' : mode === 'long_break' ? 'long_break' : 'short_break'
+    await updateMemberStatus(roomId, userIdentifier, status, streakMinutes)
+    await updatePresenceStatus(status, streakMinutes)
   }
 
   return (
