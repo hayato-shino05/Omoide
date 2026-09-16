@@ -156,7 +156,7 @@ export function ModalManager() {
       size: 'md' as const,
     },
     studyRoom: {
-      title: 'Study Room & Zen Focus',
+      title: t('studyRoomTitle'),
       content: <StudyRoomHub />,
       size: 'full' as const,
     },

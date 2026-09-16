@@ -167,6 +167,18 @@ export function SocialButtons() {
       </button>
 
       <button
+        onClick={() => openModal('studyRoom')}
+        style={socialButtonStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+      >
+        <Icon name="BookOpen" size={26} useSvg />
+        <span>{t('studyRoomTitle')}</span>
+      </button>
+
+      <button
         onClick={() => openModal('timeCapsule')}
         style={socialButtonStyle}
         onMouseEnter={handleMouseEnter}

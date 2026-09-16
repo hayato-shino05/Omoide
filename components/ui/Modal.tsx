@@ -251,10 +251,10 @@ export default function Modal({
           {/* 本文 */}
           <div
             style={{ 
-              flex: size === 'widescreen' ? 1 : undefined,
-              minHeight: size === 'widescreen' ? 0 : undefined,
+              flex: (size === 'widescreen' || size === 'full') ? 1 : undefined,
+              minHeight: (size === 'widescreen' || size === 'full') ? 0 : undefined,
             }}
-            className={`p-3 sm:p-5 ${scrollBehavior === 'inside' && size !== 'widescreen' ? 'max-h-[60vh] overflow-y-auto' : size === 'widescreen' ? 'overflow-y-auto' : ''}`}
+            className={`p-3 sm:p-5 ${scrollBehavior === 'inside' && size !== 'widescreen' && size !== 'full' ? 'max-h-[60vh] overflow-y-auto' : 'max-h-[82vh] overflow-y-auto'}`}
           >
             {children}
           </div>
