@@ -18,13 +18,20 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
 
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const onCycleCompleteRef = useRef(onCycleComplete)
-  onCycleCompleteRef.current = onCycleComplete
+
+  useEffect(() => {
+    onCycleCompleteRef.current = onCycleComplete
+  }, [onCycleComplete])
 
   // Zen chime audio notification
   const playChime = useCallback(() => {
     if (typeof window === 'undefined') return
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const AudioCtxClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AudioCtxClass) return
+      const audioCtx = new AudioCtxClass()
       const osc = audioCtx.createOscillator()
       const gain = audioCtx.createGain()
 

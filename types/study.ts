@@ -48,9 +48,11 @@ export interface SilentCheerPayload {
 
 export type AmbientSoundType = 'rain' | 'cafe' | 'wind_chime' | 'fireplace'
 
+import type { TranslationKey } from '@/lib/i18n/types'
+
 export interface AmbientSoundConfig {
   id: AmbientSoundType
-  nameKey: string
+  nameKey: TranslationKey
   defaultName: string
   icon: string
   audioUrl: string

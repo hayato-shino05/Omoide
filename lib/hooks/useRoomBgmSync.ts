@@ -166,12 +166,12 @@ export function useRoomBgmSync(roomId: string | null) {
     // 3. Quản lý Presence
     channel
       .on('presence', { event: 'sync' }, () => {
-        const presenceState = channel.presenceState()
+        const presenceState = channel.presenceState<StudyRoomMember>()
         const activeMembers: StudyRoomMember[] = []
-        Object.values(presenceState).forEach((presences: any) => {
-          presences.forEach((p: any) => {
+        Object.values(presenceState).forEach((presences) => {
+          presences.forEach((p) => {
             if (p.user_identifier) {
-              activeMembers.push(p as StudyRoomMember)
+              activeMembers.push(p)
             }
           })
         })
@@ -179,13 +179,13 @@ export function useRoomBgmSync(roomId: string | null) {
           setMembers(activeMembers)
         }
       })
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        newPresences.forEach((p: any) => {
-          if (p.user_identifier) addMember(p as StudyRoomMember)
+      .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: StudyRoomMember[] }) => {
+        newPresences.forEach((p) => {
+          if (p.user_identifier) addMember(p)
         })
       })
-      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        leftPresences.forEach((p: any) => {
+      .on('presence', { event: 'leave' }, ({ leftPresences }: { leftPresences: StudyRoomMember[] }) => {
+        leftPresences.forEach((p) => {
           if (p.user_identifier) removeMember(p.user_identifier)
         })
       })

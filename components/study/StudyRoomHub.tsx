@@ -10,8 +10,11 @@ import {
   RefreshCw,
   Search,
   Coffee,
+  Users,
+  X,
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { fetchStudyRooms, createStudyRoom, joinStudyRoom } from '@/lib/study/client'
 import { StudyRoomView } from './StudyRoomView'
 import { ZenFocusModal } from './ZenFocusModal'
@@ -21,6 +24,7 @@ import type { StudyRoom } from '@/types/study'
 export function StudyRoomHub() {
   const { currentRoom, userIdentifier, displayName, setRoom, setUserProfile } =
     useStudyRoomStore()
+  const { t } = useLanguage()
 
   const [rooms, setRooms] = useState<StudyRoom[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -68,8 +72,17 @@ export function StudyRoomHub() {
   }, [])
 
   useEffect(() => {
-    loadRooms()
-  }, [loadRooms])
+    let isMounted = true
+    fetchStudyRooms().then((data) => {
+      if (isMounted) {
+        setRooms(data)
+        setIsLoading(false)
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleJoinRoom = async (room: StudyRoom) => {
     if (room.is_private) {
@@ -150,37 +163,37 @@ export function StudyRoomHub() {
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 text-stone-100">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-stone-900/90 via-stone-900/60 to-pink-950/30 border border-white/10 shadow-2xl backdrop-blur-xl mb-6">
+      {/* Hero Banner - Wabi-sabi Modern */}
+      <div className="relative overflow-hidden p-6 sm:p-9 rounded-3xl bg-stone-900/90 border border-white/10 shadow-2xl backdrop-blur-2xl mb-7">
         <div className="relative z-10 max-w-2xl">
-          <div className="flex items-center gap-2 text-pink-300 text-xs font-semibold uppercase tracking-wider mb-2">
-            <Sparkles size={14} />
-            <span>Omoide Study & Zen Space / 勉強部屋</span>
+          <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider mb-2.5">
+            <Sparkles size={15} />
+            <span>{t('studyRoomTitle')}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-2">
-            Tranquil Co-Working & Focus Room
+          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-2.5">
+            {t('studyHeroTitle')}
           </h1>
           <p className="text-xs sm:text-sm text-stone-300 mb-6 leading-relaxed">
-            Học tập và làm việc cùng bạn bè trong không gian tĩnh lặng Nhật Bản. Đồng bộ nhạc nền BGM, thư giãn với âm thanh mưa & quán cafe, duy trì nhịp tập trung với Pomodoro.
+            {t('studyHeroDesc')}
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-pink-500 hover:bg-pink-600 active:scale-95 text-white text-xs font-medium transition-all shadow-lg shadow-pink-500/20"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#D95D39] hover:bg-[#c44e2b] active:scale-95 text-white text-xs font-medium transition-all shadow-[0_4px_20px_rgba(217,93,57,0.35)]"
             >
               <Plus size={16} />
-              <span>Create Study Room / 部屋作成</span>
+              <span>{t('studyCreateRoom')}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsZenSoloOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 text-stone-200 border border-white/10 text-xs font-medium backdrop-blur-md transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 text-stone-200 hover:text-white border border-white/15 text-xs font-medium backdrop-blur-md transition-all shadow-sm"
             >
-              <Maximize2 size={16} className="text-pink-300" />
-              <span>Solo Zen Focus / 一人で集中</span>
+              <Maximize2 size={16} className="text-amber-300" />
+              <span>{t('studySoloZen')}</span>
             </button>
           </div>
         </div>
@@ -194,16 +207,17 @@ export function StudyRoomHub() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search study rooms / 部屋を検索..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-stone-900/60 border border-white/10 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-pink-500/50 backdrop-blur-md"
+            placeholder={t('studySearchPlaceholder')}
+            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-stone-900/70 border border-white/10 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/60 backdrop-blur-xl shadow-inner transition-colors"
           />
         </div>
 
         <button
           type="button"
           onClick={loadRooms}
-          aria-label="Refresh Rooms"
-          className="p-2.5 rounded-2xl bg-stone-900/60 hover:bg-stone-800/80 border border-white/10 text-stone-300 transition-all backdrop-blur-md"
+          title={t('studyRefreshRooms')}
+          aria-label={t('studyRefreshRooms')}
+          className="p-2.5 rounded-2xl bg-stone-900/70 hover:bg-stone-800/80 border border-white/10 text-stone-300 hover:text-white transition-all backdrop-blur-md shadow-sm active:scale-95"
         >
           <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
         </button>
@@ -211,58 +225,61 @@ export function StudyRoomHub() {
 
       {/* Room Grid */}
       {isLoading ? (
-        <div className="py-16 text-center text-xs text-stone-400">Loading rooms / 読み込み中...</div>
+        <div className="py-20 text-center text-xs text-stone-400">{t('studyLoadingRooms')}</div>
       ) : filteredRooms.length === 0 ? (
-        <div className="py-16 text-center text-stone-400 p-8 rounded-3xl bg-stone-900/40 border border-white/5 backdrop-blur-md">
-          <Coffee size={32} className="mx-auto mb-2 text-stone-500 opacity-60" />
-          <p className="text-xs">No active study rooms found.</p>
+        <div className="py-16 text-center text-stone-400 p-8 rounded-3xl bg-stone-900/50 border border-white/10 backdrop-blur-xl">
+          <Coffee size={36} className="mx-auto mb-3 text-stone-500 opacity-60" />
+          <p className="text-xs sm:text-sm font-medium text-stone-300 mb-1">{t('studyNoRoomsFound')}</p>
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="mt-3 px-3.5 py-1.5 rounded-xl bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs font-medium hover:bg-pink-500/30 transition-all"
+            className="mt-4 px-4 py-2 rounded-xl bg-[#D95D39]/20 text-amber-200 border border-[#D95D39]/40 text-xs font-medium hover:bg-[#D95D39]/30 active:scale-95 transition-all shadow-sm"
           >
-            Create the first room!
+            {t('studyCreateFirstRoom')}
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
           {filteredRooms.map((room) => (
             <div
               key={room.id}
-              className="flex flex-col justify-between p-4 rounded-3xl bg-stone-900/70 hover:bg-stone-900/90 border border-white/10 hover:border-pink-500/30 transition-all backdrop-blur-xl shadow-lg group"
+              className="flex flex-col justify-between p-5 rounded-3xl bg-stone-900/75 hover:bg-stone-900/90 border border-white/10 hover:border-amber-500/40 transition-all backdrop-blur-xl shadow-xl hover:shadow-2xl group"
             >
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-stone-300">
-                    Max {room.max_members} desks
+                <div className="flex items-center justify-between mb-3">
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-stone-300 font-medium">
+                    <Users size={12} className="text-amber-400" />
+                    {t('studyMaxDesks', { count: room.max_members })}
                   </span>
                   {room.is_private && (
-                    <span className="p-1 rounded-full bg-amber-500/10 text-amber-300">
+                    <span className="p-1.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30" title={t('studyPrivateRoom')}>
                       <Lock size={12} />
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-sm font-medium text-white group-hover:text-pink-300 transition-colors mb-1 truncate">
+                <h2 className="text-sm sm:text-base font-medium text-white group-hover:text-amber-200 transition-colors mb-1.5 truncate">
                   {room.name}
-                </h3>
-                <p className="text-xs text-stone-400 line-clamp-2 mb-3 min-h-[32px]">
-                  {room.description || 'Focus session with soothing Japanese BGM.'}
+                </h2>
+                <p className="text-xs text-stone-400 line-clamp-2 mb-4 min-h-[34px] leading-relaxed">
+                  {room.description || t('studyRoomDesc')}
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-stone-400">
-                  <Music size={13} className="text-pink-400" />
-                  <span className="truncate max-w-[120px]">Room BGM</span>
+              <div className="pt-3.5 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-stone-400 min-w-0">
+                  <Music size={14} className="text-amber-400 flex-shrink-0" />
+                  <span className="truncate max-w-[110px] sm:max-w-[130px] font-medium">
+                    {room.current_track_id ? t('studyTrackSelected', { id: room.current_track_id }) : t('studyRoomBgm')}
+                  </span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => handleJoinRoom(room)}
-                  className="px-3.5 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 active:scale-95 text-pink-200 border border-pink-500/40 text-xs font-medium transition-all"
+                  className="px-4 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-200 border border-amber-500/40 text-xs font-medium transition-all shadow-sm"
                 >
-                  Join / 入室
+                  {t('studyJoinRoom')}
                 </button>
               </div>
             </div>
@@ -275,43 +292,64 @@ export function StudyRoomHub() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          aria-labelledby="create-room-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
         >
-          <div className="w-full max-w-md p-6 rounded-3xl bg-stone-900 border border-white/10 text-stone-100 shadow-2xl backdrop-blur-xl">
-            <h2 className="text-base font-medium mb-4">Create Study Room / 勉強部屋を作成</h2>
+          <div className="w-full max-w-md p-6 sm:p-7 rounded-3xl bg-stone-900 border border-white/15 text-stone-100 shadow-[0_16px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <h2 id="create-room-title" className="text-sm sm:text-base font-medium text-white">
+                {t('studyCreateRoom')}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="block text-xs text-stone-400 mb-1">Room Name / 部屋名 *</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1">
+                  {t('studyRoomName')} *
+                </label>
                 <input
                   type="text"
                   required
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder="e.g. Kyoto Night Study..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-800 border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500/50"
+                  placeholder={t('studyRoomNamePlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-stone-400 mb-1">Description / 説明</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1">
+                  {t('studyRoomDescLabel')}
+                </label>
                 <textarea
                   rows={2}
                   value={newRoomDesc}
                   onChange={(e) => setNewRoomDesc(e.target.value)}
-                  placeholder="Goals, mood, or rules..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-800 border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500/50 resize-none"
+                  placeholder={t('studyRoomDescPlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-stone-400 mb-1">Initial BGM Track</label>
+                <label className="block text-xs font-medium text-stone-300 mb-1">
+                  {t('studyInitialBgm')}
+                </label>
                 <button
                   type="button"
                   onClick={() => setIsSongPickerOpen(true)}
-                  className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-stone-800 border border-white/10 text-xs text-stone-300 hover:text-white"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-stone-300 hover:text-white hover:border-amber-500/30 transition-all"
                 >
-                  <span>{selectedTrackId ? `Track #${selectedTrackId}` : 'Select from 205 tracks...'}</span>
-                  <Music size={14} className="text-pink-400" />
+                  <span className="truncate">
+                    {selectedTrackId ? t('studyTrackSelected', { id: selectedTrackId }) : t('studySelectTrack')}
+                  </span>
+                  <Music size={14} className="text-amber-400 flex-shrink-0 ml-2" />
                 </button>
               </div>
 
@@ -321,41 +359,43 @@ export function StudyRoomHub() {
                   id="isPrivateCheckbox"
                   checked={isPrivate}
                   onChange={(e) => setIsPrivate(e.target.checked)}
-                  className="rounded bg-stone-800 border-white/20 text-pink-500 focus:ring-0"
+                  className="rounded bg-stone-800 border-white/20 text-[#D95D39] focus:ring-0 cursor-pointer"
                 />
                 <label htmlFor="isPrivateCheckbox" className="text-xs text-stone-300 cursor-pointer">
-                  Private Room (Passcode required)
+                  {t('studyPrivateRoomOption')}
                 </label>
               </div>
 
               {isPrivate && (
                 <div>
-                  <label className="block text-xs text-stone-400 mb-1">Passcode / パスコード</label>
+                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                    {t('roomPasscode')} *
+                  </label>
                   <input
                     type="password"
                     required
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
-                    placeholder="Enter room passcode..."
-                    className="w-full px-3.5 py-2 rounded-xl bg-stone-800 border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500/50"
+                    placeholder={t('studyEnterPasscode')}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60"
                   />
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200"
+                  className="px-4 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200 active:scale-95 transition-all"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium shadow-md transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-medium shadow-md active:scale-95 transition-all disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Creating...' : 'Create Room'}
+                  {isSubmitting ? t('studyCreatingRoom') : t('createRoom')}
                 </button>
               </div>
             </form>
@@ -368,11 +408,14 @@ export function StudyRoomHub() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          aria-labelledby="private-room-join-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
         >
-          <div className="w-full max-w-sm p-6 rounded-3xl bg-stone-900 border border-white/10 text-stone-100 shadow-2xl backdrop-blur-xl">
-            <h3 className="text-sm font-medium mb-1">Private Room / 非公開部屋</h3>
-            <p className="text-xs text-stone-400 mb-4">{joiningRoom.name}</p>
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-stone-900 border border-white/15 text-stone-100 shadow-2xl backdrop-blur-2xl">
+            <h2 id="private-room-join-title" className="text-sm sm:text-base font-medium text-white mb-1">
+              {t('studyPrivateRoom')}
+            </h2>
+            <p className="text-xs text-stone-400 mb-4 truncate">{joiningRoom.name}</p>
 
             <input
               type="password"
@@ -382,28 +425,28 @@ export function StudyRoomHub() {
                 setJoinPasscode(e.target.value)
                 setPasscodeError(false)
               }}
-              placeholder="Enter passcode..."
-              className="w-full px-3.5 py-2 rounded-xl bg-stone-800 border border-white/10 text-xs text-white focus:outline-none focus:border-pink-500/50 mb-2"
+              placeholder={t('studyEnterPasscode')}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white focus:outline-none focus:border-amber-500/60 mb-2"
             />
 
             {passcodeError && (
-              <p className="text-[11px] text-rose-400 mb-3">Incorrect passcode. Please try again.</p>
+              <p className="text-[11px] text-rose-400 mb-3">{t('studyIncorrectPasscode')}</p>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-3">
+            <div className="flex items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"
                 onClick={() => setJoiningRoom(null)}
-                className="px-3 py-1.5 rounded-xl text-xs text-stone-400 hover:text-stone-200"
+                className="px-3.5 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200 active:scale-95"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmPrivateJoin}
-                className="px-4 py-1.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium shadow-md transition-all"
+                className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-medium shadow-md active:scale-95 transition-all"
               >
-                Join
+                {t('studyJoinRoom')}
               </button>
             </div>
           </div>
@@ -427,3 +470,4 @@ export function StudyRoomHub() {
     </div>
   )
 }
+

@@ -3,7 +3,7 @@ import type { AmbientSoundConfig } from '@/types/study'
 export const AMBIENT_SOUNDS: AmbientSoundConfig[] = [
   {
     id: 'rain',
-    nameKey: 'ambient_rain',
+    nameKey: 'ambientRain',
     defaultName: 'Rain / 雨音',
     icon: 'CloudRain',
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1254/1254-preview.mp3',
@@ -11,7 +11,7 @@ export const AMBIENT_SOUNDS: AmbientSoundConfig[] = [
   },
   {
     id: 'cafe',
-    nameKey: 'ambient_cafe',
+    nameKey: 'ambientCafe',
     defaultName: 'Tokyo Cafe / 喫茶店',
     icon: 'Coffee',
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/247/247-preview.mp3',
@@ -19,7 +19,7 @@ export const AMBIENT_SOUNDS: AmbientSoundConfig[] = [
   },
   {
     id: 'wind_chime',
-    nameKey: 'ambient_wind_chime',
+    nameKey: 'ambientWindChime',
     defaultName: 'Wind Chime / 風鈴',
     icon: 'Wind',
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/1126/1126-preview.mp3',
@@ -27,7 +27,7 @@ export const AMBIENT_SOUNDS: AmbientSoundConfig[] = [
   },
   {
     id: 'fireplace',
-    nameKey: 'ambient_fireplace',
+    nameKey: 'ambientFireplace',
     defaultName: 'Fireplace / 暖炉',
     icon: 'Flame',
     audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2477/2477-preview.mp3',
