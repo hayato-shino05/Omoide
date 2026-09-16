@@ -178,7 +178,6 @@ function PolaroidUnit({ value, label, tapeStyle, hoverRotate, isSeconds = false 
                 fontSize: 'clamp(1.15rem, 4.2vw, 2.3rem)',
                 fontVariantNumeric: 'tabular-nums',
                 lineHeight: 1,
-                textShadow: '0 1px 0 rgba(255, 255, 255, 0.6)',
               }}
             >
               {formattedValue}

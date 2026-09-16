@@ -207,7 +207,7 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
                   <span
                     className={`block leading-relaxed tracking-wide transition-colors ${
                       isActive
-                        ? 'text-xl sm:text-2xl font-extrabold text-[#D95D39] dark:text-[#ff7a54] drop-shadow-[0_2px_12px_rgba(217,93,57,0.3)]'
+                        ? 'text-xl sm:text-2xl font-extrabold text-[#D95D39] dark:text-[#ff7a54]'
                       : 'text-base sm:text-lg font-bold text-slate-600 dark:text-slate-400'
                     }`}
                   >
@@ -232,9 +232,6 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
             <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center">
               <div className="relative w-16 h-16 flex items-center justify-center rounded-2xl bg-amber-50 dark:bg-slate-800 border border-amber-950/10 dark:border-amber-100/10 shadow-sm text-[#D95D39] mb-4">
                 <Music className="w-8 h-8 opacity-90" />
-                {isPlaying && (
-                  <div className="absolute -inset-1 rounded-2xl border border-[#D95D39]/30 animate-pulse opacity-40" />
-                )}
               </div>
               <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">
                 {t('instrumentalTrack')}

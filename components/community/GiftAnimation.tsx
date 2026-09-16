@@ -67,31 +67,16 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
 
       {/* メインのギフト表示 */}
       <div className="relative z-10 flex flex-col items-center animate-bounce-in">
-        <div className="text-8xl mb-4 animate-pulse-scale">
+        <div className="text-8xl mb-4">
           {emoji}
         </div>
 
         {/* ギフト情報 */}
-        <div className="bg-white/20 backdrop-blur-md rounded-2xl px-8 py-4 text-center">
-          <p className="text-2xl font-bold text-white mb-1">{giftName}</p>
-          <p className="text-white/80">
-            <span className="font-semibold">{sender}</span> {t('giftFrom')}
+        <div className="bg-white/95 text-[#2C1810] border-2 border-[#D4B08C] shadow-lg rounded-2xl px-8 py-4 text-center">
+          <p className="text-2xl font-bold text-[#854D27] mb-1">{giftName}</p>
+          <p className="text-[#5D4037] font-medium">
+            <span className="font-bold text-[#2C1810]">{sender}</span> {t('giftFrom')}
           </p>
-        </div>
-
-        {/* きらめきエフェクト */}
-        <div className="absolute -inset-8">
-          {SPARKLE_POSITIONS.map((sparkle, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-sparkle"
-              style={{
-                top: sparkle.top,
-                left: sparkle.left,
-                animationDelay: `${i * 0.1}s`,
-              }}
-            />
-          ))}
         </div>
       </div>
 
@@ -102,24 +87,13 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
         }
         
         @keyframes bounce-in {
-          0% { transform: scale(0) rotate(-10deg); opacity: 0; }
-          50% { transform: scale(1.2) rotate(5deg); }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-        
-        @keyframes pulse-scale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
+          0% { transform: scale(0.6); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
         }
         
         @keyframes float-up {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(-300px) rotate(360deg); opacity: 0; }
-        }
-        
-        @keyframes sparkle {
-          0%, 100% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1); opacity: 1; }
+          0% { transform: translateY(0); opacity: 1; }
+          100% { transform: translateY(-200px); opacity: 0; }
         }
         
         .animate-fade-in {
@@ -127,19 +101,11 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
         }
         
         .animate-bounce-in {
-          animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-        }
-        
-        .animate-pulse-scale {
-          animation: pulse-scale 1s ease-in-out infinite;
+          animation: bounce-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
         .animate-float-up {
           animation: float-up 2s ease-out forwards;
-        }
-        
-        .animate-sparkle {
-          animation: sparkle 0.8s ease-in-out infinite;
         }
       `}</style>
     </div>
