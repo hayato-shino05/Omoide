@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import Image from 'next/image'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Icon } from '@/components/ui/Icon'
@@ -58,7 +58,7 @@ export default function PostPickerModal({
   isOpen,
   onClose,
   onConfirm,
-  initialSelectedId,
+  initialSelectedId = null,
   posts = [],
   isLoading = false,
 }: PostPickerModalProps) {
@@ -69,18 +69,21 @@ export default function PostPickerModal({
     initialSelectedId ? String(initialSelectedId) : null
   )
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
   const listboxId = useId()
   const listRef = useRef<HTMLDivElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
 
-  // モーダル表示時の初期化
-  useEffect(() => {
-    if (!isOpen) return
-    setSelectedId(initialSelectedId ? String(initialSelectedId) : null)
-    setQuery('')
-    setCategoryFilter('all')
-    setActiveIndex(-1)
-  }, [initialSelectedId, isOpen])
+  // モーダル表示状態の変化に応じた状態のリセット（React公式推奨パターン）
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen) {
+      setSelectedId(initialSelectedId ? String(initialSelectedId) : null)
+      setQuery('')
+      setCategoryFilter('all')
+      setActiveIndex(-1)
+    }
+  }
 
   // カテゴリ別の件数集計
   const counts = useMemo(() => {

@@ -42,7 +42,7 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
     return getTrackLyrics(currentTrack?.id, currentTrack?.name, currentTrack?.lyricsLrc)
   }, [currentTrack?.id, currentTrack?.name, currentTrack?.lyricsLrc])
 
-  const lyrics = lyricsInfo?.lines ?? []
+  const lyrics = useMemo(() => lyricsInfo?.lines ?? [], [lyricsInfo])
   const hasLyrics = lyrics.length > 0 && !lyricsInfo?.isInstrumental
 
   // 現在再生中の歌詞行インデックス

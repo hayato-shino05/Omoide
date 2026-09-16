@@ -38,6 +38,13 @@ async function mockSupabaseRest(page: import('@playwright/test').Page) {
 test.describe('home shell smoke', () => {
   test.beforeEach(async ({ page }) => {
     await mockSupabaseRest(page)
+    await page.addInitScript(() => {
+      window.addEventListener('DOMContentLoaded', () => {
+        const style = document.createElement('style')
+        style.textContent = 'nextjs-portal { display: none !important; pointer-events: none !important; }'
+        document.head.appendChild(style)
+      })
+    })
   })
 
   test('mobile 390x844 has no horizontal overflow', async ({ page }) => {
@@ -63,7 +70,7 @@ test.describe('home shell smoke', () => {
 
   test('album dialog opens with focus and closes on Escape', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /VIEW MEMORY ALBUM|思い出アルバム/ }).first().click()
+    await page.getByRole('button', { name: /VIEW MEMORY ALBUM|思い出アルバム/ }).filter({ visible: true }).first().click()
     const dialog = page.locator('[role="dialog"]').first()
     await expect(dialog).toBeVisible()
     await expect(dialog.locator(':focus')).toBeVisible()
@@ -76,7 +83,7 @@ test.describe('home shell smoke', () => {
     const postRequestPromise = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().includes('/api/community'),
     )
-    await page.getByRole('button', { name: /SEND WISHES|お祝いメッセージ/ }).first().click()
+    await page.getByRole('button', { name: /SEND WISHES|お祝いメッセージ/ }).filter({ visible: true }).first().click()
     const modal = page.getByRole('dialog').last()
     await expect(modal).toBeVisible()
     const form = modal.locator('form')
@@ -95,7 +102,7 @@ test.describe('home shell smoke', () => {
 
   test('camera capture exposes dialog semantics and Escape closes it', async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: /SEND WISHES|お祝いメッセージ/ }).first().click()
+    await page.getByRole('button', { name: /SEND WISHES|お祝いメッセージ/ }).filter({ visible: true }).first().click()
     await page.getByRole('button', { name: /Record Video|ビデオを撮る/ }).first().click()
     const dialogs = page.getByRole('dialog')
     await expect(dialogs).toHaveCount(2)

@@ -249,7 +249,7 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
         setError(t('selectTargetPostFirst'))
         return
       }
-      if (!trimmedMessage && !musicTrackId && !selectedFile) {
+      if (!trimmedMessage && !musicTrackId) {
         setError(t('allFieldsRequired'))
         return
       }
@@ -260,38 +260,22 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
 
     try {
       if (mode === 'reply') {
-        // モードB: 既存投稿へのコメント
-        if (!selectedFile) {
-          // メディア添付なし: /api/community/reply へ JSON 送信
-          const response = await fetch('/api/community/reply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              postId: selectedTargetId,
-              sender: trimmedSender,
-              content: trimmedMessage || null,
-              musicTrackId: musicTrackId || null,
-            }),
-          })
+        // モードB: 既存投稿へのコメント (/api/community/reply へ送信)
+        const response = await fetch('/api/community/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postId: selectedTargetId,
+            sender: trimmedSender,
+            content: trimmedMessage || null,
+            musicTrackId: musicTrackId || null,
+          }),
+        })
 
-          if (!response.ok) {
-            const payload = (await response.json().catch(() => null)) as { error?: string } | null
-            setError(payload?.error ?? t('sendMessageFailed'))
-            return
-          }
-        } else {
-          // メディア添付あり: /api/community へ FormData 送信
-          const formData = new FormData()
-          formData.set('kind', 'message')
-          formData.set('sender', trimmedSender)
-          formData.set('content', trimmedMessage)
-          const targetCelebrant = selectedTarget?.birthdayPerson || recipient.trim() || undefined
-          if (targetCelebrant) formData.set('birthdayPerson', targetCelebrant)
-          if (musicTrackId) formData.set('musicTrackId', musicTrackId)
-          formData.set('media', selectedFile, selectedFile.name)
-
-          const success = await sendFormDataWithProgress(formData)
-          if (!success) return
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null
+          setError(payload?.error ?? t('sendMessageFailed'))
+          return
         }
       } else {
         // モードA: 新規投稿を作成 (/api/community へ送信)
@@ -579,173 +563,175 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
         onOpenPicker={() => setIsMusicPickerOpen(true)}
       />
 
-      {/* メディア添付エリア */}
-      <div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={handleFileInputChange}
-          style={{ display: 'none' }}
-        />
+      {/* モードA専用: メディア添付エリア */}
+      {mode === 'new' && (
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileInputChange}
+            style={{ display: 'none' }}
+          />
 
-        {!selectedFile ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* ライブラリから選択 */}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
+          {!selectedFile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* ライブラリから選択 */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: '2px dashed #D4B08C',
+                  borderRadius: 0,
+                  background: 'rgba(212, 176, 140, 0.1)',
+                  color: '#854D27',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Icon name="Folder" size={16} />
+                <span>{t('chooseFromLibrary')}</span>
+              </button>
+
+              {/* カメラ撮影ボタン */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraMode('photo')
+                    setShowCamera(true)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: '2px solid #D4B08C',
+                    borderRadius: 0,
+                    background: '#854D27',
+                    color: '#FFF9F3',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                  }}
+                >
+                  <Icon name="Camera" size={15} />
+                  <span>{t('takePhoto')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraMode('video')
+                    setShowCamera(true)
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: '2px solid #D4B08C',
+                    borderRadius: 0,
+                    background: '#854D27',
+                    color: '#FFF9F3',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                  }}
+                >
+                  <Icon name="Video" size={15} />
+                  <span>{t('takeVideo')}</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
               style={{
-                width: '100%',
-                padding: '10px 14px',
-                border: '2px dashed #D4B08C',
-                borderRadius: 0,
+                border: '2px solid #D4B08C',
+                borderRadius: '8px',
+                padding: '10px',
                 background: 'rgba(212, 176, 140, 0.1)',
-                color: '#854D27',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.88rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
               }}
             >
-              <Icon name="Folder" size={16} />
-              <span>{t('chooseFromLibrary')}</span>
-            </button>
+              {/* プレビュー表示 */}
+              <div style={{ position: 'relative', marginBottom: '8px' }}>
+                {isVideo ? (
+                  <video
+                    src={previewUrl || ''}
+                    style={{
+                      width: '100%',
+                      maxHeight: '180px',
+                      objectFit: 'contain',
+                      borderRadius: '4px',
+                    }}
+                    controls
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewUrl || ''}
+                    alt={t('preview')}
+                    style={{
+                      width: '100%',
+                      maxHeight: '180px',
+                      objectFit: 'contain',
+                      borderRadius: '4px',
+                    }}
+                  />
+                )}
 
-            {/* カメラ撮影ボタン */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraMode('photo')
-                  setShowCamera(true)
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  border: '2px solid #D4B08C',
-                  borderRadius: 0,
-                  background: '#854D27',
-                  color: '#FFF9F3',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '2px 2px 0 #D4B08C',
-                }}
-              >
-                <Icon name="Camera" size={15} />
-                <span>{t('takePhoto')}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraMode('video')
-                  setShowCamera(true)
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  border: '2px solid #D4B08C',
-                  borderRadius: 0,
-                  background: '#854D27',
-                  color: '#FFF9F3',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  boxShadow: '2px 2px 0 #D4B08C',
-                }}
-              >
-                <Icon name="Video" size={15} />
-                <span>{t('takeVideo')}</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div
-            style={{
-              border: '2px solid #D4B08C',
-              borderRadius: '8px',
-              padding: '10px',
-              background: 'rgba(212, 176, 140, 0.1)',
-            }}
-          >
-            {/* プレビュー表示 */}
-            <div style={{ position: 'relative', marginBottom: '8px' }}>
-              {isVideo ? (
-                <video
-                  src={previewUrl || ''}
+                {/* 削除ボタン */}
+                <button
+                  type="button"
+                  onClick={removeFile}
+                  aria-label={t('removeFile')}
                   style={{
-                    width: '100%',
-                    maxHeight: '180px',
-                    objectFit: 'contain',
-                    borderRadius: '4px',
+                    position: 'absolute',
+                    top: '5px',
+                    right: '5px',
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '50%',
+                    background: 'rgba(220, 53, 69, 0.9)',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                  controls
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewUrl || ''}
-                  alt={t('preview')}
-                  style={{
-                    width: '100%',
-                    maxHeight: '180px',
-                    objectFit: 'contain',
-                    borderRadius: '4px',
-                  }}
-                />
-              )}
+                >
+                  <Icon name="X" size={16} />
+                </button>
+              </div>
 
-              {/* 削除ボタン */}
-              <button
-                type="button"
-                onClick={removeFile}
-                aria-label={t('removeFile')}
-                style={{
-                  position: 'absolute',
-                  top: '5px',
-                  right: '5px',
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  background: 'rgba(220, 53, 69, 0.9)',
-                  color: '#fff',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon name="X" size={16} />
-              </button>
+              {/* ファイル情報 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#854D27' }}>
+                <Icon name={isVideo ? 'Video' : 'Image'} size={15} />
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedFile.name}
+                </span>
+                <span style={{ opacity: 0.7 }}>{(selectedFile.size / 1024 / 1024).toFixed(1)}MB</span>
+              </div>
             </div>
-
-            {/* ファイル情報 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#854D27' }}>
-              <Icon name={isVideo ? 'Video' : 'Image'} size={15} />
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selectedFile.name}
-              </span>
-              <span style={{ opacity: 0.7 }}>{(selectedFile.size / 1024 / 1024).toFixed(1)}MB</span>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* アップロード進行状況 */}
       {uploadProgress > 0 && uploadProgress < 100 && (

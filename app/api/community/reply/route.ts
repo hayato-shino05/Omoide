@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
   const input = body as Record<string, unknown>
 
   const postIdValue = input.postId
-  const postId = typeof postIdValue === 'string' && /^\d+$/.test(postIdValue) ? Number(postIdValue) : null
+  const postId = typeof postIdValue === 'number' && Number.isInteger(postIdValue) && postIdValue > 0
+    ? postIdValue
+    : typeof postIdValue === 'string' && /^\d+$/.test(postIdValue)
+      ? Number(postIdValue)
+      : null
   const sender = parseText(input.sender, 100)
   const content = parseOptionalText(input.content, 1000)
   const musicTrackValue = input.musicTrackId

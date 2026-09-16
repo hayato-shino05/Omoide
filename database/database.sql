@@ -33,7 +33,7 @@ create table if not exists public.messages (
   message text not null check (char_length(btrim(message)) between 1 and 1000),
   birthday_person text check (birthday_person is null or char_length(btrim(birthday_person)) between 1 and 100),
   media_object_path text check (media_object_path is null or char_length(media_object_path) <= 500),
-  music_track_id text check (music_track_id is null or music_track_id ~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$'),
+  music_track_id text check (music_track_id is null or music_track_id ~ '^(?:jamendo:|omoide:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$'),
   created_at timestamptz not null default now()
 );
 create index if not exists messages_created_at_idx on public.messages (created_at desc);
@@ -105,7 +105,7 @@ create table if not exists public.post_replies (
   post_id bigint not null references public.bulletin_posts (id) on delete cascade,
   sender text not null check (char_length(btrim(sender)) between 1 and 100),
   message text check (message is null or char_length(btrim(message)) between 1 and 1000),
-  music_track_id text check (music_track_id is null or music_track_id ~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$'),
+  music_track_id text check (music_track_id is null or music_track_id ~ '^(?:jamendo:|omoide:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$'),
   moderation_status text not null default 'visible' check (moderation_status in ('visible', 'hidden')),
   created_at timestamptz not null default now(),
   constraint post_replies_message_or_music_check check (message is not null or music_track_id is not null)
@@ -330,7 +330,7 @@ begin
   if p_description is not null and char_length(p_description) > 1000 then
     raise exception using errcode = '22023', message = 'invalid description';
   end if;
-  if p_music_track_id is not null and p_music_track_id !~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$' then
+  if p_music_track_id is not null and p_music_track_id !~ '^(?:jamendo:|omoide:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$' then
     raise exception using errcode = '22023', message = 'invalid music track reference';
   end if;
   if p_music_track_id is not null and p_kind <> 'message' then
@@ -415,10 +415,10 @@ declare
 begin
   select * into v_post
   from public.bulletin_posts
-  where id = p_post_id and is_system_generated = true;
+  where id = p_post_id;
 
   if not found then
-    raise exception using errcode = '22023', message = 'invalid birthday thread';
+    raise exception using errcode = '22023', message = 'invalid post';
   end if;
 
   if p_sender is null or char_length(btrim(p_sender)) not between 1 and 100 then
@@ -433,7 +433,7 @@ begin
     raise exception using errcode = '22023', message = 'invalid message length';
   end if;
 
-  if p_music_track_id is not null and p_music_track_id !~ '^(?:jamendo:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$' then
+  if p_music_track_id is not null and p_music_track_id !~ '^(?:jamendo:|omoide:)?[0-9]{1,12}$|^soundcloud:[0-9]{1,20}$' then
     raise exception using errcode = '22023', message = 'invalid music track reference';
   end if;
 
