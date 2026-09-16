@@ -596,7 +596,7 @@ export function MobileBottomDock() {
                   className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
                 >
                   <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
-                    <Icon name="BookOpen" size={22} useSvg />
+                    <Icon name="BookOpen" size={22} />
                   </div>
                   <span className="truncate">{t('studyRoomTitle')}</span>
                 </button>

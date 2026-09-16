@@ -174,7 +174,7 @@ export function SocialButtons() {
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       >
-        <Icon name="BookOpen" size={26} useSvg />
+        <Icon name="BookOpen" size={26} />
         <span>{t('studyRoomTitle')}</span>
       </button>
 

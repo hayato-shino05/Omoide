@@ -107,6 +107,8 @@ import gameControllerIcon from '@/src/assets/icons/game-controller.png'
 import groupChatIcon from '@/src/assets/icons/group-chat.png'
 import toriiIcon from '@/src/assets/icons/torii.png'
 import archiveIcon from '@/src/assets/icons/archive.png'
+import scrollIcon from '@/src/assets/icons/scroll.png'
+import fortuneTellerIcon from '@/src/assets/icons/fortune-teller.png'
 
 export const Icons = {
   AlertTriangle,
@@ -232,8 +234,10 @@ const assetIcons: Partial<Record<keyof typeof Icons, StaticImageData>> = {
   Eye: eyeIcon,
   EyeOff: eyeOffIcon,
   Gamepad: gameControllerIcon,
-  Sparkles: toriiIcon,
+  Sparkles: fortuneTellerIcon,
   Archive: archiveIcon,
+  BookOpen: scrollIcon,
+  Star: toriiIcon,
 }
 
 const iconToneClasses: Partial<Record<keyof typeof Icons, string>> = {
