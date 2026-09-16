@@ -17,13 +17,14 @@ import type { ThemeEffect } from '@/config/themes'
 interface ThemeEffectsProps {
   effects: ThemeEffect[]
   active?: boolean
+  className?: string
 }
 
-export function ThemeEffects({ effects, active = true }: ThemeEffectsProps) {
+export function ThemeEffects({ effects, active = true, className }: ThemeEffectsProps) {
   if (!active || !effects || effects.length === 0) return null
 
   return (
-    <>
+    <div className={className}>
       {effects.map((effect, index) => {
         switch (effect.type) {
           case 'fallingPetals':
@@ -54,6 +55,6 @@ export function ThemeEffects({ effects, active = true }: ThemeEffectsProps) {
             return null
         }
       })}
-    </>
+    </div>
   )
 }

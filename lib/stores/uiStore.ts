@@ -13,6 +13,7 @@ export type ModalType =
   | 'flashback'
   | 'omikuji'
   | 'timeCapsule'
+  | 'studyRoom'
   | null
 
 export interface MessageModalPayload {

@@ -82,6 +82,11 @@ const TimeCapsule = dynamic(
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )
 
+const StudyRoomHub = dynamic(
+  () => import('@/components/study/StudyRoomHub').then((mod) => mod.StudyRoomHub),
+  { ssr: false, loading: () => <ModalLoadingSpinner /> }
+)
+
 export function ModalManager() {
   const { activeModal, messageModalPayload, closeModal } = useUIStore()
   const { t } = useLanguage()
@@ -149,6 +154,11 @@ export function ModalManager() {
       title: t('timeCapsuleTitle'),
       content: <TimeCapsule />,
       size: 'md' as const,
+    },
+    studyRoom: {
+      title: 'Study Room & Zen Focus',
+      content: <StudyRoomHub />,
+      size: 'full' as const,
     },
   }
 

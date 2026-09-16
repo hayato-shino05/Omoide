@@ -42,12 +42,12 @@ export function BirthdayHub() {
   const { t } = useLanguage()
 
   if (isLoading) {
-    return <div className="flex min-h-[40vh] items-center justify-center text-sm" role="status">{t('loading')}</div>
+    return <div suppressHydrationWarning className="flex min-h-[40vh] items-center justify-center text-sm" role="status">{t('loading')}</div>
   }
 
   if (isError) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 px-4 text-center" role="alert">
+      <div suppressHydrationWarning className="flex min-h-[40vh] flex-col items-center justify-center gap-4 px-4 text-center" role="alert">
         <p className="font-semibold">{t('error')}</p>
         <button type="button" onClick={() => refetch()} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--theme-primary)] px-4 py-2 font-semibold">
           <RefreshCw className="h-4 w-4" aria-hidden="true" />

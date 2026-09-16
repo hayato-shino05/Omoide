@@ -427,6 +427,25 @@
     "yearOverview": "Year overview",
     "yearlyOverview": "Yearly Birthday Overview",
     "yearsAgoToday": "{count} year(s) ago today",
-    "yourName": "Your name"
+    "yourName": "Your name",
+    "ambientCafe": "Cafe Ambience",
+    "ambientFireplace": "Fireplace",
+    "ambientMixer": "Ambient Sound Mixer",
+    "ambientRain": "Gentle Rain",
+    "ambientWindChime": "Wind Chime",
+    "createRoom": "Create Room",
+    "joinRoom": "Join Room",
+    "leaveRoom": "Leave Room",
+    "listenSolo": "Listen Solo (Mute Room)",
+    "privateRoom": "Private Room",
+    "roomBgm": "Room BGM",
+    "roomName": "Room Name",
+    "roomPasscode": "Passcode",
+    "silentCheer": "Silent Cheer",
+    "studyRoomDesc": "A tranquil co-working space to study and focus together",
+    "studyRoomTitle": "Study Room & Zen Focus",
+    "studyStreak": "Focus Streak",
+    "zenFocusDesc": "Distraction-free environment for deep work",
+    "zenFocusMode": "Zen Focus Mode"
   }
 }

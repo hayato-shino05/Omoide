@@ -427,6 +427,25 @@
     "yearOverview": "年間一覧",
     "yearlyOverview": "1年の誕生日一覧",
     "yearsAgoToday": "{count}年前の今日",
-    "yourName": "あなたの名前"
+    "yourName": "あなたの名前",
+    "ambientCafe": "喫茶店",
+    "ambientFireplace": "暖炉の火",
+    "ambientMixer": "環境音ミキサー",
+    "ambientRain": "静かな雨音",
+    "ambientWindChime": "涼風の風鈴",
+    "createRoom": "部屋を作成",
+    "joinRoom": "部屋に参加",
+    "leaveRoom": "部屋から退出",
+    "listenSolo": "ソロ聴取（部屋BGM消音）",
+    "privateRoom": "非公開部屋",
+    "roomBgm": "部屋BGM",
+    "roomName": "部屋名",
+    "roomPasscode": "パスコード",
+    "silentCheer": "静かな応援",
+    "studyRoomDesc": "仲間と一緒に集中し、穏やかな時間を共有する空間",
+    "studyRoomTitle": "勉強部屋・禅集中",
+    "studyStreak": "連続集中時間",
+    "zenFocusDesc": "余計なものを排し、ひとつの作業に深く没頭する",
+    "zenFocusMode": "禅・集中モード"
   }
 }
