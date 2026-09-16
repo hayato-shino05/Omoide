@@ -56,30 +56,30 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   }
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto flex flex-col gap-5 p-4 sm:p-6 text-stone-100">
+    <div className="relative w-full max-w-4xl mx-auto flex flex-col gap-4 p-2 sm:p-4 text-[#854D27]">
       {/* Floating Silent Cheer Layer */}
       <SilentCheerOverlay />
 
       {/* Top Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 rounded-3xl bg-stone-900/85 border border-white/10 backdrop-blur-xl shadow-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#D4B08C] shadow-xs">
         <div className="flex items-center gap-3.5 min-w-0">
-          <div className="p-3 rounded-2xl bg-[#D95D39]/15 border border-[#D95D39]/30 text-amber-300 flex-shrink-0 shadow-sm">
-            <Sparkles size={22} />
+          <div className="p-2.5 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] text-[#D95D39] flex-shrink-0 shadow-xs">
+            <Sparkles size={20} />
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-medium text-white truncate max-w-[180px] sm:max-w-md">
+              <h1 className="text-base sm:text-lg font-bold text-[#854D27] truncate max-w-[180px] sm:max-w-md font-heading">
                 {currentRoom?.name || t('studyRoomTitle')}
               </h1>
               {currentRoom?.is_private && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium flex-shrink-0">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] bg-[#FAF0E6] text-[#854D27] border border-[#D4B08C] font-semibold flex-shrink-0 font-body">
                   <Lock size={10} />
                   {t('studyPrivateRoom')}
                 </span>
               )}
             </div>
-            <p className="text-xs text-stone-400 truncate max-w-[240px] sm:max-w-md mt-0.5">
+            <p className="text-xs text-[#854D27]/70 truncate max-w-[240px] sm:max-w-md mt-0.5 font-body">
               {currentRoom?.description || t('studyRoomDesc')}
             </p>
           </div>
@@ -92,9 +92,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             type="button"
             onClick={() => setIsZenOpen(true)}
             aria-label={t('studyZenMode')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-[#D95D39]/20 hover:bg-[#D95D39]/30 active:scale-95 text-amber-200 border border-[#D95D39]/40 backdrop-blur-md transition-all shadow-[0_4px_16px_rgba(217,93,57,0.2)]"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#D95D39] hover:bg-[#c44e2b] active:scale-95 text-white shadow-xs transition-all cursor-pointer font-body"
           >
-            <Maximize2 size={14} className="text-[#D95D39]" />
+            <Maximize2 size={14} />
             <span>{t('studyZenMode')}</span>
           </button>
 
@@ -104,9 +104,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={handleCopyLink}
             title={t('studyCopyInviteLink')}
             aria-label={t('studyCopyInviteLink')}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-stone-300 hover:text-white border border-white/10 transition-all shadow-sm"
+            className="p-2 rounded-xl bg-[#FFF9F3] hover:bg-[#FAF0E6] active:scale-95 text-[#854D27] border border-[#D4B08C] transition-all shadow-xs cursor-pointer"
           >
-            {isCopied ? <Check size={16} className="text-emerald-400" /> : <Share2 size={16} />}
+            {isCopied ? <Check size={16} className="text-emerald-600" /> : <Share2 size={16} />}
           </button>
 
           {/* Leave Button */}
@@ -115,7 +115,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={handleLeave}
             title={t('studyLeaveRoom')}
             aria-label={t('studyLeaveRoom')}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-rose-500/20 active:scale-95 text-stone-300 hover:text-rose-200 border border-white/10 hover:border-rose-500/30 transition-all shadow-sm"
+            className="p-2 rounded-xl bg-[#FFF9F3] hover:bg-rose-50 active:scale-95 text-[#854D27] hover:text-rose-700 border border-[#D4B08C] hover:border-rose-300 transition-all shadow-xs cursor-pointer"
           >
             <LogOut size={16} />
           </button>

@@ -185,18 +185,18 @@ export function StudyRoomHub() {
   )
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 text-stone-100">
-      {/* Hero Banner - Wabi-sabi Modern */}
-      <div className="relative overflow-hidden p-6 sm:p-9 rounded-3xl bg-stone-900/90 border border-white/10 shadow-2xl backdrop-blur-2xl mb-7">
+    <div className="w-full max-w-5xl mx-auto p-2 sm:p-4 text-[#854D27]">
+      {/* Hero Banner - Wabi-sabi Modern Warm Paper */}
+      <div className="relative overflow-hidden p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#FFF9F3] via-[#FAF3EB] to-[#F5EBE1] border-2 border-[#D4B08C] shadow-sm mb-6">
         <div className="relative z-10 max-w-2xl">
-          <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider mb-2.5">
-            <Sparkles size={15} />
+          <div className="flex items-center gap-2 text-[#D95D39] text-xs font-bold uppercase tracking-wider mb-2">
+            <Sparkles size={16} />
             <span>{t('studyRoomTitle')}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-white mb-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#854D27] mb-2 font-heading">
             {t('studyHeroTitle')}
           </h1>
-          <p className="text-xs sm:text-sm text-stone-300 mb-6 leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#854D27]/80 mb-5 leading-relaxed font-body">
             {t('studyHeroDesc')}
           </p>
 
@@ -204,7 +204,7 @@ export function StudyRoomHub() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#D95D39] hover:bg-[#c44e2b] active:scale-95 text-white text-xs font-medium transition-all shadow-[0_4px_20px_rgba(217,93,57,0.35)]"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] active:scale-95 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
             >
               <Plus size={16} />
               <span>{t('studyCreateRoom')}</span>
@@ -213,9 +213,9 @@ export function StudyRoomHub() {
             <button
               type="button"
               onClick={() => setIsZenSoloOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 text-stone-200 hover:text-white border border-white/15 text-xs font-medium backdrop-blur-md transition-all shadow-sm"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-[#FFF9F3] active:scale-95 text-[#854D27] border border-[#D4B08C] text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
-              <Maximize2 size={16} className="text-amber-300" />
+              <Maximize2 size={16} className="text-[#D95D39]" />
               <span>{t('studySoloZen')}</span>
             </button>
           </div>
@@ -225,13 +225,13 @@ export function StudyRoomHub() {
       {/* Control / Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="relative flex-1 min-w-[240px]">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#854D27]/50" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('studySearchPlaceholder')}
-            className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-stone-900/70 border border-white/10 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/60 backdrop-blur-xl shadow-inner transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] placeholder-[#854D27]/40 focus:outline-none focus:border-[#854D27] shadow-inner transition-colors font-body"
           />
         </div>
 
@@ -240,7 +240,7 @@ export function StudyRoomHub() {
           onClick={loadRooms}
           title={t('studyRefreshRooms')}
           aria-label={t('studyRefreshRooms')}
-          className="p-2.5 rounded-2xl bg-stone-900/70 hover:bg-stone-800/80 border border-white/10 text-stone-300 hover:text-white transition-all backdrop-blur-md shadow-sm active:scale-95"
+          className="p-2.5 rounded-xl bg-white hover:bg-[#FFF9F3] border-2 border-[#D4B08C] text-[#854D27] transition-all shadow-xs active:scale-95 cursor-pointer"
         >
           <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
         </button>
@@ -248,50 +248,50 @@ export function StudyRoomHub() {
 
       {/* Room Grid */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs text-stone-400">{t('studyLoadingRooms')}</div>
+        <div className="py-16 text-center text-xs text-[#854D27]/60 font-body">{t('studyLoadingRooms')}</div>
       ) : filteredRooms.length === 0 ? (
-        <div className="py-16 text-center text-stone-400 p-8 rounded-3xl bg-stone-900/50 border border-white/10 backdrop-blur-xl">
-          <Coffee size={36} className="mx-auto mb-3 text-stone-500 opacity-60" />
-          <p className="text-xs sm:text-sm font-medium text-stone-300 mb-1">{t('studyNoRoomsFound')}</p>
+        <div className="py-14 text-center text-[#854D27] p-8 rounded-2xl bg-white/80 border-2 border-[#D4B08C] shadow-xs">
+          <Coffee size={36} className="mx-auto mb-3 text-[#D4B08C]" />
+          <p className="text-xs sm:text-sm font-semibold text-[#854D27] mb-1 font-body">{t('studyNoRoomsFound')}</p>
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#D95D39]/20 text-amber-200 border border-[#D95D39]/40 text-xs font-medium hover:bg-[#D95D39]/30 active:scale-95 transition-all shadow-sm"
+            className="mt-4 px-4 py-2 rounded-xl bg-[#D95D39] text-white text-xs font-bold hover:bg-[#c44e2b] active:scale-95 transition-all shadow-xs cursor-pointer"
           >
             {t('studyCreateFirstRoom')}
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredRooms.map((room) => (
             <div
               key={room.id}
-              className="flex flex-col justify-between p-5 rounded-3xl bg-stone-900/75 hover:bg-stone-900/90 border border-white/10 hover:border-amber-500/40 transition-all backdrop-blur-xl shadow-xl hover:shadow-2xl group"
+              className="flex flex-col justify-between p-5 rounded-2xl bg-white border-2 border-[#D4B08C] hover:border-[#854D27] transition-all shadow-xs hover:shadow-md group"
             >
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-stone-300 font-medium">
-                    <Users size={12} className="text-amber-400" />
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-[#FAF0E6] border border-[#D4B08C]/60 text-[#854D27] font-semibold">
+                    <Users size={12} className="text-[#D95D39]" />
                     {t('studyMaxDesks', { count: room.max_members })}
                   </span>
                   {room.is_private && (
-                    <span className="p-1.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30" title={t('studyPrivateRoom')}>
+                    <span className="p-1 rounded-full bg-[#FAF0E6] text-[#854D27] border border-[#D4B08C]" title={t('studyPrivateRoom')}>
                       <Lock size={12} />
                     </span>
                   )}
                 </div>
 
-                <h2 className="text-sm sm:text-base font-medium text-white group-hover:text-amber-200 transition-colors mb-1.5 truncate">
+                <h2 className="text-sm sm:text-base font-bold text-[#854D27] group-hover:text-[#D95D39] transition-colors mb-1 truncate font-heading">
                   {room.name}
                 </h2>
-                <p className="text-xs text-stone-400 line-clamp-2 mb-4 min-h-[34px] leading-relaxed">
+                <p className="text-xs text-[#854D27]/70 line-clamp-2 mb-4 min-h-[34px] leading-relaxed font-body">
                   {room.description || t('studyRoomDesc')}
                 </p>
               </div>
 
-              <div className="pt-3.5 border-t border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs text-stone-400 min-w-0">
-                  <Music size={14} className="text-amber-400 flex-shrink-0" />
+              <div className="pt-3 border-t border-[#D4B08C]/40 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-[#854D27]/70 min-w-0 font-body">
+                  <Music size={14} className="text-[#D95D39] flex-shrink-0" />
                   <span className="truncate max-w-[110px] sm:max-w-[130px] font-medium">
                     {room.current_track_id ? t('studyTrackSelected', { id: room.current_track_id }) : t('studyRoomBgm')}
                   </span>
@@ -300,7 +300,7 @@ export function StudyRoomHub() {
                 <button
                   type="button"
                   onClick={() => handleJoinRoom(room)}
-                  className="px-4 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-200 border border-amber-500/40 text-xs font-medium transition-all shadow-sm"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] active:scale-95 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   {t('studyJoinRoom')}
                 </button>
@@ -316,17 +316,18 @@ export function StudyRoomHub() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="create-room-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md p-6 sm:p-7 rounded-3xl bg-stone-900 border border-white/15 text-stone-100 shadow-[0_16px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <h2 id="create-room-title" className="text-sm sm:text-base font-medium text-white">
+          <div className="w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C]">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-[#D4B08C] mb-4">
+              <h2 id="create-room-title" className="text-base font-bold text-[#854D27] font-heading">
                 {t('studyCreateRoom')}
               </h2>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1.5 rounded-lg text-stone-400 hover:text-white"
+                aria-label={t('close')}
+                className="p-1.5 rounded-lg text-[#854D27] hover:bg-[#FAF0E6] transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -334,7 +335,7 @@ export function StudyRoomHub() {
 
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-bold text-[#854D27] mb-1 font-body">
                   {t('studyRoomName')} *
                 </label>
                 <input
@@ -343,12 +344,12 @@ export function StudyRoomHub() {
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder={t('studyRoomNamePlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] placeholder-[#854D27]/40 focus:outline-none focus:border-[#854D27] font-body"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-bold text-[#854D27] mb-1 font-body">
                   {t('studyRoomDescLabel')}
                 </label>
                 <textarea
@@ -356,23 +357,23 @@ export function StudyRoomHub() {
                   value={newRoomDesc}
                   onChange={(e) => setNewRoomDesc(e.target.value)}
                   placeholder={t('studyRoomDescPlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] placeholder-[#854D27]/40 focus:outline-none focus:border-[#854D27] resize-none font-body"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-bold text-[#854D27] mb-1 font-body">
                   {t('studyInitialBgm')}
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsSongPickerOpen(true)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-stone-300 hover:text-white hover:border-amber-500/30 transition-all"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] hover:border-[#854D27] transition-all cursor-pointer font-body"
                 >
                   <span className="truncate">
                     {selectedTrackId ? t('studyTrackSelected', { id: selectedTrackId }) : t('studySelectTrack')}
                   </span>
-                  <Music size={14} className="text-amber-400 flex-shrink-0 ml-2" />
+                  <Music size={14} className="text-[#D95D39] flex-shrink-0 ml-2" />
                 </button>
               </div>
 
@@ -382,16 +383,16 @@ export function StudyRoomHub() {
                   id="isPrivateCheckbox"
                   checked={isPrivate}
                   onChange={(e) => setIsPrivate(e.target.checked)}
-                  className="rounded bg-stone-800 border-white/20 text-[#D95D39] focus:ring-0 cursor-pointer"
+                  className="rounded border-[#D4B08C] text-[#D95D39] focus:ring-0 cursor-pointer"
                 />
-                <label htmlFor="isPrivateCheckbox" className="text-xs text-stone-300 cursor-pointer">
+                <label htmlFor="isPrivateCheckbox" className="text-xs text-[#854D27] font-medium cursor-pointer font-body">
                   {t('studyPrivateRoomOption')}
                 </label>
               </div>
 
               {isPrivate && (
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                  <label className="block text-xs font-bold text-[#854D27] mb-1 font-body">
                     {t('roomPasscode')} *
                   </label>
                   <input
@@ -400,23 +401,23 @@ export function StudyRoomHub() {
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
                     placeholder={t('studyEnterPasscode')}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500/60"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] placeholder-[#854D27]/40 focus:outline-none focus:border-[#854D27] font-body"
                   />
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t-2 border-[#D4B08C]">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200 active:scale-95 transition-all"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#854D27]/70 hover:text-[#854D27] active:scale-95 transition-all cursor-pointer"
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-medium shadow-md active:scale-95 transition-all disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? t('studyCreatingRoom') : t('createRoom')}
                 </button>
@@ -432,13 +433,13 @@ export function StudyRoomHub() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="private-room-join-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         >
-          <div className="w-full max-w-sm p-6 rounded-3xl bg-stone-900 border border-white/15 text-stone-100 shadow-2xl backdrop-blur-2xl">
-            <h2 id="private-room-join-title" className="text-sm sm:text-base font-medium text-white mb-1">
+          <div className="w-full max-w-sm p-6 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C]">
+            <h2 id="private-room-join-title" className="text-base font-bold text-[#854D27] mb-1 font-heading">
               {t('studyPrivateRoom')}
             </h2>
-            <p className="text-xs text-stone-400 mb-4 truncate">{joiningRoom.name}</p>
+            <p className="text-xs text-[#854D27]/70 mb-4 truncate font-body">{joiningRoom.name}</p>
 
             <input
               type="password"
@@ -449,25 +450,25 @@ export function StudyRoomHub() {
                 setPasscodeError(false)
               }}
               placeholder={t('studyEnterPasscode')}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-stone-800/80 border border-white/10 text-xs text-white focus:outline-none focus:border-amber-500/60 mb-2"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#854D27] focus:outline-none focus:border-[#854D27] mb-2 font-body"
             />
 
             {passcodeError && (
-              <p className="text-[11px] text-rose-400 mb-3">{t('studyIncorrectPasscode')}</p>
+              <p className="text-[11px] text-rose-600 font-semibold mb-3 font-body">{t('studyIncorrectPasscode')}</p>
             )}
 
             <div className="flex items-center justify-end gap-2.5 pt-3">
               <button
                 type="button"
                 onClick={() => setJoiningRoom(null)}
-                className="px-3.5 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200 active:scale-95"
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#854D27]/70 hover:text-[#854D27] active:scale-95 cursor-pointer"
               >
                 {t('cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmPrivateJoin}
-                className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-medium shadow-md active:scale-95 transition-all"
+                className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
               >
                 {t('studyJoinRoom')}
               </button>

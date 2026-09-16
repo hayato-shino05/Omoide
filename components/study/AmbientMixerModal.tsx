@@ -60,16 +60,16 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="ambient-mixer-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-all duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-200"
     >
-      <div className="relative w-full max-w-md p-6 sm:p-7 rounded-3xl bg-stone-900/95 border border-white/15 text-stone-100 shadow-[0_16px_50px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+      <div className="relative w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C]">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-[#D4B08C] mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300">
+            <div className="p-2 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] text-[#D95D39]">
               <Sliders size={18} />
             </div>
-            <h2 id="ambient-mixer-title" className="text-sm sm:text-base font-medium text-white">
+            <h2 id="ambient-mixer-title" className="text-base font-bold text-[#854D27] font-heading">
               {t('studyAmbientMixerTitle')}
             </h2>
           </div>
@@ -77,15 +77,15 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
             type="button"
             onClick={onClose}
             aria-label={t('close')}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-100 hover:bg-white/10 active:scale-95 transition-all"
+            className="p-2 rounded-xl text-[#854D27] hover:bg-[#FAF0E6] active:scale-95 transition-all cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Presets */}
-        <div className="mb-5">
-          <label className="block text-xs font-medium text-stone-300 mb-2">
+        <div className="mb-4">
+          <label className="block text-xs font-bold text-[#854D27] mb-2 font-body">
             {t('studyPresetMoods')}
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -94,7 +94,7 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset.id)}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 hover:border-amber-500/30 text-xs text-stone-200 hover:text-white transition-all text-center truncate font-medium"
+                className="px-3 py-2 rounded-xl bg-white hover:bg-[#FAF0E6] active:scale-95 border-2 border-[#D4B08C] hover:border-[#854D27] text-xs text-[#854D27] transition-all text-center truncate font-semibold cursor-pointer shadow-2xs font-body"
               >
                 {preset.name}
               </button>
@@ -103,13 +103,13 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
         </div>
 
         {/* Master Volume Slider */}
-        <div className="mb-5 p-3.5 rounded-2xl bg-white/5 border border-white/10">
-          <div className="flex items-center justify-between text-xs text-stone-200 mb-2">
-            <span className="font-medium flex items-center gap-1.5">
-              <Volume2 size={14} className="text-amber-400" />
+        <div className="mb-4 p-3.5 rounded-xl bg-white border-2 border-[#D4B08C] shadow-2xs">
+          <div className="flex items-center justify-between text-xs text-[#854D27] mb-2 font-body">
+            <span className="font-bold flex items-center gap-1.5">
+              <Volume2 size={14} className="text-[#D95D39]" />
               {t('studyMasterVolume')}
             </span>
-            <span className="font-mono tabular-nums text-stone-300 font-medium">
+            <span className="font-mono tabular-nums text-[#854D27] font-bold">
               {Math.round(masterVolume * 100)}%
             </span>
           </div>
@@ -121,24 +121,24 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
             value={masterVolume}
             onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
             aria-label={t('studyMasterVolume')}
-            className="w-full h-1.5 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            className="w-full h-1.5 bg-[#D4B08C]/40 rounded-lg appearance-none cursor-pointer accent-[#D95D39]"
           />
         </div>
 
         {/* 4 Channels Sliders */}
-        <div className="space-y-3.5 mb-6">
+        <div className="space-y-2.5 mb-5">
           {AMBIENT_SOUNDS.map((sound) => {
             const vol = volumes[sound.id] ?? 0
             const soundName = getSoundName(sound)
             return (
-              <div key={sound.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10 flex-shrink-0">
+              <div key={sound.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/80 border border-[#D4B08C]/60 shadow-2xs">
+                <div className="p-2 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] flex-shrink-0">
                   {getIcon(sound.id)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-stone-200 font-medium truncate">{soundName}</span>
-                    <span className="font-mono tabular-nums text-stone-400 text-[11px] ml-2">
+                  <div className="flex items-center justify-between text-xs mb-1 font-body">
+                    <span className="text-[#854D27] font-bold truncate">{soundName}</span>
+                    <span className="font-mono tabular-nums text-[#854D27]/70 text-[11px] ml-2 font-semibold">
                       {Math.round(vol * 100)}%
                     </span>
                   </div>
@@ -150,7 +150,7 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
                     value={vol}
                     onChange={(e) => setVolume(sound.id, parseFloat(e.target.value))}
                     aria-label={soundName}
-                    className="w-full h-1.5 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-stone-300 hover:accent-amber-400 transition-colors"
+                    className="w-full h-1.5 bg-[#D4B08C]/40 rounded-lg appearance-none cursor-pointer accent-[#D95D39]"
                   />
                 </div>
               </div>
@@ -159,11 +159,11 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-white/10">
+        <div className="flex items-center justify-between pt-3 border-t-2 border-[#D4B08C]">
           <button
             type="button"
             onClick={muteAll}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200 hover:bg-white/10 active:scale-95 transition-all font-medium"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs text-[#854D27]/70 hover:text-[#854D27] hover:bg-[#FAF0E6] active:scale-95 transition-all font-semibold cursor-pointer font-body"
           >
             <RotateCcw size={14} />
             <span>{t('studyMuteAll')}</span>
@@ -172,10 +172,10 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
           <button
             type="button"
             onClick={togglePlaying}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium active:scale-95 transition-all shadow-md ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition-all shadow-xs cursor-pointer font-body ${
               isPlaying
-                ? 'bg-amber-500/25 text-amber-200 border border-amber-500/40 hover:bg-amber-500/35'
-                : 'bg-white/10 text-stone-300 hover:bg-white/15 border border-white/15'
+                ? 'bg-[#D95D39] hover:bg-[#c44e2b] text-white'
+                : 'bg-[#FFF9F3] text-[#854D27] hover:bg-[#FAF0E6] border border-[#D4B08C]'
             }`}
           >
             {isPlaying ? <Volume2 size={15} /> : <VolumeX size={15} />}

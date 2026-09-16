@@ -11,37 +11,37 @@ interface ActiveCheerItem extends SilentCheerPayload {
   driftOffset: number
 }
 
-// 応援アイコンの描画（絵文字を完全排除し、上品な発光 Lucide SVG アイコンを採用）
+// 応援アイコンの描画（ネオン発光・過度な点滅を排除し、和モダンカードスタイルを採用）
 function CheerIcon({ type }: { type: CheerType }) {
   switch (type) {
     case 'coffee':
       return (
-        <div className="p-2.5 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)] backdrop-blur-md">
-          <Coffee size={24} className="animate-pulse" />
+        <div className="p-2.5 rounded-2xl bg-[#FFF9F3] border-2 border-[#D4B08C] text-[#854D27] shadow-[3px_3px_0_#D4B08C]">
+          <Coffee size={22} />
         </div>
       )
     case 'fire':
       return (
-        <div className="p-2.5 rounded-2xl bg-rose-500/20 border border-rose-400/40 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.4)] backdrop-blur-md">
-          <Flame size={24} className="animate-pulse" />
+        <div className="p-2.5 rounded-2xl bg-[#FFF9F3] border-2 border-[#D95D39] text-[#D95D39] shadow-[3px_3px_0_#D95D39]">
+          <Flame size={22} />
         </div>
       )
     case 'sparkle':
       return (
-        <div className="p-2.5 rounded-2xl bg-amber-300/20 border border-amber-300/40 text-amber-200 shadow-[0_0_20px_rgba(252,211,77,0.5)] backdrop-blur-md">
-          <Sparkles size={24} className="animate-spin" style={{ animationDuration: '6s' }} />
+        <div className="p-2.5 rounded-2xl bg-[#FFF9F3] border-2 border-[#D4B08C] text-[#D95D39] shadow-[3px_3px_0_#D4B08C]">
+          <Sparkles size={22} />
         </div>
       )
     case 'book':
       return (
-        <div className="p-2.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)] backdrop-blur-md">
-          <BookOpen size={24} />
+        <div className="p-2.5 rounded-2xl bg-[#FFF9F3] border-2 border-[#2E7D6F] text-[#2E7D6F] shadow-[3px_3px_0_#2E7D6F]">
+          <BookOpen size={22} />
         </div>
       )
     default:
       return (
-        <div className="p-2.5 rounded-2xl bg-pink-500/20 border border-pink-400/40 text-pink-300 shadow-[0_0_20px_rgba(244,114,182,0.4)] backdrop-blur-md">
-          <Sparkles size={24} />
+        <div className="p-2.5 rounded-2xl bg-[#FFF9F3] border-2 border-[#D4B08C] text-[#854D27] shadow-[3px_3px_0_#D4B08C]">
+          <Sparkles size={22} />
         </div>
       )
   }
@@ -96,23 +96,23 @@ export function SilentCheerOverlay() {
               opacity: 0,
               y: '85vh',
               x: `${cheer.xOffset}vw`,
-              scale: 0.7,
+              scale: 0.8,
             }}
             animate={{
               opacity: [0, 1, 1, 0.9, 0],
               y: '22vh',
               x: `${cheer.xOffset + cheer.driftOffset}vw`,
-              scale: [0.7, 1.15, 1, 0.95],
+              scale: [0.8, 1.08, 1, 0.95],
             }}
             exit={{ opacity: 0 }}
             transition={{
               duration: 3,
-              ease: [0.16, 1, 0.3, 1], // 優雅なイージングカーブ
+              ease: [0.16, 1, 0.3, 1],
             }}
             className="absolute left-1/2 flex flex-col items-center -translate-x-1/2"
           >
             <CheerIcon type={cheer.cheer_type} />
-            <span className="mt-2 px-2.5 py-1 rounded-full text-[11px] font-medium bg-stone-950/80 text-stone-100 border border-white/15 backdrop-blur-xl shadow-lg select-none whitespace-nowrap">
+            <span className="mt-2 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] select-none whitespace-nowrap">
               {cheer.sender_name}
             </span>
           </motion.div>
@@ -121,4 +121,3 @@ export function SilentCheerOverlay() {
     </div>
   )
 }
-
