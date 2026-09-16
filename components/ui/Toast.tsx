@@ -39,12 +39,26 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null)
 
-export function useToast() {
+const fallbackToastContext: ToastContextType = {
+  toasts: [],
+  addToast: () => '',
+  removeToast: () => {},
+  updateToast: () => {},
+  success: () => '',
+  error: () => '',
+  warning: () => '',
+  info: () => '',
+  loading: () => '',
+  promise: async <T,>(promiseToResolve: Promise<T>): Promise<T> => promiseToResolve,
+}
+
+export function useOptionalToast(): ToastContextType | null {
+  return useContext(ToastContext)
+}
+
+export function useToast(): ToastContextType {
   const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider')
-  }
-  return context
+  return context ?? fallbackToastContext
 }
 
 interface ToastProviderProps {
@@ -55,7 +69,7 @@ interface ToastProviderProps {
 
 const subscribeNoop = () => () => {}
 
-export function ToastProvider({ children, position = 'bottom-right', maxToasts = 5 }: ToastProviderProps) {
+export function ToastProvider({ children, position = 'top-right', maxToasts = 5 }: ToastProviderProps) {
   const lang = useOptionalLanguage()
   const t = lang?.t ?? ((k: string) => k)
   const [toasts, setToasts] = useState<Toast[]>([])

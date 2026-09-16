@@ -83,7 +83,7 @@ const TimeCapsule = dynamic(
 )
 
 export function ModalManager() {
-  const { activeModal, closeModal } = useUIStore()
+  const { activeModal, messageModalPayload, closeModal } = useUIStore()
   const { t } = useLanguage()
 
   if (!activeModal) return null
@@ -106,7 +106,13 @@ export function ModalManager() {
     },
     message: {
       title: t('sendMessage'),
-      content: <MessageForm onSuccess={closeModal} />,
+      content: (
+        <MessageForm
+          birthdayPerson={messageModalPayload?.birthdayPerson}
+          initialThreadId={messageModalPayload?.threadId}
+          onSuccess={closeModal}
+        />
+      ),
     },
     bulletin: {
       title: t('bulletinBoard'),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createCommunityMediaUploadToken, createServiceClient } from '@/lib/time-capsule/server'
-import { getMediaKind, isCommunityMediaMimeType, MAX_COMMUNITY_MEDIA_SIZE } from '@/lib/validations/upload'
+import { getMediaKind, isCommunityMediaMimeType, MEDIA_EXTENSIONS, MAX_COMMUNITY_MEDIA_SIZE } from '@/lib/validations/upload'
 
 function parseText(value: unknown, maxLength: number): string | null {
   if (typeof value !== 'string') return null
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'サポートされていないファイル形式です' }, { status: 400 })
   }
 
-  const objectPath = `${mediaKind}s/${crypto.randomUUID()}.${filename.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'}`
+  const objectPath = `${mediaKind}s/${crypto.randomUUID()}.${MEDIA_EXTENSIONS[mimeType as keyof typeof MEDIA_EXTENSIONS] ?? 'bin'}`
   try {
     const { data, error } = await createServiceClient().storage.from('community-media').createSignedUploadUrl(objectPath, { upsert: false })
     if (error || !data?.token) throw error ?? new Error('signed upload authorization unavailable')

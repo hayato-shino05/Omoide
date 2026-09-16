@@ -11,14 +11,20 @@ export interface Post {
   media_object_path: string | null
   media_url?: string
   birthday_person: string | null
+  celebration_date: string | null
+  timezone: string | null
+  is_system_generated: boolean
   created_at: string
   likes: number
   replies_count?: number
 }
 
-type PostRecord = Omit<Post, 'media_url' | 'replies_count' | 'likes'> & {
+type PostRecord = Omit<Post, 'media_url' | 'replies_count' | 'likes' | 'celebration_date' | 'timezone' | 'is_system_generated'> & {
   likes?: number
   post_replies?: { count: number }[]
+  celebration_date?: string | null
+  timezone?: string | null
+  is_system_generated?: boolean
 }
 
 interface PostsQueryError {
@@ -41,6 +47,9 @@ function toPost(post: PostRecord): Post {
     media_url: data?.publicUrl,
     likes: post.likes ?? 0,
     replies_count: post.post_replies?.[0]?.count ?? 0,
+    celebration_date: post.celebration_date ?? null,
+    timezone: post.timezone ?? null,
+    is_system_generated: post.is_system_generated ?? false,
   }
 }
 
@@ -61,13 +70,13 @@ export function usePosts() {
     try {
       let queryResult: PostsQueryResult = await getSupabase()
         .from('bulletin_posts')
-        .select('id, sender, message, media_object_path, birthday_person, created_at, likes, post_replies(count)')
+        .select('id, sender, message, media_object_path, birthday_person, celebration_date, timezone, is_system_generated, created_at, likes, post_replies(count)')
         .order('created_at', { ascending: false })
 
       if (queryResult.error && (queryResult.error.message?.includes('likes') || queryResult.error.code === '42703')) {
         queryResult = await getSupabase()
           .from('bulletin_posts')
-          .select('id, sender, message, media_object_path, birthday_person, created_at, post_replies(count)')
+          .select('id, sender, message, media_object_path, birthday_person, celebration_date, timezone, is_system_generated, created_at, post_replies(count)')
           .order('created_at', { ascending: false })
       }
 

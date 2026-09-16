@@ -2,7 +2,7 @@ name: Supabase healthcheck
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '5 0 * * *'
       timezone: 'Asia/Tokyo'
   workflow_dispatch:
 
@@ -47,8 +47,9 @@ jobs:
           curl --silent --show-error --fail --connect-timeout 5 --max-time 15 \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/" \
-            >/dev/null
+            "$SUPABASE_URL/rest/v1/birthdays?select=id&limit=1" \
+            --output /dev/null \
+            --write-out '%{http_code}\n'
 
       - name: Attest read-only PostgreSQL access
         id: readonly_postgres
@@ -166,6 +167,28 @@ jobs:
             exit 1
           }
 
+      - name: Generate birthday threads
+        id: birthday_scheduler
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          APP_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          BIRTHDAY_SCHEDULER_SECRET: ${{ secrets.BIRTHDAY_SCHEDULER_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_URL" || { echo "NEXT_PUBLIC_BASE_URL secret is not configured" >&2; exit 1; }
+          test -n "$BIRTHDAY_SCHEDULER_SECRET" || { echo "BIRTHDAY_SCHEDULER_SECRET secret is not configured" >&2; exit 1; }
+          case "$APP_URL" in
+            https://*) ;;
+            *) echo "NEXT_PUBLIC_BASE_URL must use an https:// URL" >&2; exit 1 ;;
+          esac
+          echo "::add-mask::$BIRTHDAY_SCHEDULER_SECRET"
+          curl --silent --show-error --fail --connect-timeout 5 --max-time 15 \
+            -X POST \
+            -H "x-birthday-scheduler-secret: $BIRTHDAY_SCHEDULER_SECRET" \
+            "$APP_URL/api/internal/birthday-scheduler" \
+            --output /dev/null
+
       - name: Enforce healthcheck result
         if: ${{ always() }}
         run: |
@@ -181,6 +204,10 @@ jobs:
           fi
           if [[ "${{ steps.readonly_postgres.outcome }}" != "success" ]]; then
             echo "PostgreSQL read-only identity attestation failed" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.birthday_scheduler.outcome }}" != "success" ]]; then
+            echo "Birthday scheduler failed" >&2
             failed=1
           fi
           exit "$failed"

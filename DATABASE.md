@@ -2,7 +2,7 @@
 
 ## 正本
 
-データベーススキーマ、RLS、Storage、Realtime の正本は次のマイグレーションです。`supabase/migrations/` 配下の SQL ファイルだけを信頼し、`database/database.sql` は正本へのポインターです。DDL を追加しないでください。スキーマを変更するときは、新しい Supabase migration を追加します。
+データベーススキーマ、RLS、Storage、Realtime の正本は次のマイグレーションです。`supabase/migrations/` 配下の SQL ファイルをバージョン管理の正本とし、`database/database.sql` は全テーブル・関数・RLS を一括定義した統合スキーマファイルです。
 
 - [`supabase/migrations/20260812163000_reset_and_create_anonymous_community.sql`](./supabase/migrations/20260812163000_reset_and_create_anonymous_community.sql)
 - [`supabase/migrations/20260817000000_add_bulletin_post_likes.sql`](./supabase/migrations/20260817000000_add_bulletin_post_likes.sql)
@@ -25,40 +25,111 @@
 - [`supabase/migrations/20260827000002_remove_private_time_capsule_deny_policies.sql`](./supabase/migrations/20260827000002_remove_private_time_capsule_deny_policies.sql)
 - [`supabase/migrations/20260827000003_add_notification_logs.sql`](./supabase/migrations/20260827000003_add_notification_logs.sql)
 - [`supabase/migrations/20260827000004_harden_notification_claims.sql`](./supabase/migrations/20260827000004_harden_notification_claims.sql)
-- 初期データ: [`supabase/seed.sql`](./supabase/seed.sql)
-
-`20260825235454` と `20260825235535` は直後の `20260826000001` / `20260826000002` に同じ目的語句で上書きされますが、Supabase CLI のタイムスタンプ順で順次実行されるため両方を正本として残します。
+- [`supabase/migrations/20260831000000_restore_anonymous_public_privileges.sql`](./supabase/migrations/20260831000000_restore_anonymous_public_privileges.sql)
+- [`supabase/migrations/20260901000000_add_community_submission_rpc.sql`](./supabase/migrations/20260901000000_add_community_submission_rpc.sql)
+- [`supabase/migrations/20260902000000_add_curated_music_track_to_messages.sql`](./supabase/migrations/20260902000000_add_curated_music_track_to_messages.sql)
+- [`supabase/migrations/20260904000000_add_music_track_to_community_submission_rpc.sql`](./supabase/migrations/20260904000000_add_music_track_to_community_submission_rpc.sql)
+- [`supabase/migrations/20260904000001_revoke_anonymous_music_upload.sql`](./supabase/migrations/20260904000001_revoke_anonymous_music_upload.sql)
+- [`supabase/migrations/20260905000000_add_birthday_thread_and_reply_music.sql`](./supabase/migrations/20260905000000_add_birthday_thread_and_reply_music.sql)
+- [`supabase/migrations/20260914000000_add_metadata_and_lyrics_to_music_tracks.sql`](./supabase/migrations/20260914000000_add_metadata_and_lyrics_to_music_tracks.sql)
+- 初期データ: [`supabase/seed.sql`](./supabase/seed.sql) / [`database/seed.sql`](./database/seed.sql)
+- 統合 SQL スキーマ: [`database/database.sql`](./database/database.sql)
 
 ## 適用時の注意
 
 正本 migration は `auth.users` を削除し、`public` スキーマを `CASCADE` で再作成します。既存のユーザー、テーブル、データを消去するため、開発用または明示的に初期化してよい環境だけで実行してください。
 
-migration の適用後に `supabase/seed.sql` を実行すると、誕生日、メッセージ、ギフト、チャット、掲示板のサンプルデータを投入できます。
+migration の適用後に `supabase/seed.sql`（または `database/seed.sql`）を実行すると、誕生日、メッセージ、ギフト、チャット、掲示板、および LRC 歌詞付きキュレーション楽曲のサンプルデータを投入できます。
 
-## public スキーマ
+## public スキーマ一覧
 
 | テーブル | 用途 | 主な列 |
 |---|---|---|
 | `birthdays` | 誕生日情報 | `name`, `month`, `day`, `year`, `message` |
-| `messages` | お祝いメッセージ | `sender`, `message`, `birthday_person`, `media_object_path` |
-| `media_submissions` | Storage 上のメディア投稿のメタデータ | `object_path`, `media_kind`, `mime_type`, `size_bytes` |
+| `messages` | お祝いメッセージ | `sender`, `message`, `birthday_person`, `media_object_path`, `music_track_id` |
+| `media_submissions` | Storage 上のメディア投稿メタデータ | `object_path`, `media_kind`, `mime_type`, `size_bytes`, `original_name` |
 | `virtual_gifts` | バーチャルギフト | `sender`, `gift_emoji`, `gift_name`, `birthday_person` |
 | `chat_messages` | コミュニティチャット | `sender`, `message` |
-| `bulletin_posts` | 掲示板投稿 | `sender`, `message`, `media_object_path`, `birthday_person`, `likes` |
-| `post_replies` | 掲示板への返信 | `post_id`, `sender`, `message` |
-| `music_tracks` | カスタム音楽トラック | `name`, `url`, `file_name`, `file_size` |
+| `bulletin_posts` | 掲示板投稿・システム生成の誕生日スレッド | `sender`, `message`, `media_object_path`, `birthday_person`, `likes`, `celebration_date`, `timezone`, `is_system_generated` |
+| `post_replies` | 掲示板への返信（誕生日スレッドへの返信を含む） | `post_id`, `sender`, `message`, `music_track_id`, `moderation_status` |
+| `music_tracks` | キュレーション済み & カスタム音楽トラック | `name`, `title`, `artist`, `duration`, `url`, `file_name`, `file_size`, `cover_url`, `lyrics_url`, `lyrics_lrc`, `is_preset`, `sort_order` |
 | `time_capsules` | タイムカプセル本体 | `sender`, `recipient`, `message`, `photo_url`, `photo_object_path`, `unlock_date`, `owner_id`, `idempotency_key`, `invite_token_hash`, `invite_token_expires_at`, `invite_revoked_at`, `opened_at`, `created_at` |
 | `time_capsule_access_codes` | 招待コードのハッシュ・派生情報 | `capsule_id`, `code_hash`, `derivation_attempt`, `revoked_at`, `failed_attempts`, `locked_until`, `last_used_at` |
 | `time_capsule_access_attempt_buckets` | 招待コード入力のレート制限バケット | `bucket_fingerprint`, `failed_attempts`, `locked_until` |
 | `notification_logs` | 通知ワーカーが処理するジョブ | `id`, `event_id`, `event_type`, `recipient_ref`, `channel`, `scheduled_at`, `timezone`, `idempotency_key`, `opted_in`, `status`, `attempt_count`, `last_error_code`, `next_attempt_at`, `expires_at`, `sent_at`, `leased_by`, `lease_until`, `created_at`, `updated_at` |
 
-すべての ID は `bigint generated always as identity` (`time_capsule_access_codes` のみ `generated by default as identity`) です。日時は `timestamptz` で保存します (`time_capsules.unlock_date` のみ `date`)。
+すべての ID は `bigint generated always as identity`（`time_capsule_access_codes` のみ `generated by default as identity`）です。日時は `timestamptz` で保存します（`time_capsules.unlock_date` と `bulletin_posts.celebration_date` のみ `date`）。
 
 `post_replies.post_id` は `bulletin_posts.id` を参照し、親投稿を削除すると返信も削除されます。`time_capsule_access_codes.capsule_id` は `time_capsules.id` を参照し、親カプセルを削除するとコード行も削除されます。`bulletin_posts.likes` は `0` 以上を `CHECK` 制約で強制し、直接の `UPDATE` を許可せず `increment_bulletin_post_likes` 経由でのみ加算します。
 
+楽曲参照（`messages.music_track_id`, `post_replies.music_track_id`）は `<provider>:<trackId>` 形式の文字列です。provider は `jamendo`、`soundcloud`、または `omoide` で、それぞれ正規の保存形式は `jamendo:<id>` / `soundcloud:<id>` / `omoide:<id>` です。
+
+---
+
+## 音楽と歌詞の追加・管理手順
+
+Omoide の音楽システムは、Cloudflare R2（オーディオ・カバーアート・LRC ファイルのホスティング）と Supabase `music_tracks` テーブルを連携して動作します。
+
+### 1. 音楽・歌詞データの仕様
+
+- **オーディオファイル**: MP3 形式（320kbps 推奨）、WAV、FLAC、OGG
+- **カバーアート**: JPEG / PNG / WebP（300×300px 正方形推奨）
+- **歌詞データ（LRC）**: 標準タイムタグ付き LRC 形式（例: `[00:12.34]歌詞テキスト`）。ミリ秒または秒単位のタイムスタンプに対応。
+
+### 2. スクリプトを使った自動一括同期
+
+ローカルディレクトリに楽曲・カバー画像・`.lrc` 歌詞を配置し、スクリプトを実行して Cloudflare R2 と Supabase へ一括登録できます。
+
+1. `.env` に以下の環境変数を設定します:
+   ```env
+   LOCAL_MUSIC_DIR="D:\\Music\\shino.hayato05"
+   CLOUDFLARE_R2_BUCKET_NAME="omoide-music"
+   CLOUDFLARE_R2_PUBLIC_DOMAIN="https://pub-xxxx.r2.dev"
+   CLOUDFLARE_R2_ACCOUNT_ID="your_account_id"
+   CLOUDFLARE_R2_ACCESS_KEY_ID="your_access_key"
+   CLOUDFLARE_R2_SECRET_ACCESS_KEY="your_secret_key"
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+   ```
+
+2. 楽曲と歌詞の一括同期スクリプトを実行します:
+   ```bash
+   node scripts/sync-local-music-to-r2-and-supabase.mjs
+   ```
+   - FLAC を自動的に MP3 (320kbps) に変換
+   - 音声、カバー画像、`.lrc` を R2 へアップロード
+   - `music_tracks` テーブルへ `title`, `artist`, `duration`, `cover_url`, `lyrics_lrc` を登録
+
+3. 表示順序を更新する場合:
+   ```bash
+   node scripts/reorder-music-tracks.mjs
+   ```
+
+### 3. SQL による手動登録例
+
+```sql
+insert into public.music_tracks (
+  name, title, artist, duration, url, file_name, file_size, cover_url, lyrics_lrc, is_preset, sort_order
+) values (
+  'Birthday Celebration - Happy Birthday Accordion',
+  'Happy Birthday Accordion',
+  'Birthday Celebration',
+  64,
+  'https://pub-xxx.r2.dev/audio/happy_birthday.mp3',
+  'happy_birthday.mp3',
+  1024000,
+  'https://pub-xxx.r2.dev/covers/happy_birthday.jpg',
+  '[00:00.00]Happy Birthday to You♪\n[00:06.00]Happy Birthday to You♪\n[00:12.00]Happy Birthday Dear Friend♪\n[00:18.00]Happy Birthday to You♪',
+  true,
+  1
+);
+```
+
+---
+
 ## 匿名アクセスと RLS
 
-すべての `public` テーブルで RLS を有効にしています。`anon` ロールは次の表だけを閲覧・作成できます。
+すべての `public` テーブルで RLS を有効にしています。`anon` ロールは次の表を閲覧できます。`birthdays` と `music_tracks` は SELECT 専用で、それ以外は匿名 INSERT も許可されています。
 
 - `birthdays` (SELECT のみ)
 - `messages`
@@ -67,32 +138,29 @@ migration の適用後に `supabase/seed.sql` を実行すると、誕生日、�
 - `chat_messages`
 - `bulletin_posts`
 - `post_replies`
-- `music_tracks`
+- `music_tracks` (SELECT のみ)
 
-匿名の更新・削除ポリシーは定義していません。`birthdays` は匿名閲覧専用です。`bulletin_posts.likes` は直接更新できず、`increment_bulletin_post_likes(bigint)` RPC だけが原子的に 1 件加算し、更新後の件数を返します。この RPC は `anon` にだけ実行権限を付与し、関数内の `search_path` は `''` に固定しています。入力の文字数、メディア種別、サイズなどの制約は migration の `CHECK` 制約を正本として確認してください。
+匿名の更新・削除ポリシーは定義していません。`music_tracks` と Storage `music` バケットへの匿名 INSERT は `20260904000001_revoke_anonymous_music_upload.sql` で取り消し、キュレーション楽曲は管理者またはシード経由で登録します。
 
 ### 認証必須・所有者境界のテーブル
 
-次のテーブルは `anon` および `authenticated` ロールからすべての権限を剥奪し、`service_role` のみが操作します。アプリケーションは RPC 経由、または Supabase Functions などのサービスワーカー経由でアクセスします。
+次のテーブルは `anon` および `authenticated` ロールからすべての権限を剥奪し、`service_role` のみが操作します。
 
 - `time_capsules`
 - `time_capsule_access_codes`
 - `time_capsule_access_attempt_buckets`
 - `notification_logs`
 
-`time_capsules.owner_id` は `auth.users(id)` を参照し、認証ユーザーが本人カプセルを所有していることを境界とします。`time_capsule_access_codes` は `capsule_id` で親カプセルに紐付き、招待コードのハッシュ (`code_hash`) を一意制約で管理します。`time_capsule_access_attempt_buckets` は 64 文字のフィンガープリントを主キーとし、`failed_attempts` と `locked_until` でレート制限を表現します。`notification_logs.idempotency_key` は `UNIQUE` で重複配送を防ぎ、`status` (`pending` / `processing` / `sent` / `retryable` / `failed` / `cancelled` / `expired`) をワーカーが遷移させます。
+### RPC 一覧
 
-### タイムカプセル RPC
+- `public.increment_bulletin_post_likes(post_id bigint)` — 掲示板投稿のいいね数を原子的に 1 加算し、最新件数を返却。`anon`, `authenticated` 実行可。
+- `public.create_community_submission(...)` — メッセージまたは掲示板投稿をメディア添付とともに 1 トランザクションで作成。`service_role` 専用。
+- `public.create_birthday_reply(...)` — 誕生日スレッドへの返信（楽曲参照対応）を作成。`service_role` 専用。
+- `public.create_time_capsule_with_access_code(...)` — タイムカプセルと招待アクセスコードを作成。`service_role` 専用。
+- `public.consume_time_capsule_access_code(...)` — 招待コードを検証しカプセル ID を返却。`service_role` 専用。
+- `public.claim_notification_logs(...)` — 通知ワーカー向けジョブリース関数。`service_role` 専用。
 
-- `public.create_time_capsule_with_access_code(uuid, text, text, ...)` — `service_role` 専用。`time_capsules` と `time_capsule_access_codes` を 1 つのトランザクションで作成し、`owner_id` + `idempotency_key` の組み合わせで重複作成を防ぎます。
-- `public.consume_time_capsule_access_code(text, text)` — `service_role` 専用。招待コードの照合、ロック判定、招待コードの revocation 状態 (`revoked_at is null`) と rate limit lockout (`locked_until <= now()`) を確認し、失敗カウンタをリセットしたうえで `capsule_id bigint` を返却します。
-- `public.claim_notification_logs(text, timestamptz, integer)` — `service_role` 専用。`status` が `pending` / `retryable` の行を `processing` にリース (5 分間) して返却します。`search_path = public` に固定しています。
-
-回帰確認は `__tests__/integration/production-snapshot-regression.test.ts` に固定しています。`birthdays`、`messages`、`media_submissions`、`virtual_gifts`、`chat_messages`、`bulletin_posts` の匿名 read/create-only 境界と `ThemeProvider` の render smoke を、Production の allowlist 統合とは独立に検証します。
-
-## Storage
-
-次の 6 つのバケットを使用します。`time-capsules` と `time-capsules-private` は `public = false` です。現行 migration では、Time Capsule bucket に対する `anon` / `authenticated` の Storage 直接アクセス policy は作成せず、service_role 経由で扱います。
+## Storage バケット
 
 | バケット名 | 用途 | 公開 | 1 ファイル上限 | 許可する MIME type |
 |---|---|---|---|---|
@@ -103,17 +171,6 @@ migration の適用後に `supabase/seed.sql` を実行すると、誕生日、�
 | `time-capsules` | タイムカプセル添付メディア (後方互換) | private | 50 MiB | 画像, MP4, WebM, 音声各種 |
 | `time-capsules-private` | 認証ユーザー所有のタイムカプセル添付 | private | 50 MiB | `time-capsules` 設定を継承 |
 
-`photo-album` / `community-media` / `music` / `avatars` では、`anon` ロールに `SELECT` と `INSERT` だけ許可し、`UPDATE` / `DELETE` は許可していません。`time-capsules` と `time-capsules-private` では、`anon` / `authenticated` の Storage 直接アクセスを許可していません。`avatars` の MIME type は `20260823000000_harden_avatar_storage_mime_types.sql` で `image/svg+xml` を除外しています。
-
-アプリケーションは URL ではなく Storage の object path を `media_object_path` または `object_path` に保存します。`time_capsules.photo_url` は `text` で外部 URL も許容しますが、`photo_object_path` は Storage のバケット内パスを保存する正規のフィールドです。
-
 ## Realtime
 
-Realtime publication に追加するテーブルは `public.chat_messages` のみです。ほかのテーブルを購読対象にする場合は、対応する migration で publication とアクセス設計を同時に変更してください。
-
-## 変更手順
-
-1. `supabase/migrations/` に新しい migration を追加します。
-2. テーブル、制約、インデックス、RLS、Storage、Realtime の変更を同じ migration に記述します。
-3. 必要なら `supabase/seed.sql` を新しい schema に合わせます。
-4. この文書のテーブル一覧とアクセス契約を更新します。
+Realtime publication に追加するテーブルは `public.chat_messages` です。
