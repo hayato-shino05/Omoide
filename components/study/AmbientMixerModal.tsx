@@ -60,7 +60,7 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="ambient-mixer-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-200"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-200"
     >
       <div className="relative w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C]">
         {/* Header */}

@@ -200,34 +200,28 @@ export function PomodoroRing({
         </div>
       </div>
 
-      {/* 操作ボタン */}
-      <div className="flex items-center gap-4 mt-7">
-        <button
-          type="button"
-          onClick={isRunning ? onPause : onStart}
-          aria-label={isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
-          className={`flex items-center justify-center w-14 h-14 rounded-full active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer ${
-            isZen
-              ? 'bg-[#D95D39] hover:bg-[#C24E2B] text-white border-2 border-white/30 shadow-[0_4px_20px_rgba(217,93,57,0.45)]'
-              : 'bg-[#D95D39] hover:bg-[#C24E2B] text-white border-2 border-[#854D27] shadow-[4px_4px_0_#854D27] active:shadow-none'
-          }`}
-        >
-          {isRunning ? <Pause size={22} /> : <Play size={22} className="ml-1 text-white" />}
-        </button>
+      {/* 操作ボタン (通常モードのみ表示 - 禅モード時はボトムドックで一元操作) */}
+      {!isZen && (
+        <div className="flex items-center gap-4 mt-7">
+          <button
+            type="button"
+            onClick={isRunning ? onPause : onStart}
+            aria-label={isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white border-2 border-[#854D27] shadow-[4px_4px_0_#854D27] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+          >
+            {isRunning ? <Pause size={22} /> : <Play size={22} className="ml-1 text-white" />}
+          </button>
 
-        <button
-          type="button"
-          onClick={onReset}
-          aria-label={t('studyPomodoroReset')}
-          className={`flex items-center justify-center w-11 h-11 rounded-full active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer ${
-            isZen
-              ? 'bg-stone-950/60 hover:bg-stone-900/80 text-white border border-[#D4B08C]/30 shadow-md'
-              : 'bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:shadow-none'
-          }`}
-        >
-          <RotateCcw size={16} />
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={onReset}
+            aria-label={t('studyPomodoroReset')}
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

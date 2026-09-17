@@ -225,7 +225,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
               <button
                 type="button"
                 onClick={() => setIsSoloMode(!isSoloMode)}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors border cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors border cursor-pointer ${
                   isSoloMode
                     ? 'bg-[#D95D39] text-white border-[#D95D39]'
                     : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
@@ -241,9 +241,9 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             type="button"
             onClick={handleGuardedClose}
             aria-label={t('studyCloseZen')}
-            className="p-2 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3]/80 hover:text-white hover:bg-rose-500/20 active:scale-95 transition-all shadow-lg cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3]/80 hover:text-white hover:bg-rose-500/20 active:scale-95 transition-all shadow-lg cursor-pointer"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
       </div>
@@ -272,16 +272,16 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
               : 'opacity-0 translate-y-3 pointer-events-none'
           }`}
         >
-          <div className="relative flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3] shadow-xl">
+          <div className="relative flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3] shadow-xl">
             <button
               type="button"
               onClick={() => setIsGoalCompleted(!isGoalCompleted)}
-              className="p-1 rounded-full text-white/60 hover:text-[#D95D39] transition-colors cursor-pointer"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-white/60 hover:text-[#D95D39] transition-colors cursor-pointer"
               title="Toggle goal completed"
               aria-label="Toggle goal completed"
             >
               <CheckCircle2
-                size={17}
+                size={18}
                 className={isGoalCompleted ? 'text-emerald-400' : 'text-white/40'}
               />
             </button>
@@ -328,15 +328,15 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           }, 3500)
         }}
       >
-        <div className="relative flex items-center gap-2 sm:gap-3 px-4 py-2 rounded-full bg-stone-950/80 backdrop-blur-xl border border-[#D4B08C]/40 text-[#FFF9F3] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+        <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-stone-950/80 backdrop-blur-xl border border-[#D4B08C]/40 text-[#FFF9F3] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
           {/* Pomodoro Play/Pause */}
           <button
             type="button"
             onClick={pomodoro.isRunning ? pomodoro.pause : pomodoro.start}
             aria-label={pomodoro.isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white shadow-md active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white shadow-md active:scale-95 transition-all cursor-pointer"
           >
-            {pomodoro.isRunning ? <Pause size={17} /> : <Play size={17} className="ml-0.5" />}
+            {pomodoro.isRunning ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
           </button>
 
           {/* Pomodoro Reset */}
@@ -345,34 +345,41 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={pomodoro.reset}
             title={t('studyPomodoroReset')}
             aria-label={t('studyPomodoroReset')}
-            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={17} />
           </button>
 
-          <div className="w-[1px] h-4 bg-white/20" />
+          <div className="w-[1px] h-5 bg-white/20 mx-0.5" />
 
           {/* Ambient Video Theme Switcher Popover */}
           <div className="relative">
             <button
               type="button"
+              aria-haspopup="dialog"
+              aria-expanded={showThemePicker}
+              aria-controls="zen-theme-picker-dialog"
               onClick={() => {
                 setShowThemePicker(!showThemePicker)
                 setIsControlsVisible(true)
               }}
               title={t('studyAmbientTheme')}
               aria-label={t('studyAmbientTheme')}
-              className={`p-2 rounded-full transition-all cursor-pointer active:scale-95 ${
+              className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${
                 showThemePicker
                   ? 'bg-white/25 text-white'
                   : 'hover:bg-white/15 text-white/80 hover:text-white'
               }`}
             >
-              <Palette size={16} />
+              <Palette size={17} />
             </button>
 
             {showThemePicker && (
               <div
+                id="zen-theme-picker-dialog"
+                role="dialog"
+                aria-modal="false"
+                aria-label={t('studyAmbientTheme')}
                 className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-64 max-h-72 overflow-y-auto p-2 rounded-2xl bg-stone-950/95 backdrop-blur-2xl border border-[#D4B08C]/40 shadow-2xl z-30 space-y-1"
                 onMouseEnter={() => {
                   isInteractingRef.current = true
@@ -391,7 +398,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
                     setZenTheme('auto')
                     setShowThemePicker(false)
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer min-h-[40px] ${
                     zenTheme === 'auto'
                       ? 'bg-[#D95D39] text-white shadow-xs'
                       : 'text-white/80 hover:bg-white/10 hover:text-white'
@@ -415,7 +422,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
                         setZenTheme(key as ThemeName)
                         setShowThemePicker(false)
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer min-h-[40px] ${
                         isSelected
                           ? 'bg-[#D95D39] text-white shadow-xs'
                           : 'text-white/80 hover:bg-white/10 hover:text-white'
@@ -439,23 +446,25 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           {/* Ambient Sound Mixer Toggle */}
           <button
             type="button"
+            aria-haspopup="dialog"
+            aria-expanded={isMixerOpen}
             onClick={() => {
               setIsMixerOpen(true)
               setShowThemePicker(false)
             }}
             title={t('studyAmbientSounds')}
             aria-label={t('studyAmbientSounds')}
-            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all relative cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all relative cursor-pointer"
           >
-            <Sliders size={16} className={activeAmbientCount > 0 ? 'text-[#D95D39]' : ''} />
+            <Sliders size={17} className={activeAmbientCount > 0 ? 'text-[#D95D39]' : ''} />
             {activeAmbientCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#D95D39] text-white text-[10px] font-mono font-bold flex items-center justify-center">
+              <span className="absolute 1.5 -top-0.5 right-1 w-4 h-4 rounded-full bg-[#D95D39] text-white text-[10px] font-mono font-bold flex items-center justify-center">
                 {activeAmbientCount}
               </span>
             )}
           </button>
 
-          <div className="w-[1px] h-4 bg-white/20" />
+          <div className="w-[1px] h-5 bg-white/20 mx-0.5" />
 
           {/* Fullscreen Toggle */}
           <button
@@ -463,9 +472,9 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={toggleFullscreen}
             title={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
             aria-label={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
-            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
           >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
 
           {/* Exit Zen Focus Mode */}
@@ -474,9 +483,9 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={handleGuardedClose}
             title={t('studyCloseZen')}
             aria-label={t('studyCloseZen')}
-            className="p-2 rounded-full hover:bg-rose-500/20 text-white/80 hover:text-rose-300 active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-rose-500/20 text-white/80 hover:text-rose-300 active:scale-95 transition-all cursor-pointer"
           >
-            <X size={16} />
+            <X size={17} />
           </button>
         </div>
       </div>
