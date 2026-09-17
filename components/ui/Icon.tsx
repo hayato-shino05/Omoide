@@ -108,7 +108,6 @@ import groupChatIcon from '@/src/assets/icons/group-chat.png'
 import toriiIcon from '@/src/assets/icons/torii.png'
 import archiveIcon from '@/src/assets/icons/archive.png'
 import scrollIcon from '@/src/assets/icons/scroll.png'
-import fortuneTellerIcon from '@/src/assets/icons/fortune-teller.png'
 
 export const Icons = {
   AlertTriangle,

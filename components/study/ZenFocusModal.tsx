@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Maximize2,
   Minimize2,
@@ -9,11 +9,18 @@ import {
   Sliders,
   Sparkles,
   CheckCircle2,
+  Check,
+  Play,
+  Pause,
+  RotateCcw,
+  Music,
 } from 'lucide-react'
 import { PomodoroRing } from './PomodoroRing'
 import { usePomodoro } from '@/lib/hooks/usePomodoro'
+import { VideoBackground } from '@/components/effects/VideoBackground'
 import { ThemeEffects } from '@/components/effects/ThemeEffects'
 import { THEMES } from '@/config/themes'
+import { VISUAL_THEME_KEYS } from '@/config/visualThemes'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
@@ -31,7 +38,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const { theme: globalTheme, themeConfig: globalThemeConfig } = useTheme()
   const { currentTrack, isSoloMode, setIsSoloMode } = useStudyRoomStore()
   const { volumes } = useAmbientSoundStore()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const [zenTheme, setZenTheme] = useState<ThemeName | 'auto'>('auto')
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -39,6 +46,10 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const [showThemePicker, setShowThemePicker] = useState(false)
   const [focusGoal, setFocusGoal] = useState('')
   const [isGoalCompleted, setIsGoalCompleted] = useState(false)
+  const [isControlsVisible, setIsControlsVisible] = useState(true)
+
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isInteractingRef = useRef(false)
 
   const activeThemeName = zenTheme === 'auto' ? globalTheme : zenTheme
   const activeThemeConfig = THEMES[activeThemeName] || globalThemeConfig
@@ -47,17 +58,72 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     onCycleComplete?.(mode, streak)
   })
 
-  // フルスクリーン切り替え
-  const toggleFullscreen = () => {
+  // Controls auto-hide timer (3500ms inactivity)
+  useEffect(() => {
+    if (!isOpen) return
+
+    const clearTimer = () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+    }
+
+    const startIdleTimer = () => {
+      clearTimer()
+      if (!isInteractingRef.current) {
+        idleTimerRef.current = setTimeout(() => {
+          setIsControlsVisible(false)
+        }, 3500)
+      }
+    }
+
+    const handleActivity = () => {
+      setIsControlsVisible(true)
+      startIdleTimer()
+    }
+
+    startIdleTimer()
+
+    window.addEventListener('mousemove', handleActivity)
+    window.addEventListener('mousedown', handleActivity)
+    window.addEventListener('touchstart', handleActivity)
+    window.addEventListener('keydown', handleActivity)
+
+    return () => {
+      clearTimer()
+      window.removeEventListener('mousemove', handleActivity)
+      window.removeEventListener('mousedown', handleActivity)
+      window.removeEventListener('touchstart', handleActivity)
+      window.removeEventListener('keydown', handleActivity)
+    }
+  }, [isOpen])
+
+  // Fullscreen toggle & listener
+  const toggleFullscreen = useCallback(() => {
     if (typeof document === 'undefined') return
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+      document.documentElement
+        .requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(() => {})
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+      document
+        .exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(() => {})
     }
-  }
+  }, [])
 
-  // 禅モード終了時の確認ハンドラー
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  // Guarded close handler
   const handleGuardedClose = useCallback(() => {
     if (!pomodoro.isRunning || confirm(t('studyExitZenConfirm'))) {
       if (typeof document !== 'undefined' && document.fullscreenElement) {
@@ -67,143 +133,123 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     }
   }, [pomodoro.isRunning, onClose, t])
 
-  // Escキーでの終了
+  // Escape key and F key shortcuts
   useEffect(() => {
+    if (!isOpen) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
+
+      if (e.key === 'Escape') {
+        if (isMixerOpen) {
+          setIsMixerOpen(false)
+          return
+        }
+        if (showThemePicker) {
+          setShowThemePicker(false)
+          return
+        }
         handleGuardedClose()
+      } else if ((e.key === 'f' || e.key === 'F') && !isInput) {
+        e.preventDefault()
+        toggleFullscreen()
       }
     }
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, handleGuardedClose])
+  }, [isOpen, isMixerOpen, showThemePicker, handleGuardedClose, toggleFullscreen])
 
   if (!isOpen) return null
 
+  const controlsVisible = isControlsVisible || isMixerOpen || showThemePicker
   const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
+  const themeDisplayName =
+    language === 'ja'
+      ? activeThemeConfig?.displayName?.ja || activeThemeName
+      : activeThemeConfig?.displayName?.en || activeThemeName
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={t('studyZenModeTitle')}
-      className="fixed inset-0 z-50 flex flex-col justify-between p-4 sm:p-8 bg-[#FAF6F0]/98 text-[#854D27] backdrop-blur-3xl select-none transition-colors duration-1000 overflow-hidden"
+      className={`fixed inset-0 z-50 overflow-hidden bg-black text-[#FFF9F3] flex flex-col justify-between select-none ${
+        controlsVisible ? 'cursor-default' : 'cursor-none'
+      }`}
     >
-      {/* 50% 速度の季節背景エフェクト（侘び寂びの静けさ） */}
-      <div className="absolute inset-0 pointer-events-none opacity-35 filter blur-[0.3px]">
-        <ThemeEffects effects={activeThemeConfig?.effects || []} active={true} />
+      {/* 1. Full-bleed Dynamic Video Background */}
+      <VideoBackground
+        videoUrl={activeThemeConfig?.videoUrl}
+        youtubeId={activeThemeConfig?.youtubeId}
+        fallbackUrl={activeThemeConfig?.fallbackVideoUrl}
+        videoDuration={activeThemeConfig?.videoDuration}
+        opacity={0.88}
+        syncToServerTime={false}
+        active={isOpen}
+      />
+
+      {/* 2. Subtle Dark Vignette / Contrast Scrim */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/70 pointer-events-none z-[1]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.45)_100%)] pointer-events-none z-[1]" />
+
+      {/* 3. Subtle Ambient Particle Effects (50% opacity) */}
+      <div className="absolute inset-0 pointer-events-none z-[2] opacity-50 filter blur-[0.2px]">
+        <ThemeEffects effects={activeThemeConfig?.effects || []} active={isOpen} />
       </div>
 
-      {/* ヘッダー操作部 */}
-      <div className="relative z-10 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#D95D39]" />
-          <h1 className="text-xs sm:text-sm tracking-wider uppercase text-[#854D27] font-bold">
+      {/* 4. Top Header Bar (Auto-Hides) */}
+      <div
+        className={`relative z-10 flex items-center justify-between p-4 sm:p-6 transition-all duration-700 ${
+          controlsVisible
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 -translate-y-4 pointer-events-none'
+        }`}
+      >
+        {/* Zen Badge & Active Theme Display */}
+        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-[#D95D39]" />
+          <h1 className="text-xs font-bold tracking-widest uppercase text-[#FFF9F3] font-heading">
             {t('studyZenModeTitle')}
           </h1>
+          <span className="text-xs text-[#D4B08C]/60">•</span>
+          <span className="text-xs text-[#FAF6F0]/90 font-medium">{themeDisplayName}</span>
         </div>
 
+        {/* Room Track & Solo Mode Toggle */}
         <div className="flex items-center gap-2">
-          {/* テーマ切り替えメニュー */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowThemePicker(!showThemePicker)}
-              aria-label={t('studyAmbientTheme')}
-              className="p-2.5 rounded-xl bg-white hover:bg-[#FAF3EB] active:scale-95 text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] transition-all"
-            >
-              <Palette size={16} />
-            </button>
+          {currentTrack && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-xs text-[#FFF9F3] shadow-lg">
+              <Music size={13} className="text-[#D95D39]" />
+              <span className="font-medium truncate max-w-[160px]">{currentTrack.name}</span>
+              <button
+                type="button"
+                onClick={() => setIsSoloMode(!isSoloMode)}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors border cursor-pointer ${
+                  isSoloMode
+                    ? 'bg-[#D95D39] text-white border-[#D95D39]'
+                    : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
+                }`}
+              >
+                {isSoloMode ? t('studySoloMuteRoom') : t('studyRoomBgm')}
+              </button>
+            </div>
+          )}
 
-            {showThemePicker && (
-              <div className="absolute right-0 mt-2 w-52 p-2 rounded-2xl bg-[#FFF9F3] border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C] z-20">
-                <div className="text-[11px] text-[#854D27]/70 px-2.5 py-1.5 font-bold border-b border-[#D4B08C]/40 mb-1">
-                  {t('studyAmbientTheme')}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZenTheme('auto')
-                    setShowThemePicker(false)
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    zenTheme === 'auto'
-                      ? 'bg-[#D95D39] text-white'
-                      : 'text-[#854D27] hover:bg-[#FAF3EB]'
-                  }`}
-                >
-                  {t('studyCurrentSeasonalTheme', { theme: globalTheme })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZenTheme('tsukimi')
-                    setShowThemePicker(false)
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    zenTheme === 'tsukimi'
-                      ? 'bg-[#D95D39] text-white'
-                      : 'text-[#854D27] hover:bg-[#FAF3EB]'
-                  }`}
-                >
-                  {t('studyThemeTsukimi')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZenTheme('hanami')
-                    setShowThemePicker(false)
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    zenTheme === 'hanami'
-                      ? 'bg-[#D95D39] text-white'
-                      : 'text-[#854D27] hover:bg-[#FAF3EB]'
-                  }`}
-                >
-                  {t('studyThemeHanami')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZenTheme('winter')
-                    setShowThemePicker(false)
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    zenTheme === 'winter'
-                      ? 'bg-[#D95D39] text-white'
-                      : 'text-[#854D27] hover:bg-[#FAF3EB]'
-                  }`}
-                >
-                  {t('studyThemeWinter')}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* フルスクリーン切り替え */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            aria-label={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
-            className="p-2.5 rounded-xl bg-white hover:bg-[#FAF3EB] active:scale-95 text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] transition-all"
-          >
-            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </button>
-
-          {/* 禅モード終了ボタン */}
+          {/* Quick Exit Header Button */}
           <button
             type="button"
             onClick={handleGuardedClose}
             aria-label={t('studyCloseZen')}
-            className="p-2.5 rounded-xl bg-white hover:bg-rose-50 active:scale-95 text-[#854D27] hover:text-rose-700 border-2 border-[#D4B08C] hover:border-rose-400 shadow-[2px_2px_0_#D4B08C] transition-all"
+            className="p-2 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3]/80 hover:text-white hover:bg-rose-500/20 active:scale-95 transition-all shadow-lg cursor-pointer"
           >
             <X size={16} />
           </button>
         </div>
       </div>
 
-      {/* メイン中央: ポモドーロタイマーリング & 目標入力 */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-auto max-w-md mx-auto w-full">
+      {/* 5. Center Content: Pomodoro Clock & Minimal Goal */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-auto w-full max-w-md mx-auto px-4">
         <PomodoroRing
           mode={pomodoro.mode}
           formattedTime={pomodoro.formattedTime}
@@ -215,81 +261,227 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           onPause={pomodoro.pause}
           onReset={pomodoro.reset}
           onSwitchMode={pomodoro.switchMode}
+          variant="zen"
         />
 
-        {/* 集中目標入力欄 */}
-        <div className="w-full mt-6 px-4">
-          <div className="relative flex items-center gap-2.5 p-2.5 rounded-2xl bg-white border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C]">
+        {/* Minimal Focus Goal Pill (Auto-Hides) */}
+        <div
+          className={`w-full max-w-xs sm:max-w-sm mt-3 transition-all duration-700 ${
+            controlsVisible
+              ? 'opacity-100 translate-y-0 pointer-events-auto'
+              : 'opacity-0 translate-y-3 pointer-events-none'
+          }`}
+        >
+          <div className="relative flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3] shadow-xl">
             <button
               type="button"
               onClick={() => setIsGoalCompleted(!isGoalCompleted)}
-              className="p-1 rounded-lg text-[#854D27]/60 hover:text-[#D95D39] transition-colors"
+              className="p-1 rounded-full text-white/60 hover:text-[#D95D39] transition-colors cursor-pointer"
               title="Toggle goal completed"
+              aria-label="Toggle goal completed"
             >
               <CheckCircle2
-                size={20}
-                className={isGoalCompleted ? 'text-emerald-600' : 'text-[#854D27]/40'}
+                size={17}
+                className={isGoalCompleted ? 'text-emerald-400' : 'text-white/40'}
               />
             </button>
             <input
               type="text"
               value={focusGoal}
               onChange={(e) => setFocusGoal(e.target.value)}
+              onFocus={() => {
+                isInteractingRef.current = true
+                if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+              }}
+              onBlur={() => {
+                isInteractingRef.current = false
+                if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+                idleTimerRef.current = setTimeout(() => {
+                  setIsControlsVisible(false)
+                }, 3500)
+              }}
               placeholder={t('studyGoalPlaceholder')}
-              className={`w-full bg-transparent text-xs text-[#854D27] font-medium placeholder-[#854D27]/40 focus:outline-none transition-all ${
-                isGoalCompleted ? 'line-through text-[#854D27]/40' : ''
+              className={`w-full bg-transparent text-xs text-[#FAF6F0] font-medium placeholder-white/40 focus:outline-none transition-all ${
+                isGoalCompleted ? 'line-through text-white/40' : ''
               }`}
             />
           </div>
         </div>
       </div>
 
-      {/* フッター操作部: 楽曲 & 環境音ミキサー */}
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-white/95 border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C]">
-        {/* トラック情報 */}
-        <div className="flex items-center gap-3 min-w-0">
-          {currentTrack ? (
-            <div className="flex items-center gap-2 text-xs text-[#854D27] min-w-0">
-              <span className="w-2 h-2 rounded-full bg-[#D95D39] flex-shrink-0" />
-              <span className="font-bold truncate max-w-[140px] sm:max-w-[240px]">
-                {currentTrack.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsSoloMode(!isSoloMode)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-colors flex-shrink-0 border ${
-                  isSoloMode
-                    ? 'bg-[#D95D39] text-white border-[#D95D39]'
-                    : 'bg-[#FAF3EB] text-[#854D27] border-[#D4B08C] hover:bg-[#F5EBE1]'
-                }`}
-              >
-                {isSoloMode ? t('studySoloMuteRoom') : t('studyRoomBgm')}
-              </button>
-            </div>
-          ) : (
-            <div className="text-xs text-[#854D27]/70 font-medium flex items-center gap-1.5">
-              <Sparkles size={14} className="text-[#D95D39]" />
-              <span>{t('studyDeepTranquility')}</span>
-            </div>
-          )}
-        </div>
+      {/* 6. Floating Bottom Control Dock (Auto-Hides with 3.5s inactivity) */}
+      <div
+        className={`relative z-20 flex items-center justify-center p-4 sm:p-6 transition-all duration-700 ${
+          controlsVisible
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-6 pointer-events-none'
+        }`}
+        onMouseEnter={() => {
+          isInteractingRef.current = true
+          if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+        }}
+        onMouseLeave={() => {
+          isInteractingRef.current = false
+          if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+          idleTimerRef.current = setTimeout(() => {
+            setIsControlsVisible(false)
+          }, 3500)
+        }}
+      >
+        <div className="relative flex items-center gap-2 sm:gap-3 px-4 py-2 rounded-full bg-stone-950/80 backdrop-blur-xl border border-[#D4B08C]/40 text-[#FFF9F3] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+          {/* Pomodoro Play/Pause */}
+          <button
+            type="button"
+            onClick={pomodoro.isRunning ? pomodoro.pause : pomodoro.start}
+            aria-label={pomodoro.isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            {pomodoro.isRunning ? <Pause size={17} /> : <Play size={17} className="ml-0.5" />}
+          </button>
 
-        {/* 環境音ミキサー起動ボタン */}
-        <button
-          type="button"
-          onClick={() => setIsMixerOpen(true)}
-          aria-label={t('studyAmbientSounds')}
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#FFF9F3] hover:bg-[#FAF3EB] border-2 border-[#D4B08C] text-xs font-bold text-[#854D27] transition-all active:scale-95 shadow-[2px_2px_0_#D4B08C]"
-        >
-          <Sliders size={14} className={activeAmbientCount > 0 ? 'text-[#D95D39]' : ''} />
-          <span>{t('studyAmbientSounds')}</span>
-          <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[#D95D39] text-white font-mono font-bold">
-            {activeAmbientCount}
-          </span>
-        </button>
+          {/* Pomodoro Reset */}
+          <button
+            type="button"
+            onClick={pomodoro.reset}
+            title={t('studyPomodoroReset')}
+            aria-label={t('studyPomodoroReset')}
+            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+          >
+            <RotateCcw size={16} />
+          </button>
+
+          <div className="w-[1px] h-4 bg-white/20" />
+
+          {/* Ambient Video Theme Switcher Popover */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowThemePicker(!showThemePicker)
+                setIsControlsVisible(true)
+              }}
+              title={t('studyAmbientTheme')}
+              aria-label={t('studyAmbientTheme')}
+              className={`p-2 rounded-full transition-all cursor-pointer active:scale-95 ${
+                showThemePicker
+                  ? 'bg-white/25 text-white'
+                  : 'hover:bg-white/15 text-white/80 hover:text-white'
+              }`}
+            >
+              <Palette size={16} />
+            </button>
+
+            {showThemePicker && (
+              <div
+                className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 w-64 max-h-72 overflow-y-auto p-2 rounded-2xl bg-stone-950/95 backdrop-blur-2xl border border-[#D4B08C]/40 shadow-2xl z-30 space-y-1"
+                onMouseEnter={() => {
+                  isInteractingRef.current = true
+                  if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+                }}
+              >
+                <div className="text-[11px] text-[#D4B08C] px-3 py-1.5 font-bold border-b border-white/10 flex items-center justify-between">
+                  <span>{t('studyAmbientTheme')}</span>
+                  <Sparkles size={12} className="text-[#D95D39]" />
+                </div>
+
+                {/* Auto / Global theme */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setZenTheme('auto')
+                    setShowThemePicker(false)
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                    zenTheme === 'auto'
+                      ? 'bg-[#D95D39] text-white shadow-xs'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span>{t('studyCurrentSeasonalTheme', { theme: globalTheme })}</span>
+                  {zenTheme === 'auto' && <Check size={14} />}
+                </button>
+
+                {/* All Seasonal Video Themes */}
+                {VISUAL_THEME_KEYS.map((key) => {
+                  const cfg = THEMES[key]
+                  if (!cfg) return null
+                  const isSelected = zenTheme === key
+                  const name = language === 'ja' ? cfg.displayName.ja : cfg.displayName.en
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setZenTheme(key as ThemeName)
+                        setShowThemePicker(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#D95D39] text-white shadow-xs'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-white/30"
+                          style={{ backgroundColor: cfg.colors.primary }}
+                        />
+                        <span>{name}</span>
+                      </div>
+                      {isSelected && <Check size={14} />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Ambient Sound Mixer Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMixerOpen(true)
+              setShowThemePicker(false)
+            }}
+            title={t('studyAmbientSounds')}
+            aria-label={t('studyAmbientSounds')}
+            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all relative cursor-pointer"
+          >
+            <Sliders size={16} className={activeAmbientCount > 0 ? 'text-[#D95D39]' : ''} />
+            {activeAmbientCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#D95D39] text-white text-[10px] font-mono font-bold flex items-center justify-center">
+                {activeAmbientCount}
+              </span>
+            )}
+          </button>
+
+          <div className="w-[1px] h-4 bg-white/20" />
+
+          {/* Fullscreen Toggle */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
+            aria-label={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
+            className="p-2 rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+          >
+            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          </button>
+
+          {/* Exit Zen Focus Mode */}
+          <button
+            type="button"
+            onClick={handleGuardedClose}
+            title={t('studyCloseZen')}
+            aria-label={t('studyCloseZen')}
+            className="p-2 rounded-full hover:bg-rose-500/20 text-white/80 hover:text-rose-300 active:scale-95 transition-all cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
-      {/* 環境音ミキサーモーダル */}
+      {/* 7. Ambient Sound Mixer Modal */}
       <AmbientMixerModal isOpen={isMixerOpen} onClose={() => setIsMixerOpen(false)} />
     </div>
   )
