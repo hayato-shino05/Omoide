@@ -234,7 +234,7 @@ const assetIcons: Partial<Record<keyof typeof Icons, StaticImageData>> = {
   Eye: eyeIcon,
   EyeOff: eyeOffIcon,
   Gamepad: gameControllerIcon,
-  Sparkles: fortuneTellerIcon,
+  Sparkles: toriiIcon,
   Archive: archiveIcon,
   BookOpen: scrollIcon,
   Star: toriiIcon,
