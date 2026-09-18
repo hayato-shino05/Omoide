@@ -1,9 +1,13 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Play, Pause, RotateCcw, Coffee, Sparkles, BookOpen } from 'lucide-react'
+import { Play, Pause, RotateCcw, Coffee, Sparkles, BookOpen, Sliders } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import type { PomodoroMode } from '@/types/study'
+import {
+  type PomodoroMode,
+  type PomodoroDurations,
+  DEFAULT_POMODORO_DURATIONS,
+} from '@/types/study'
 
 interface PomodoroRingProps {
   mode: PomodoroMode
@@ -16,6 +20,8 @@ interface PomodoroRingProps {
   onPause: () => void
   onReset: () => void
   onSwitchMode: (mode: PomodoroMode) => void
+  durations?: PomodoroDurations
+  onOpenSettings?: () => void
   variant?: 'light' | 'zen'
 }
 
@@ -30,6 +36,8 @@ export function PomodoroRing({
   onPause,
   onReset,
   onSwitchMode,
+  durations = DEFAULT_POMODORO_DURATIONS,
+  onOpenSettings,
   variant = 'light',
 }: PomodoroRingProps) {
   const { t } = useLanguage()
@@ -41,10 +49,9 @@ export function PomodoroRing({
   const circumference = normalizedRadius * 2 * Math.PI
   const strokeDashoffset = circumference - (progressPercent / 100) * circumference
 
-  // キーボードショートカット: Space（再生/一時停止）、'r'（リセット）
+  // Keyboard shortcuts: Space (Start/Pause), 'r' (Reset)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 入力欄でのタイピング時は無効化
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return
       if (e.code === 'Space') {
         e.preventDefault()
@@ -63,19 +70,19 @@ export function PomodoroRing({
       label: t('studyPomodoroFocus'),
       color: '#D95D39', // 弁柄色 (Bengara 赤朱色)
       icon: BookOpen,
-      presetLabel: t('studyPomodoro25m'),
+      displayDuration: t('studyPomodoroMinutes', { min: durations.focus }),
     },
     short_break: {
       label: t('studyPomodoroShortBreak'),
       color: '#2E7D6F', // 水浅葱 (Mizuasagi 落ち着いた深緑)
       icon: Coffee,
-      presetLabel: t('studyPomodoro5m'),
+      displayDuration: t('studyPomodoroMinutes', { min: durations.short_break }),
     },
     long_break: {
       label: t('studyPomodoroLongBreak'),
       color: '#4A6572', // 常磐藍 (Tokiwa 落ち着いた藍青)
       icon: Sparkles,
-      presetLabel: t('studyPomodoro15m'),
+      displayDuration: t('studyPomodoroMinutes', { min: durations.long_break }),
     },
   }[mode]
 
@@ -83,65 +90,80 @@ export function PomodoroRing({
 
   return (
     <div className="flex flex-col items-center justify-center p-4 select-none max-w-sm mx-auto">
-      {/* モード切り替えタブ */}
-      <div
-        className={`flex items-center gap-1.5 mb-7 p-1.5 rounded-full transition-colors ${
-          isZen
-            ? 'bg-stone-950/70 backdrop-blur-md border border-[#D4B08C]/35 shadow-lg'
-            : 'bg-white border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C]'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={() => onSwitchMode('focus')}
-          className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-            mode === 'focus'
-              ? isZen
-                ? 'bg-[#D95D39] text-white shadow-md'
-                : 'bg-[#D95D39] text-white border-2 border-[#854D27] shadow-[2px_2px_0_#854D27]'
-              : isZen
-                ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                : 'text-[#854D27] hover:bg-[#FAF3EB]'
+      {/* Mode switch tabs & settings button */}
+      <div className="flex items-center gap-2 mb-7">
+        <div
+          className={`flex items-center gap-1.5 p-1.5 rounded-full transition-colors ${
+            isZen
+              ? 'bg-stone-950/70 backdrop-blur-md border border-[#D4B08C]/35 shadow-lg'
+              : 'bg-white border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C]'
           }`}
         >
-          {t('studyPomodoro25m')}
-        </button>
-        <button
-          type="button"
-          onClick={() => onSwitchMode('short_break')}
-          className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-            mode === 'short_break'
-              ? isZen
-                ? 'bg-[#2E7D6F] text-white shadow-md'
-                : 'bg-[#2E7D6F] text-white border-2 border-[#1E5249] shadow-[2px_2px_0_#1E5249]'
-              : isZen
-                ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                : 'text-[#854D27] hover:bg-[#FAF3EB]'
-          }`}
-        >
-          {t('studyPomodoro5m')}
-        </button>
-        <button
-          type="button"
-          onClick={() => onSwitchMode('long_break')}
-          className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer ${
-            mode === 'long_break'
-              ? isZen
-                ? 'bg-[#4A6572] text-white shadow-md'
-                : 'bg-[#4A6572] text-white border-2 border-[#2B3C44] shadow-[2px_2px_0_#2B3C44]'
-              : isZen
-                ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                : 'text-[#854D27] hover:bg-[#FAF3EB]'
-          }`}
-        >
-          {t('studyPomodoro15m')}
-        </button>
+          <button
+            type="button"
+            onClick={() => onSwitchMode('focus')}
+            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+              mode === 'focus'
+                ? isZen
+                  ? 'bg-[#D95D39] text-white shadow-md'
+                  : 'bg-[#D95D39] text-white border-2 border-[#854D27] shadow-[2px_2px_0_#854D27]'
+                : isZen
+                  ? 'text-white/80 hover:bg-white/10 hover:text-white'
+                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+            }`}
+          >
+            {t('studyPomodoroMinutes', { min: durations.focus })} {t('studyPomodoroFocus')}
+          </button>
+          <button
+            type="button"
+            onClick={() => onSwitchMode('short_break')}
+            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+              mode === 'short_break'
+                ? isZen
+                  ? 'bg-[#2E7D6F] text-white shadow-md'
+                  : 'bg-[#2E7D6F] text-white border-2 border-[#1E5249] shadow-[2px_2px_0_#1E5249]'
+                : isZen
+                  ? 'text-white/80 hover:bg-white/10 hover:text-white'
+                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+            }`}
+          >
+            {t('studyPomodoroMinutes', { min: durations.short_break })} {t('studyPomodoroShortBreak')}
+          </button>
+          <button
+            type="button"
+            onClick={() => onSwitchMode('long_break')}
+            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+              mode === 'long_break'
+                ? isZen
+                  ? 'bg-[#4A6572] text-white shadow-md'
+                  : 'bg-[#4A6572] text-white border-2 border-[#2B3C44] shadow-[2px_2px_0_#2B3C44]'
+                : isZen
+                  ? 'text-white/80 hover:bg-white/10 hover:text-white'
+                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+            }`}
+          >
+            {t('studyPomodoroMinutes', { min: durations.long_break })} {t('studyPomodoroLongBreak')}
+          </button>
+        </div>
+
+        {/* Settings button in normal mode */}
+        {onOpenSettings && !isZen && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label={t('studyPomodoroSettings')}
+            title={t('studyPomodoroSettings')}
+            className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+          >
+            <Sliders size={16} />
+          </button>
+        )}
       </div>
 
       {/* SVG Ring */}
       <div className="relative flex items-center justify-center">
         <svg height={radius * 2} width={radius * 2} className="rotate-[-90deg]">
-          {/* 背景トラック円 */}
+          {/* Background track circle */}
           <circle
             stroke={isZen ? 'rgba(212, 176, 140, 0.22)' : '#EAD8C7'}
             fill="transparent"
@@ -150,7 +172,7 @@ export function PomodoroRing({
             cx={radius}
             cy={radius}
           />
-          {/* 進行プログレス円 */}
+          {/* Progress circle */}
           <circle
             stroke={modeConfig.color}
             fill="transparent"
@@ -167,7 +189,7 @@ export function PomodoroRing({
           />
         </svg>
 
-        {/* 内側コンテンツ */}
+        {/* Inner content */}
         <div className="absolute flex flex-col items-center justify-center text-center">
           <div
             className={`flex items-center gap-1.5 text-xs font-bold mb-1 ${
@@ -200,7 +222,7 @@ export function PomodoroRing({
         </div>
       </div>
 
-      {/* 操作ボタン (通常モードのみ表示 - 禅モード時はボトムドックで一元操作) */}
+      {/* Control buttons (Normal mode only) */}
       {!isZen && (
         <div className="flex items-center gap-4 mt-7">
           <button

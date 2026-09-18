@@ -61,6 +61,62 @@ export interface AmbientSoundConfig {
 
 export type PomodoroMode = 'focus' | 'short_break' | 'long_break'
 
+export interface PomodoroDurations {
+  focus: number
+  short_break: number
+  long_break: number
+}
+
+export interface PomodoroPreset {
+  id: string
+  nameKey: TranslationKey
+  defaultName: string
+  focus: number
+  short_break: number
+  long_break: number
+}
+
+export const DEFAULT_POMODORO_DURATIONS: PomodoroDurations = {
+  focus: 25,
+  short_break: 5,
+  long_break: 15,
+}
+
+export const POMODORO_PRESETS: PomodoroPreset[] = [
+  {
+    id: 'classic',
+    nameKey: 'studyPomodoroPresetClassic',
+    defaultName: 'Classic (25 / 5 / 15m)',
+    focus: 25,
+    short_break: 5,
+    long_break: 15,
+  },
+  {
+    id: 'deep',
+    nameKey: 'studyPomodoroPresetDeep',
+    defaultName: 'Deep Work (50 / 10 / 20m)',
+    focus: 50,
+    short_break: 10,
+    long_break: 20,
+  },
+  {
+    id: 'sprint',
+    nameKey: 'studyPomodoroPresetSprint',
+    defaultName: 'Sprint (15 / 3 / 10m)',
+    focus: 15,
+    short_break: 3,
+    long_break: 10,
+  },
+  {
+    id: 'ultradian',
+    nameKey: 'studyPomodoroPresetUltradian',
+    defaultName: 'Ultradian (90 / 20 / 30m)',
+    focus: 90,
+    short_break: 20,
+    long_break: 30,
+  },
+]
+
 export interface PomodoroState {
   mode: PomodoroMode
   timeLeft: number

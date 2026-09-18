@@ -14,6 +14,7 @@ import {
   Pause,
   RotateCcw,
   Music,
+  Timer,
 } from 'lucide-react'
 import { PomodoroRing } from './PomodoroRing'
 import { usePomodoro } from '@/lib/hooks/usePomodoro'
@@ -26,6 +27,7 @@ import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { AmbientMixerModal } from './AmbientMixerModal'
+import { PomodoroSettingsModal } from './PomodoroSettingsModal'
 import type { ThemeName } from '@/types'
 
 interface ZenFocusModalProps {
@@ -43,6 +45,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const [zenTheme, setZenTheme] = useState<ThemeName | 'auto'>('auto')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMixerOpen, setIsMixerOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [showThemePicker, setShowThemePicker] = useState(false)
   const [focusGoal, setFocusGoal] = useState('')
   const [isGoalCompleted, setIsGoalCompleted] = useState(false)
@@ -141,6 +144,10 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
       const isInput = ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)
 
       if (e.key === 'Escape') {
+        if (isSettingsOpen) {
+          setIsSettingsOpen(false)
+          return
+        }
         if (isMixerOpen) {
           setIsMixerOpen(false)
           return
@@ -158,11 +165,11 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, isMixerOpen, showThemePicker, handleGuardedClose, toggleFullscreen])
+  }, [isOpen, isSettingsOpen, isMixerOpen, showThemePicker, handleGuardedClose, toggleFullscreen])
 
   if (!isOpen) return null
 
-  const controlsVisible = isControlsVisible || isMixerOpen || showThemePicker
+  const controlsVisible = isControlsVisible || isMixerOpen || isSettingsOpen || showThemePicker
   const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
   const themeDisplayName =
     language === 'ja'
@@ -261,6 +268,8 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           onPause={pomodoro.pause}
           onReset={pomodoro.reset}
           onSwitchMode={pomodoro.switchMode}
+          durations={pomodoro.durations}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           variant="zen"
         />
 
@@ -352,6 +361,27 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
 
           <div className="w-[1px] h-5 bg-white/20 mx-0.5" />
 
+          {/* Pomodoro Timer Settings Modal Toggle */}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={isSettingsOpen}
+            onClick={() => {
+              setIsSettingsOpen(true)
+              setShowThemePicker(false)
+              setIsMixerOpen(false)
+            }}
+            title={t('studyPomodoroSettings')}
+            aria-label={t('studyPomodoroSettings')}
+            className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${
+              isSettingsOpen
+                ? 'bg-white/25 text-white'
+                : 'hover:bg-white/15 text-white/80 hover:text-white'
+            }`}
+          >
+            <Timer size={17} />
+          </button>
+
           {/* Ambient Video Theme Switcher Popover */}
           <div className="relative">
             <button
@@ -362,6 +392,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
               onClick={() => {
                 setShowThemePicker(!showThemePicker)
                 setIsControlsVisible(true)
+                setIsSettingsOpen(false)
               }}
               title={t('studyAmbientTheme')}
               aria-label={t('studyAmbientTheme')}
@@ -451,6 +482,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={() => {
               setIsMixerOpen(true)
               setShowThemePicker(false)
+              setIsSettingsOpen(false)
             }}
             title={t('studyAmbientSounds')}
             aria-label={t('studyAmbientSounds')}
@@ -492,6 +524,15 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
 
       {/* 7. Ambient Sound Mixer Modal */}
       <AmbientMixerModal isOpen={isMixerOpen} onClose={() => setIsMixerOpen(false)} />
+
+      {/* 8. Pomodoro Custom Duration Settings Modal */}
+      <PomodoroSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentDurations={pomodoro.durations}
+        onSave={pomodoro.updateDurations}
+        onResetDefaults={pomodoro.resetToDefaults}
+      />
     </div>
   )
 }
