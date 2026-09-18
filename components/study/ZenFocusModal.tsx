@@ -61,7 +61,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     onCycleComplete?.(mode, streak)
   })
 
-  // Controls auto-hide timer (3500ms inactivity)
+  // 3.5秒無操作時の自動非表示タイマー
   useEffect(() => {
     if (!isOpen) return
 
@@ -102,7 +102,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     }
   }, [isOpen])
 
-  // Fullscreen toggle & listener
+  // 全画面表示の切り替えとイベント監視
   const toggleFullscreen = useCallback(() => {
     if (typeof document === 'undefined') return
     if (!document.fullscreenElement) {
@@ -126,7 +126,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // Guarded close handler
+  // セッション実行中の誤終了防止ガード
   const handleGuardedClose = useCallback(() => {
     if (!pomodoro.isRunning || confirm(t('studyExitZenConfirm'))) {
       if (typeof document !== 'undefined' && document.fullscreenElement) {
@@ -136,7 +136,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     }
   }, [pomodoro.isRunning, onClose, t])
 
-  // Escape key and F key shortcuts
+  // キーボードショートカット（F: 全画面 / Esc: 終了ガード）
   useEffect(() => {
     if (!isOpen) return
 
@@ -185,7 +185,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         controlsVisible ? 'cursor-default' : 'cursor-none'
       }`}
     >
-      {/* 1. Full-bleed Dynamic Video Background */}
+      {/* 1. 全面ビデオ背景 */}
       <VideoBackground
         videoUrl={activeThemeConfig?.videoUrl}
         youtubeId={activeThemeConfig?.youtubeId}
@@ -196,16 +196,16 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         active={isOpen}
       />
 
-      {/* 2. Subtle Dark Vignette / Contrast Scrim */}
+      {/* 2. 暗色グラデーション・スクリム */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/70 pointer-events-none z-[1]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.45)_100%)] pointer-events-none z-[1]" />
 
-      {/* 3. Subtle Ambient Particle Effects (50% opacity) */}
+      {/* 3. 季節の環境パーティクル効果 */}
       <div className="absolute inset-0 pointer-events-none z-[2] opacity-50 filter blur-[0.2px]">
         <ThemeEffects effects={activeThemeConfig?.effects || []} active={isOpen} />
       </div>
 
-      {/* 4. Top Header Bar (Auto-Hides) */}
+      {/* 4. トップヘッダーバー */}
       <div
         className={`relative z-10 flex items-center justify-between p-4 sm:p-6 transition-all duration-700 ${
           controlsVisible
@@ -213,7 +213,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             : 'opacity-0 -translate-y-4 pointer-events-none'
         }`}
       >
-        {/* Zen Badge & Active Theme Display */}
+        {/* 禅モードバッジ & 現在のテーマ表示 */}
         <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 shadow-lg">
           <span className="w-2 h-2 rounded-full bg-[#D95D39]" />
           <h1 className="text-xs font-bold tracking-widest uppercase text-[#FFF9F3] font-heading">
@@ -223,7 +223,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           <span className="text-xs text-[#FAF6F0]/90 font-medium">{themeDisplayName}</span>
         </div>
 
-        {/* Room Track & Solo Mode Toggle */}
+        {/* 部屋のBGM & ソロ消音トグル */}
         <div className="flex items-center gap-2">
           {currentTrack && (
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-xs text-[#FFF9F3] shadow-lg">
@@ -243,7 +243,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             </div>
           )}
 
-          {/* Quick Exit Header Button */}
+          {/* クイック終了ボタン */}
           <button
             type="button"
             onClick={handleGuardedClose}
@@ -255,7 +255,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         </div>
       </div>
 
-      {/* 5. Center Content: Pomodoro Clock & Minimal Goal */}
+      {/* 5. 中央コンテンツ: ポモドーロ時計 & 目標入力 */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-auto w-full max-w-md mx-auto px-4">
         <PomodoroRing
           mode={pomodoro.mode}
@@ -273,7 +273,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           variant="zen"
         />
 
-        {/* Minimal Focus Goal Pill (Auto-Hides) */}
+        {/* 集中目標入力ピル */}
         <div
           className={`w-full max-w-xs sm:max-w-sm mt-3 transition-all duration-700 ${
             controlsVisible
@@ -318,7 +318,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         </div>
       </div>
 
-      {/* 6. Floating Bottom Control Dock (Auto-Hides with 3.5s inactivity) */}
+      {/* 6. フローティングボトムドック */}
       <div
         className={`relative z-20 flex items-center justify-center p-4 sm:p-6 transition-all duration-700 ${
           controlsVisible
@@ -338,7 +338,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         }}
       >
         <div className="relative flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-full bg-stone-950/80 backdrop-blur-xl border border-[#D4B08C]/40 text-[#FFF9F3] shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-          {/* Pomodoro Play/Pause */}
+          {/* ポモドーロ 再生/一時停止 */}
           <button
             type="button"
             onClick={pomodoro.isRunning ? pomodoro.pause : pomodoro.start}
@@ -348,7 +348,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             {pomodoro.isRunning ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
           </button>
 
-          {/* Pomodoro Reset */}
+          {/* ポモドーロ リセット */}
           <button
             type="button"
             onClick={pomodoro.reset}
@@ -361,7 +361,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
 
           <div className="w-[1px] h-5 bg-white/20 mx-0.5" />
 
-          {/* Pomodoro Timer Settings Modal Toggle */}
+          {/* タイマー時間設定モーダル */}
           <button
             type="button"
             aria-haspopup="dialog"
@@ -382,7 +382,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             <Timer size={17} />
           </button>
 
-          {/* Ambient Video Theme Switcher Popover */}
+          {/* 環境テーマ選択ポップオーバー */}
           <div className="relative">
             <button
               type="button"
@@ -422,7 +422,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
                   <Sparkles size={12} className="text-[#D95D39]" />
                 </div>
 
-                {/* Auto / Global theme */}
+                {/* 自動 / グローバルテーマ */}
                 <button
                   type="button"
                   onClick={() => {
@@ -439,7 +439,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
                   {zenTheme === 'auto' && <Check size={14} />}
                 </button>
 
-                {/* All Seasonal Video Themes */}
+                {/* 季節のビデオテーマ一覧 */}
                 {VISUAL_THEME_KEYS.map((key) => {
                   const cfg = THEMES[key]
                   if (!cfg) return null
@@ -474,7 +474,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             )}
           </div>
 
-          {/* Ambient Sound Mixer Toggle */}
+          {/* 自然環境音ミキサートグル */}
           <button
             type="button"
             aria-haspopup="dialog"
@@ -498,7 +498,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
 
           <div className="w-[1px] h-5 bg-white/20 mx-0.5" />
 
-          {/* Fullscreen Toggle */}
+          {/* 全画面表示切り替え */}
           <button
             type="button"
             onClick={toggleFullscreen}
@@ -509,7 +509,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
 
-          {/* Exit Zen Focus Mode */}
+          {/* 禅モード終了 */}
           <button
             type="button"
             onClick={handleGuardedClose}
@@ -522,10 +522,10 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         </div>
       </div>
 
-      {/* 7. Ambient Sound Mixer Modal */}
+      {/* 7. 自然環境音ミキサーモーダル */}
       <AmbientMixerModal isOpen={isMixerOpen} onClose={() => setIsMixerOpen(false)} />
 
-      {/* 8. Pomodoro Custom Duration Settings Modal */}
+      {/* 8. ポモドーロカスタム時間設定モーダル */}
       <PomodoroSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

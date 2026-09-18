@@ -49,7 +49,7 @@ function PomodoroSettingsDialog({
   const [shortBreakMin, setShortBreakMin] = useState(currentDurations.short_break)
   const [longBreakMin, setLongBreakMin] = useState(currentDurations.long_break)
 
-  // Escape key handler
+  // Escapeキー押下でモーダルを閉じる
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -88,7 +88,7 @@ function PomodoroSettingsDialog({
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm transition-all duration-200"
     >
       <div className="relative w-full max-w-md p-5 sm:p-7 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C] max-h-[90vh] overflow-y-auto">
-        {/* Header */}
+        {/* ヘッダー */}
         <div className="flex items-center justify-between pb-3 border-b-2 border-[#D4B08C]/40 mb-5">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] text-[#D95D39] shadow-xs">
@@ -114,7 +114,7 @@ function PomodoroSettingsDialog({
           </button>
         </div>
 
-        {/* Section 1: Presets */}
+        {/* プリセット選択 */}
         <div className="mb-5">
           <div className="text-xs font-bold text-[#854D27]/80 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
             <Sparkles size={13} className="text-[#D95D39]" />
@@ -149,13 +149,13 @@ function PomodoroSettingsDialog({
           </div>
         </div>
 
-        {/* Section 2: Custom Durations Steppers */}
+        {/* 時間の手動設定 */}
         <div className="space-y-3.5 mb-6">
           <div className="text-xs font-bold text-[#854D27]/80 uppercase tracking-wider">
             {t('studyPomodoroCustom')}
           </div>
 
-          {/* Focus Duration */}
+          {/* 集中時間 */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D4B08C] shadow-xs">
             <div className="flex items-center gap-2 min-w-0">
               <div className="p-1.5 rounded-lg bg-[#FAF0E6] text-[#D95D39]">
@@ -197,7 +197,7 @@ function PomodoroSettingsDialog({
             </div>
           </div>
 
-          {/* Short Break Duration */}
+          {/* ひと息（短い休憩） */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D4B08C] shadow-xs">
             <div className="flex items-center gap-2 min-w-0">
               <div className="p-1.5 rounded-lg bg-[#FAF0E6] text-[#2E7D6F]">
@@ -239,7 +239,7 @@ function PomodoroSettingsDialog({
             </div>
           </div>
 
-          {/* Long Break Duration */}
+          {/* 休息（長い休憩） */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#D4B08C] shadow-xs">
             <div className="flex items-center gap-2 min-w-0">
               <div className="p-1.5 rounded-lg bg-[#FAF0E6] text-[#4A6572]">
@@ -282,7 +282,7 @@ function PomodoroSettingsDialog({
           </div>
         </div>
 
-        {/* Footer Actions */}
+        {/* 操作ボタン */}
         <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#D4B08C]/30">
           <button
             type="button"

@@ -48,7 +48,6 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
   const onCycleCompleteRef = useRef(onCycleComplete)
   const durationsRef = useRef(durations)
 
-  // Sync ref
   useEffect(() => {
     durationsRef.current = durations
   }, [durations])
@@ -57,7 +56,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
     onCycleCompleteRef.current = onCycleComplete
   }, [onCycleComplete])
 
-  // Zen chime audio notification
+  // 完了通知の風鈴音再生（528Hz ソルフェジオ周波数）
   const playChime = useCallback(() => {
     if (typeof window === 'undefined') return
     try {
@@ -70,7 +69,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
       const gain = audioCtx.createGain()
 
       osc.type = 'sine'
-      osc.frequency.setValueAtTime(528, audioCtx.currentTime) // 528Hz (Solfeggio frequency)
+      osc.frequency.setValueAtTime(528, audioCtx.currentTime)
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime)
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2.5)
 
@@ -84,7 +83,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
     }
   }, [])
 
-  // Handle cycle completion
+  // サイクル完了処理とストリーク加算
   const handleCycleFinished = useCallback(() => {
     playChime()
     setIsRunning(false)
@@ -110,7 +109,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
     onCycleCompleteRef.current?.(mode, nextStreak)
   }, [mode, completedCycles, streakMinutes, playChime])
 
-  // Timer countdown loop based on wall-clock to avoid drift
+  // 実時間（Wall-clock）に基づくタイマーループ（バックグラウンド時のドリフト防止）
   useEffect(() => {
     if (isRunning) {
       if (!targetEndTimeRef.current) {
@@ -167,7 +166,7 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
     [durations]
   )
 
-  // Update custom durations and persist
+  // カスタム時間設定の更新と永続化
   const updateDurations = useCallback(
     (newDurations: PomodoroDurations) => {
       const sanitized: PomodoroDurations = {
