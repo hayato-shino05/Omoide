@@ -19,6 +19,7 @@ export function useRoomBgmSync(roomId: string | null) {
     addCheer,
     setCurrentTrack,
     currentTrack,
+    setRealtimeActions,
   } = useStudyRoomStore()
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -304,6 +305,19 @@ export function useRoomBgmSync(roomId: string | null) {
       })
     }
   }, [displayName, addCheer])
+
+  // リアルタイムアクションをストアに登録（グローバル経由でどこからでも呼び出し可能）
+  useEffect(() => {
+    setRealtimeActions({
+      changeRoomTrack,
+      sendSilentCheer,
+      updatePresenceStatus,
+    })
+
+    return () => {
+      setRealtimeActions(null)
+    }
+  }, [changeRoomTrack, sendSilentCheer, updatePresenceStatus, setRealtimeActions])
 
   return {
     currentTrack,

@@ -21,6 +21,22 @@ import { ZenFocusModal } from './ZenFocusModal'
 import SongPickerModal from '@/components/community/SongPickerModal'
 import type { StudyRoom } from '@/types/study'
 
+// 匿名ユーザーIDおよび表示名のフォールバック解決ヘルパー
+function resolveUserCredentials(userIdentifier: string, displayName: string) {
+  if (typeof window === 'undefined') {
+    return {
+      effectiveId: userIdentifier || 'guest',
+      effectiveName: displayName || 'Student',
+    }
+  }
+  const storedId = localStorage.getItem('omoide_study_uid')
+  const storedName = localStorage.getItem('omoide_study_name')
+  return {
+    effectiveId: userIdentifier || storedId || 'guest',
+    effectiveName: displayName || storedName || 'Student',
+  }
+}
+
 export function StudyRoomHub() {
   const { currentRoom, userIdentifier, displayName, setRoom, setUserProfile } =
     useStudyRoomStore()
@@ -111,14 +127,13 @@ export function StudyRoomHub() {
       return
     }
 
-    const member = await joinStudyRoom(room.id, {
-      user_identifier: userIdentifier,
-      display_name: displayName,
-    })
+    const { effectiveId, effectiveName } = resolveUserCredentials(userIdentifier, displayName)
 
-    if (member) {
-      setRoom(room)
-    }
+    setRoom(room)
+    await joinStudyRoom(room.id, {
+      user_identifier: effectiveId,
+      display_name: effectiveName,
+    })
   }
 
   const handleConfirmPrivateJoin = async () => {
@@ -128,15 +143,14 @@ export function StudyRoomHub() {
       return
     }
 
-    const member = await joinStudyRoom(joiningRoom.id, {
-      user_identifier: userIdentifier,
-      display_name: displayName,
-    })
+    const { effectiveId, effectiveName } = resolveUserCredentials(userIdentifier, displayName)
 
-    if (member) {
-      setRoom(joiningRoom)
-      setJoiningRoom(null)
-    }
+    setRoom(joiningRoom)
+    await joinStudyRoom(joiningRoom.id, {
+      user_identifier: effectiveId,
+      display_name: effectiveName,
+    })
+    setJoiningRoom(null)
   }
 
   const handleCreateRoom = async (e: React.FormEvent) => {
@@ -154,11 +168,11 @@ export function StudyRoomHub() {
     })
 
     if (created) {
+      setRoom(created)
       await joinStudyRoom(created.id, {
         user_identifier: userIdentifier,
         display_name: displayName,
       })
-      setRoom(created)
       setIsCreateModalOpen(false)
       setNewRoomName('')
       setNewRoomDesc('')

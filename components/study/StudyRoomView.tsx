@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useUIStore } from '@/lib/stores/uiStore'
-import { useRoomBgmSync } from '@/lib/hooks/useRoomBgmSync'
 import { usePomodoro } from '@/lib/hooks/usePomodoro'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -61,6 +60,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     isHost,
     roomSessionStartedAt,
     userIdentifier,
+    changeRoomTrackAction,
+    sendSilentCheerAction,
+    updatePresenceStatusAction,
     setIsSoloMode,
     setRoomVolume,
     setAmbientMixerOpen,
@@ -68,9 +70,12 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   } = useStudyRoomStore()
 
   const { closeModal } = useUIStore()
-  const { changeRoomTrack, sendSilentCheer, updatePresenceStatus } = useRoomBgmSync(roomId)
   const { volumes, isPlaying: isAmbientPlaying } = useAmbientSoundStore()
   const { t } = useLanguage()
+
+  const changeRoomTrack = changeRoomTrackAction || (async () => {})
+  const sendSilentCheer = sendSilentCheerAction || (() => {})
+  const updatePresenceStatus = updatePresenceStatusAction || (async () => {})
 
   const [isZenOpen, setIsZenOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
