@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { PomodoroRing } from '@/components/study/PomodoroRing'
 import { PomodoroSettingsModal } from '@/components/study/PomodoroSettingsModal'
 import { DeskPresenceList } from '@/components/study/DeskPresenceList'
-import { StudyRoomVoiceBar } from '@/components/study/StudyRoomVoiceBar'
 import { LanguageProvider } from '@/lib/i18n/LanguageContext'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 
@@ -144,37 +143,5 @@ describe('DeskPresenceList Component Tests', () => {
     const coffeeBtn = screen.getByRole('button', { name: /お茶をどうぞ|Warm Tea/i })
     fireEvent.click(coffeeBtn)
     expect(handleSendCheer).toHaveBeenCalledWith('coffee')
-  })
-})
-
-describe('StudyRoomVoiceBar Component Tests', () => {
-  it('should render connected bar when in a study room', () => {
-    useStudyRoomStore.setState({
-      currentRoom: {
-        id: 'room_123',
-        name: 'Kyoto Night Study',
-        description: 'Focus on coding',
-        host_id: 'user_1',
-        current_track_id: 'track_1',
-        epoch_started_at: new Date().toISOString(),
-        playback_state: 'playing',
-        is_private: false,
-        max_members: 20,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      roomSessionStartedAt: Date.now() - 65000, // 1 minute 5 seconds ago
-      isSoloMode: false,
-    })
-
-    render(
-      <LanguageProvider initialLocale="ja">
-        <StudyRoomVoiceBar />
-      </LanguageProvider>
-    )
-
-    expect(screen.getByText('Kyoto Night Study')).toBeDefined()
-    expect(screen.getByRole('button', { name: /自分だけ消音|Solo Mute/i })).toBeDefined()
-    expect(screen.getByRole('button', { name: /環境音ミキサー|Ambient Sounds/i })).toBeDefined()
   })
 })
