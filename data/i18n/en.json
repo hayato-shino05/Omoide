@@ -530,6 +530,15 @@
     "studyYou": "You",
     "studyNoPartnersYet": "No study partners yet. Share room code or invite friends!",
     "studyGoalPlaceholder": "What is your focus goal for this session?...",
-    "studyDeepTranquility": "Deep Tranquility"
+    "studyDeepTranquility": "Deep Tranquility",
+    "studyVoiceConnected": "Connected to Room",
+    "studySessionDuration": "Duration: {time}",
+    "studyMinimizeRoom": "Minimize",
+    "studyDisconnectRoom": "Disconnect & Leave",
+    "studyStageDj": "Stage DJ",
+    "studyStageAudience": "Study Desks ({count})",
+    "studyFocusingDuration": "{minutes}m Focusing",
+    "studyBreakDuration": "{minutes}m Break",
+    "studyOpenFullRoom": "Open Room"
   }
 }

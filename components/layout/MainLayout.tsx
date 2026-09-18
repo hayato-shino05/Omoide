@@ -9,6 +9,7 @@ import { MusicPlayer } from '@/components/ui/MusicPlayer'
 import { SocialButtons } from '@/components/ui/SocialButtons'
 import { ModalManager } from '@/components/ui/ModalManager'
 import { MobileBottomDock } from '@/components/ui/MobileBottomDock'
+import { GlobalStudyRoomSession } from '@/components/study/GlobalStudyRoomSession'
 import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
 
 interface MainLayoutProps {
@@ -57,6 +58,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* モバイル用ボトムナビゲーションDock (スマホ専用) */}
         <MobileBottomDock />
+
+        {/* 勉強部屋グローバルセッション & ボイスバー */}
+        <GlobalStudyRoomSession />
 
         {/* モーダル管理コンポーネント */}
         <ModalManager />

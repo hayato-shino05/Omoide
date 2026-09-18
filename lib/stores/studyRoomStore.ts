@@ -14,6 +14,8 @@ export interface StudyRoomStore {
   isHost: boolean
   userIdentifier: string
   displayName: string
+  roomSessionStartedAt: number | null
+  isAmbientMixerOpen: boolean
 
   setRoom: (room: StudyRoom | null) => void
   setMembers: (members: StudyRoomMember[]) => void
@@ -26,6 +28,7 @@ export interface StudyRoomStore {
   setUserProfile: (userIdentifier: string, displayName: string) => void
   addCheer: (cheer: SilentCheerPayload) => void
   removeCheer: (cheerId: string) => void
+  setAmbientMixerOpen: (isOpen: boolean) => void
   resetRoom: () => void
 }
 
@@ -39,12 +42,15 @@ export const useStudyRoomStore = create<StudyRoomStore>((set, get) => ({
   isHost: false,
   userIdentifier: '',
   displayName: 'Guest',
+  roomSessionStartedAt: null,
+  isAmbientMixerOpen: false,
 
   setRoom: (room) => {
     const userId = get().userIdentifier
     set({
       currentRoom: room,
       isHost: Boolean(room && userId && room.host_id === userId),
+      roomSessionStartedAt: room ? get().roomSessionStartedAt || Date.now() : null,
     })
   },
 
@@ -92,13 +98,15 @@ export const useStudyRoomStore = create<StudyRoomStore>((set, get) => ({
 
   addCheer: (cheer) =>
     set((state) => ({
-      cheers: [...state.cheers.slice(-15), cheer], // Lưu tối đa 15 cheer gần nhất
+      cheers: [...state.cheers.slice(-15), cheer], // 最大15件の最新リアクションを保持
     })),
 
   removeCheer: (cheerId) =>
     set((state) => ({
       cheers: state.cheers.filter((c) => c.id !== cheerId),
     })),
+
+  setAmbientMixerOpen: (isAmbientMixerOpen) => set({ isAmbientMixerOpen }),
 
   resetRoom: () =>
     set({
@@ -108,5 +116,7 @@ export const useStudyRoomStore = create<StudyRoomStore>((set, get) => ({
       cheers: [],
       currentTrack: null,
       isHost: false,
+      roomSessionStartedAt: null,
+      isAmbientMixerOpen: false,
     }),
 }))

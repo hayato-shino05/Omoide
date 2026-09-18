@@ -530,6 +530,15 @@
     "studyYou": "あなた",
     "studyNoPartnersYet": "まだ他の仲間はいません。招待リンクを共有して一緒に学びましょう！",
     "studyGoalPlaceholder": "このセッションの目標を入力...",
-    "studyDeepTranquility": "静寂と調和"
+    "studyDeepTranquility": "静寂と調和",
+    "studyVoiceConnected": "勉強部屋に接続中",
+    "studySessionDuration": "接続時間: {time}",
+    "studyMinimizeRoom": "最小化",
+    "studyDisconnectRoom": "切断して退出",
+    "studyStageDj": "ステージ DJ",
+    "studyStageAudience": "勉強机 ({count}人)",
+    "studyFocusingDuration": "{minutes}分 集中中",
+    "studyBreakDuration": "{minutes}分 休憩中",
+    "studyOpenFullRoom": "部屋を開く"
   }
 }

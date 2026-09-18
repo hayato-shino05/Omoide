@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { useAmbientAudio } from '@/lib/hooks/useAmbientAudio'
 import { fetchStudyRooms, createStudyRoom, joinStudyRoom, getStudyRoom } from '@/lib/study/client'
 import { StudyRoomView } from './StudyRoomView'
 import { ZenFocusModal } from './ZenFocusModal'
@@ -26,9 +25,6 @@ export function StudyRoomHub() {
   const { currentRoom, userIdentifier, displayName, setRoom, setUserProfile } =
     useStudyRoomStore()
   const { t } = useLanguage()
-
-  // Mount ambient audio engine để bộ trộn âm thanh môi trường luôn hoạt động
-  useAmbientAudio()
 
   const [rooms, setRooms] = useState<StudyRoom[]>([])
   const [isLoading, setIsLoading] = useState(true)
