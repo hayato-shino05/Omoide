@@ -76,6 +76,10 @@ create policy "Allow delete study_room_members"
   on public.study_room_members for delete
   using (true);
 
+-- Grants
+grant all on table public.study_rooms to anon, authenticated, service_role;
+grant all on table public.study_room_members to anon, authenticated, service_role;
+
 -- Realtime Publication
 do $$
 begin
