@@ -102,7 +102,7 @@ export function PomodoroRing({
           <button
             type="button"
             onClick={() => onSwitchMode('focus')}
-            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'focus'
                 ? isZen
                   ? 'bg-[#D95D39] text-white shadow-md'
@@ -117,7 +117,7 @@ export function PomodoroRing({
           <button
             type="button"
             onClick={() => onSwitchMode('short_break')}
-            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'short_break'
                 ? isZen
                   ? 'bg-[#2E7D6F] text-white shadow-md'
@@ -132,7 +132,7 @@ export function PomodoroRing({
           <button
             type="button"
             onClick={() => onSwitchMode('long_break')}
-            className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[36px] ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'long_break'
                 ? isZen
                   ? 'bg-[#4A6572] text-white shadow-md'
@@ -153,9 +153,9 @@ export function PomodoroRing({
             onClick={onOpenSettings}
             aria-label={t('studyPomodoroSettings')}
             title={t('studyPomodoroSettings')}
-            className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
           >
-            <Sliders size={16} />
+            <Sliders size={17} />
           </button>
         )}
       </div>

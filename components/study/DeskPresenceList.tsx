@@ -101,7 +101,7 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
               onClick={() => onSendCheer(btn.type)}
               title={t(btn.labelKey)}
               aria-label={t(btn.labelKey)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#D4B08C]/70 active:scale-95 transition-all text-xs font-bold cursor-pointer shadow-2xs font-body min-h-[36px] ${btn.colorClass}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#D4B08C]/70 active:scale-95 transition-all text-xs font-bold cursor-pointer shadow-2xs font-body min-h-[44px] ${btn.colorClass}`}
             >
               {btn.icon}
               <span className="hidden md:inline text-[11px]">{t(btn.labelKey)}</span>

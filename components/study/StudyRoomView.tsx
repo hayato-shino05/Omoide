@@ -317,9 +317,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                   <button
                     type="button"
                     onClick={() => setIsSongPickerOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] shadow-xs active:scale-95 transition-all cursor-pointer font-body min-h-[36px]"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] shadow-xs active:scale-95 transition-all cursor-pointer font-body min-h-[44px]"
                   >
-                    <Music size={14} />
+                    <Music size={15} />
                     <span>{t('studyChangeSong')}</span>
                   </button>
                 </div>
@@ -335,13 +335,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 type="button"
                 onClick={() => setIsSoloMode(!isSoloMode)}
                 aria-label={isSoloMode ? t('unmute') : t('studySoloMuteRoom')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 font-body min-h-[40px] ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 font-body min-h-[44px] ${
                   isSoloMode
                     ? 'bg-amber-100 text-amber-900 border-amber-300'
                     : 'bg-[#FFF9F3] hover:bg-[#FAF0E6] text-[#854D27] border-[#D4B08C]'
                 }`}
               >
-                {isSoloMode ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                {isSoloMode ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 <span>{isSoloMode ? t('unmute') : t('studySoloMuteRoom')}</span>
               </button>
 
@@ -369,7 +369,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 type="button"
                 onClick={() => setAmbientMixerOpen(true)}
                 aria-label={t('studyAmbientSounds')}
-                className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer font-body min-h-[40px] ${
+                className={`flex items-center justify-between w-full px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer font-body min-h-[44px] ${
                   activeAmbientCount > 0 && isAmbientPlaying
                     ? 'bg-emerald-50 text-[#2E7D6F] border-[#2E7D6F]'
                     : 'bg-[#FFF9F3] text-[#854D27] hover:bg-[#FAF0E6] border-[#D4B08C]'

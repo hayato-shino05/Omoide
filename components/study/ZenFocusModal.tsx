@@ -285,12 +285,13 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             <button
               type="button"
               onClick={() => setIsGoalCompleted(!isGoalCompleted)}
-              className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-white/60 hover:text-[#D95D39] transition-colors cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-white/60 hover:text-[#D95D39] transition-colors cursor-pointer"
               title="Toggle goal completed"
               aria-label="Toggle goal completed"
+              aria-pressed={isGoalCompleted}
             >
               <CheckCircle2
-                size={18}
+                size={19}
                 className={isGoalCompleted ? 'text-emerald-400' : 'text-white/40'}
               />
             </button>
