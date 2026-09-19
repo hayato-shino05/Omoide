@@ -26,10 +26,23 @@ const socialButtonStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-export function SocialButtons() {
+interface SocialButtonsProps {
+  isZenMode?: boolean
+}
+
+export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
   const { t } = useLanguage()
   const { openModal } = useUIStore()
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const [prevZenMode, setPrevZenMode] = useState(isZenMode)
+
+  // 禅・集中モードへの切り替え時に共有メニューの状態をリセット
+  if (isZenMode !== prevZenMode) {
+    setPrevZenMode(isZenMode)
+    if (isZenMode) {
+      setShowShareMenu(false)
+    }
+  }
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = 'translate(-2px, -2px)'
@@ -91,20 +104,23 @@ export function SocialButtons() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
-      <button
-        onClick={() => setShowShareMenu(!showShareMenu)}
-        style={socialButtonStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-      >
-        <Icon name="Users" size={26} />
-        <span>{t('inviteFriends')}</span>
-      </button>
+      {/* 友達招待・共有ボタン（禅・集中モード時は非表示） */}
+      {!isZenMode && (
+        <button
+          onClick={() => setShowShareMenu(!showShareMenu)}
+          style={socialButtonStyle}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+        >
+          <Icon name="Users" size={26} />
+          <span>{t('inviteFriends')}</span>
+        </button>
+      )}
 
       {/* シェアメニュー */}
-      {showShareMenu && (
+      {!isZenMode && showShareMenu && (
         <div
           style={{
             position: 'absolute',
@@ -164,18 +180,6 @@ export function SocialButtons() {
       >
         <Icon name="MessageCircle" size={26} />
         <span>{t('groupChat')}</span>
-      </button>
-
-      <button
-        onClick={() => openModal('timeCapsule')}
-        style={socialButtonStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-      >
-        <Icon name="Archive" size={26} />
-        <span>{t('timeCapsuleTitle')}</span>
       </button>
     </div>
   )

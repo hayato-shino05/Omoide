@@ -13,6 +13,8 @@ export type ModalType =
   | 'flashback'
   | 'omikuji'
   | 'timeCapsule'
+  | 'studyRoom'
+  | 'zenFocus'
   | null
 
 export interface MessageModalPayload {
@@ -22,9 +24,13 @@ export interface MessageModalPayload {
 
 interface UIState {
   activeModal: ModalType
+  isChatOpen: boolean
   messageModalPayload: MessageModalPayload | null
   openModal: (modal: ModalType, payload?: MessageModalPayload) => void
   closeModal: () => void
+  openChat: () => void
+  closeChat: () => void
+  toggleChat: () => void
 }
 
 // モーダルを開く直前にフォーカスされていた要素（閉じた際の復元先）
@@ -77,12 +83,20 @@ function restoreTriggerFocus(): void {
 
 export const useUIStore = create<UIState>((set, get) => ({
   activeModal: null,
+  isChatOpen: false,
   messageModalPayload: null,
   openModal: (modal, payload) => {
     if (restoreRafId !== null) {
       cancelAnimationFrame(restoreRafId)
       restoreRafId = null
     }
+
+    // チャットは独立したフローティングウィンドウとして開き、現在の画面（禅モード・勉強部屋等）を維持
+    if (modal === 'chat') {
+      set({ isChatOpen: true })
+      return
+    }
+
     // 最初のモーダル展開時のみページ上の起動元トリガーを記録（モーダル間直接遷移時は元のトリガーを維持）
     if (typeof document !== 'undefined' && get().activeModal === null) {
       lastModalTrigger =
@@ -103,4 +117,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     // lastModalTrigger は次回 open で上書きするため、ここではクリアしない
     restoreTriggerFocus()
   },
+  openChat: () => set({ isChatOpen: true }),
+  closeChat: () => set({ isChatOpen: false }),
+  toggleChat: () => set((state) => ({ isChatOpen: !state.isChatOpen })),
 }))

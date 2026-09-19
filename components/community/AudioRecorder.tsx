@@ -190,7 +190,7 @@ export default function AudioRecorder({ birthdayPerson, onRecorded }: AudioRecor
           <button
             onClick={handleUpload}
             disabled={uploading || !sender.trim()}
-            className="w-full px-4 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 text-white rounded-lg font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 bg-[#D95D39] hover:bg-[#C24E2B] disabled:opacity-50 text-white rounded-lg font-bold transition-all cursor-pointer disabled:cursor-not-allowed shadow-sm"
           >
             {uploading ? t('sending') : t('sendWish')}
           </button>

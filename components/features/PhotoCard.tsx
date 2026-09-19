@@ -119,12 +119,11 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
             style={{
               color: '#fff',
               fontSize: '0.85rem',
-              fontWeight: 500,
+              fontWeight: 600,
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
             }}
           >
             {media.file_name}

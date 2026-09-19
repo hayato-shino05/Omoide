@@ -115,14 +115,14 @@ export function BirthdayCake({ candleCount = 5, onAllCandlesBlown }: BirthdayCak
             animate={{ opacity: 1 }}
             className="flex flex-col items-center gap-2"
           >
-            <div className="w-48 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-48 h-2 bg-[#D4B08C]/30 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-400 to-purple-500"
+                className="h-full bg-[#D95D39] rounded-full"
                 style={{ width: `${audioLevel * 100}%` }}
                 transition={{ duration: 0.1 }}
               />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{t('blowToMic')}</p>
+            <p className="text-sm text-[#854D27]/80">{t('blowToMic')}</p>
           </motion.div>
         )}
 
@@ -137,10 +137,10 @@ export function BirthdayCake({ candleCount = 5, onAllCandlesBlown }: BirthdayCak
             transition={{ delay: 0.5, duration: 0.6 }}
             className="text-center"
           >
-            <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">
+            <h3 className="text-3xl font-extrabold text-[#D95D39] tracking-tight">
               {t('congratulations')}
             </h3>
-            <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-lg text-[#854D27]/90 font-medium">
               {t('allWishesComeTrue')}
             </p>
           </motion.div>

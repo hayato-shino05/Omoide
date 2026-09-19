@@ -106,8 +106,6 @@ h1, h2, h3 {
 h1 {
   font-size: 2.5em;
   color: var(--theme-primary);
-  text-shadow: 2px 2px 0px var(--theme-secondary);
-  animation: pulse 2s infinite;
 }
 
 /* ===== ビンテージ風ボタンスタイル ===== */
@@ -164,8 +162,6 @@ h1 {
   color: #8B4513;
   font-size: 2em;
   margin-bottom: 30px;
-  text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.2);
-  animation: titleFloat 3s ease-in-out infinite;
 }
 
 .countdown-time {
@@ -197,7 +193,6 @@ h1 {
   font-size: 1.8em;
   font-weight: bold;
   box-shadow: 0 4px 8px rgba(139, 69, 19, 0.3);
-  animation: numberPulse 1s ease-in-out infinite;
 }
 
 /* ===== アニメーション ===== */
@@ -892,26 +887,6 @@ body.theme-bunka {
   }
 }
 
-@keyframes pulse-scale {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 @keyframes slide-in-from-right {
   0% {
     transform: translateX(100%);
@@ -964,14 +939,6 @@ body.theme-bunka {
 
 .animate-bounce-in {
   animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-.animate-pulse-scale {
-  animation: pulse-scale 1s ease-in-out infinite;
-}
-
-.animate-sparkle {
-  animation: sparkle 0.8s ease-in-out infinite;
 }
 
 .animate-in {
