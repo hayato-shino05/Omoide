@@ -254,7 +254,7 @@ export function useRoomBgmSync(roomId: string | null) {
         }
       }
 
-      // DB永続化（サーバーサイドAPI経由でホスト権限とトークンを検証して更新）
+      // DB永続化（サーバーサイドAPI経由でホスト権限とトークンを検証し、キュー・シャッフル・リピート状態を含めて更新）
       if (trackId) {
         const hostId = currentRoom?.host_id || userIdentifier
         const result = await updateStudyRoomPlayback(
@@ -263,6 +263,10 @@ export function useRoomBgmSync(roomId: string | null) {
             current_track_id: trackId,
             epoch_started_at: now,
             playback_state: state,
+            queue: activeQueue,
+            current_track_index: activeIndex,
+            is_shuffle: activeShuffle,
+            repeat_mode: activeRepeat,
           },
           hostId
         )
@@ -462,7 +466,20 @@ export function useRoomBgmSync(roomId: string | null) {
           current_track_id?: string | null
           epoch_started_at?: string
           playback_state?: PlaybackState
+          queue?: string[]
+          current_track_index?: number
+          is_shuffle?: boolean
+          repeat_mode?: RoomRepeatMode
         }
+
+        // キュー・シャッフル・リピート状態の同期
+        setRoomPlaybackState({
+          queue: Array.isArray(updated.queue) ? updated.queue : undefined,
+          currentTrackIndex: typeof updated.current_track_index === 'number' ? updated.current_track_index : undefined,
+          isShuffle: typeof updated.is_shuffle === 'boolean' ? updated.is_shuffle : undefined,
+          repeatMode: updated.repeat_mode || undefined,
+        })
+
         if (updated && updated.current_track_id) {
           const track = await resolveTrack(updated.current_track_id)
           if (track && track.url) {

@@ -1,5 +1,5 @@
 import { getSupabase } from '@/lib/supabase/client'
-import type { StudyRoom, StudyRoomMember, PlaybackState, FocusStatus } from '@/types/study'
+import type { StudyRoom, StudyRoomMember, PlaybackState, FocusStatus, RoomRepeatMode } from '@/types/study'
 
 export function getStoredHostToken(roomId: string): string | null {
   if (typeof window === 'undefined') return null
@@ -144,6 +144,10 @@ export async function updateStudyRoomPlayback(
     current_track_id?: string | null
     epoch_started_at?: string
     playback_state?: PlaybackState
+    queue?: string[]
+    current_track_index?: number
+    is_shuffle?: boolean
+    repeat_mode?: RoomRepeatMode
   },
   hostId?: string
 ): Promise<{ success: boolean; signature?: string }> {

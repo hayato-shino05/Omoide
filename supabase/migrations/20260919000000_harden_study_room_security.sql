@@ -1,8 +1,12 @@
 begin;
 
--- 1. カラムの追加（ホスト・メンバーの検証用トークンハッシュ）
+-- 1. カラムの追加（ホスト・メンバーの検証用トークンハッシュおよびキュー・シャッフル・リピート状態）
 alter table public.study_rooms
-  add column if not exists host_token_hash text;
+  add column if not exists host_token_hash text,
+  add column if not exists queue jsonb default '[]'::jsonb,
+  add column if not exists current_track_index integer default 0,
+  add column if not exists is_shuffle boolean default false,
+  add column if not exists repeat_mode text default 'off';
 
 alter table public.study_room_members
   add column if not exists member_token_hash text;
@@ -17,7 +21,11 @@ create or replace function public.create_study_room(
   p_is_private boolean default false,
   p_passcode text default null,
   p_current_track_id text default null,
-  p_theme_override text default null
+  p_theme_override text default null,
+  p_queue jsonb default '[]'::jsonb,
+  p_current_track_index integer default 0,
+  p_is_shuffle boolean default false,
+  p_repeat_mode text default 'off'
 )
 returns jsonb
 language plpgsql
@@ -43,6 +51,10 @@ begin
     theme_override,
     playback_state,
     epoch_started_at,
+    queue,
+    current_track_index,
+    is_shuffle,
+    repeat_mode,
     created_at,
     updated_at
   ) values (
@@ -56,6 +68,10 @@ begin
     nullif(btrim(p_theme_override), ''),
     'playing',
     now(),
+    coalesce(p_queue, '[]'::jsonb),
+    coalesce(p_current_track_index, 0),
+    coalesce(p_is_shuffle, false),
+    coalesce(p_repeat_mode, 'off'),
     now(),
     now()
   )
@@ -160,14 +176,18 @@ end;
 $$;
 
 -- 4. update_study_room_playback (Security Definer RPC)
--- ホスト権限およびホストトークンをDB内で検証し、BGM再生状態を更新
+-- ホスト権限およびホストトークンをDB内で検証し、再生状態・キュー・シャッフル・リピートを完全同期更新
 create or replace function public.update_study_room_playback(
   p_room_id uuid,
   p_host_id text,
   p_host_token_hash text default null,
   p_current_track_id text default null,
   p_epoch_started_at timestamptz default now(),
-  p_playback_state text default 'playing'
+  p_playback_state text default 'playing',
+  p_queue jsonb default null,
+  p_current_track_index integer default null,
+  p_is_shuffle boolean default null,
+  p_repeat_mode text default null
 )
 returns jsonb
 language plpgsql
@@ -198,12 +218,16 @@ begin
     end if;
   end if;
 
-  -- 再生状態の更新
+  -- 再生状態およびキュー・シャッフル・リピート状態の更新
   update public.study_rooms
   set
     current_track_id = p_current_track_id,
     epoch_started_at = coalesce(p_epoch_started_at, now()),
     playback_state = coalesce(p_playback_state, 'playing'),
+    queue = coalesce(p_queue, queue, '[]'::jsonb),
+    current_track_index = coalesce(p_current_track_index, current_track_index, 0),
+    is_shuffle = coalesce(p_is_shuffle, is_shuffle, false),
+    repeat_mode = coalesce(p_repeat_mode, repeat_mode, 'off'),
     updated_at = now()
   where id = p_room_id and host_id = btrim(p_host_id);
 
@@ -309,9 +333,9 @@ drop policy if exists "Allow update study_room_members" on public.study_room_mem
 drop policy if exists "Allow delete study_room_members" on public.study_room_members;
 
 -- 8. RPC実行権限の付与
-grant execute on function public.create_study_room(text, text, text, text, boolean, text, text, text) to anon, authenticated, service_role;
+grant execute on function public.create_study_room(text, text, text, text, boolean, text, text, text, jsonb, integer, boolean, text) to anon, authenticated, service_role;
 grant execute on function public.join_study_room(uuid, text, text, text, text, text) to anon, authenticated, service_role;
-grant execute on function public.update_study_room_playback(uuid, text, text, text, timestamptz, text) to anon, authenticated, service_role;
+grant execute on function public.update_study_room_playback(uuid, text, text, text, timestamptz, text, jsonb, integer, boolean, text) to anon, authenticated, service_role;
 grant execute on function public.update_study_room_member_status(uuid, text, text, text, integer) to anon, authenticated, service_role;
 grant execute on function public.leave_study_room(uuid, text, text) to anon, authenticated, service_role;
 

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceSupabase()
 
-    // Security Definer RPC でホスト権限およびホストトークンの検証、再生状態の更新を実行
+    // Security Definer RPC でホスト権限およびホストトークンの検証、再生状態およびキュー・シャッフル・リピート状態の更新を実行
     const { data, error } = await supabase.rpc('update_study_room_playback', {
       p_room_id: roomId,
       p_host_id: hostId.trim(),
@@ -25,6 +25,10 @@ export async function POST(request: NextRequest) {
       p_current_track_id: payload.current_track_id ?? null,
       p_epoch_started_at: payload.epoch_started_at ?? new Date().toISOString(),
       p_playback_state: payload.playback_state ?? 'playing',
+      p_queue: payload.queue ? payload.queue : null,
+      p_current_track_index: typeof payload.current_track_index === 'number' ? payload.current_track_index : null,
+      p_is_shuffle: typeof payload.is_shuffle === 'boolean' ? payload.is_shuffle : null,
+      p_repeat_mode: payload.repeat_mode ? String(payload.repeat_mode).trim() : null,
     })
 
     if (error) {
