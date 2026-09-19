@@ -581,7 +581,7 @@ export function MobileBottomDock() {
                   <span className="truncate">{t('timeCapsuleTitle')}</span>
                 </button>
 
-                {/* 勉強部屋・禅集中 */}
+                {/* 勉強部屋（コワーキング） */}
                 <button
                   onClick={() => {
                     setShowMenuSheet(false)
@@ -599,6 +599,26 @@ export function MobileBottomDock() {
                     <Icon name="BookOpen" size={22} />
                   </div>
                   <span className="truncate">{t('studyRoomTitle')}</span>
+                </button>
+
+                {/* 禅・集中モード（全画面ソロ集中） */}
+                <button
+                  onClick={() => {
+                    setShowMenuSheet(false)
+                    openModal('zenFocus')
+                  }}
+                  style={{
+                    background: '#854D27',
+                    border: '2px solid #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    color: '#FFF9F3',
+                  }}
+                  className="min-h-[48px] p-2.5 rounded-xl flex items-center gap-2.5 text-xs font-bold font-body active:translate-y-0.5 transition-all text-left cursor-pointer hover:brightness-110"
+                >
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <Icon name="Sparkles" size={22} />
+                  </div>
+                  <span className="truncate">{t('studyZenModeTitle')}</span>
                 </button>
 
                 {/* 1. 記憶ゲーム (Brain) */}

@@ -1,9 +1,9 @@
 'use client'
 
-import { Crown, Flame, Coffee, Sparkles, BookOpen, Clock, HeartHandshake } from 'lucide-react'
+import { useState } from 'react'
+import { Crown, Coffee, Clock, HeartHandshake, Target, CheckCircle2, Circle } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import type { TranslationKey } from '@/lib/i18n/types'
 import type { CheerType, FocusStatus } from '@/types/study'
 
 interface DeskPresenceListProps {
@@ -11,40 +11,32 @@ interface DeskPresenceListProps {
 }
 
 export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
-  const { members, userIdentifier, currentRoom } = useStudyRoomStore()
+  const {
+    members,
+    userIdentifier,
+    currentRoom,
+    personalGoal,
+    isGoalCompleted,
+    setPersonalGoal,
+    toggleGoalCompleted,
+  } = useStudyRoomStore()
   const { t } = useLanguage()
+  const [goalInput, setGoalInput] = useState(personalGoal)
+  const [isEditingGoal, setIsEditingGoal] = useState(!personalGoal)
 
-  const cheerButtons: {
-    type: CheerType
-    labelKey: TranslationKey
-    icon: React.ReactNode
-    colorClass: string
-  }[] = [
-    {
-      type: 'coffee',
-      labelKey: 'studyCheerCoffee',
-      icon: <Coffee size={15} className="text-amber-700" />,
-      colorClass: 'hover:bg-amber-100 hover:border-amber-400 text-amber-900 bg-amber-50/80',
-    },
-    {
-      type: 'fire',
-      labelKey: 'studyCheerFire',
-      icon: <Flame size={15} className="text-[#D95D39]" />,
-      colorClass: 'hover:bg-orange-100 hover:border-orange-400 text-orange-950 bg-orange-50/80',
-    },
-    {
-      type: 'sparkle',
-      labelKey: 'studyCheerSparkle',
-      icon: <Sparkles size={15} className="text-amber-600" />,
-      colorClass: 'hover:bg-yellow-100 hover:border-yellow-400 text-yellow-950 bg-yellow-50/80',
-    },
-    {
-      type: 'book',
-      labelKey: 'studyCheerBook',
-      icon: <BookOpen size={15} className="text-[#2E7D6F]" />,
-      colorClass: 'hover:bg-emerald-100 hover:border-emerald-400 text-emerald-950 bg-emerald-50/80',
-    },
-  ]
+  const handleSaveGoal = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (goalInput.trim()) {
+      setPersonalGoal(goalInput.trim())
+      setIsEditingGoal(false)
+    }
+  }
+
+  // 部屋全体の総集中時間を計算
+  const totalRoomMinutes = members.reduce(
+    (acc, m) => acc + (m.focus_status === 'focusing' ? m.current_streak_minutes || 0 : 0),
+    0
+  )
 
   const getStatusRingClass = (status: FocusStatus) => {
     switch (status) {
@@ -55,7 +47,7 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
       case 'long_break':
         return 'ring-3 ring-[#4A6572] ring-offset-2 ring-offset-[#FFF9F3]'
       default:
-        return 'ring-2 ring-stone-300 ring-offset-2 ring-offset-[#FFF9F3]'
+        return 'ring-2 ring-[#D4B08C]/60 ring-offset-2 ring-offset-[#FFF9F3]'
     }
   }
 
@@ -72,57 +64,104 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#D4B08C] text-[#854D27] shadow-xs">
-      {/* Stage Audience Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#D4B08C]/40">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] text-[#D95D39]">
-            <HeartHandshake size={16} />
+    <div className="flex flex-col gap-4 p-4 sm:p-5 rounded-2xl bg-[#FFFDF9] border-2 border-[#D4B08C] text-[#3D2314] shadow-[0_4px_20px_-4px_rgba(133,77,39,0.06)]">
+      {/* 1. 参加者一覧ヘッダー・セッション目標バー */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pb-3.5 border-b border-[#D4B08C]/40">
+        {/* 机一覧ヘッダー・総集中時間統計 */}
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] text-[#D95D39] shadow-2xs">
+            <HeartHandshake size={18} />
           </div>
           <div>
-            <h2 className="text-xs sm:text-sm font-bold text-[#854D27] font-heading">
-              {t('studyStageAudience', { count: String(members.length) })}
-            </h2>
-            <p className="text-[11px] text-[#854D27]/70 font-body">
-              {t('studyDesksTitle')}
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-[#3D2314] font-heading">
+                {t('studyStageAudience', { count: String(members.length) })}
+              </h2>
+              <span className="w-2 h-2 rounded-full bg-[#2E7D6F] animate-pulse" />
+            </div>
+            <p className="text-xs text-[#5C3A21] font-body font-medium mt-0.5">
+              {t('studyTotalFocusTime', { time: `${totalRoomMinutes}m` })}
             </p>
           </div>
         </div>
 
-        {/* Discord Silent Reaction Bar */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-[#854D27]/60 mr-1 hidden sm:inline font-body">
-            {t('studySilentCheer')}:
-          </span>
-          {cheerButtons.map((btn) => (
-            <button
-              key={btn.type}
-              type="button"
-              onClick={() => onSendCheer(btn.type)}
-              title={t(btn.labelKey)}
-              aria-label={t(btn.labelKey)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#D4B08C]/70 active:scale-95 transition-all text-xs font-bold cursor-pointer shadow-2xs font-body min-h-[44px] ${btn.colorClass}`}
-            >
-              {btn.icon}
-              <span className="hidden md:inline text-[11px]">{t(btn.labelKey)}</span>
-            </button>
-          ))}
+        {/* セッション目標管理および応援アクション */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* 自身のセッション目標入力・完了トグル */}
+          {isEditingGoal ? (
+            <form onSubmit={handleSaveGoal} className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+              <div className="relative flex-1 sm:w-64">
+                <Target size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#D95D39]" />
+                <input
+                  type="text"
+                  value={goalInput}
+                  onChange={(e) => setGoalInput(e.target.value)}
+                  placeholder={t('studyGoalPlaceholder')}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs font-body font-medium text-[#3D2314] bg-white border border-[#D4B08C] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D95D39]/40 min-h-[38px] placeholder:text-[#854D27]/40"
+                  maxLength={60}
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white text-xs font-bold font-body transition-all active:scale-95 shadow-2xs cursor-pointer min-h-[38px]"
+              >
+                {t('studySetGoal')}
+              </button>
+            </form>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FAF0E6] border border-[#D4B08C] min-h-[38px]">
+              <button
+                type="button"
+                onClick={toggleGoalCompleted}
+                title={isGoalCompleted ? t('studyGoalDone') : t('studySessionGoal')}
+                className="text-[#D95D39] hover:text-[#2E7D6F] transition-colors cursor-pointer"
+              >
+                {isGoalCompleted ? (
+                  <CheckCircle2 size={16} className="text-[#2E7D6F]" />
+                ) : (
+                  <Circle size={16} className="text-[#D95D39]" />
+                )}
+              </button>
+              <span
+                onClick={() => setIsEditingGoal(true)}
+                className={`text-xs font-body font-medium cursor-pointer max-w-[180px] sm:max-w-xs truncate ${
+                  isGoalCompleted ? 'line-through text-[#5C3A21]/60' : 'text-[#3D2314]'
+                }`}
+                title={personalGoal}
+              >
+                {personalGoal}
+              </span>
+            </div>
+          )}
+
+          {/* 静かな応援ボタン（お茶） */}
+          <button
+            type="button"
+            onClick={() => onSendCheer('coffee')}
+            title={t('studyCheerCoffee')}
+            aria-label={t('studyCheerCoffee')}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#FAF0E6] hover:bg-[#F3E5D8] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all text-xs font-bold cursor-pointer shadow-2xs font-body min-h-[38px]"
+          >
+            <Coffee size={14} className="text-[#D95D39]" />
+            <span className="text-xs font-medium">{t('studyCheerCoffee')}</span>
+          </button>
         </div>
       </div>
 
-      {/* Discord Stage Member Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-72 overflow-y-auto pr-1 scrollbar-thin">
+      {/* 2. 参加者の勉強机グリッド */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
         {members.map((member) => {
           const isMe = member.user_identifier === userIdentifier
           const isRoomHost = currentRoom && currentRoom.host_id === member.user_identifier
+          const isFocusing = member.focus_status === 'focusing'
 
           return (
             <div
               key={member.user_identifier}
-              className={`relative flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border transition-all text-center group ${
+              className={`relative flex flex-col items-center justify-center p-3.5 rounded-2xl border transition-all text-center group ${
                 isMe
-                  ? 'bg-[#FAF0E6] border-[#D95D39] shadow-xs'
-                  : 'bg-[#FFF9F3] border-[#D4B08C]/60 hover:bg-[#FAF0E6] hover:border-[#D4B08C] shadow-2xs'
+                  ? 'bg-[#FAF3EB] border-[#D95D39] shadow-[0_2px_10px_-2px_rgba(217,93,57,0.15)]'
+                  : 'bg-white border-[#D4B08C]/70 hover:bg-[#FAF6F0] hover:border-[#D4B08C] shadow-2xs'
               }`}
             >
               {/* Host Crown Badge */}
@@ -135,10 +174,10 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
                 </div>
               )}
 
-              {/* Avatar with Discord-style Status Ring */}
+              {/* Avatar with Status Ring */}
               <div className="relative mb-2 mt-0.5">
                 <div
-                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FAF0E6] border-2 border-[#D4B08C] flex items-center justify-center text-sm font-bold text-[#854D27] uppercase overflow-hidden transition-all shadow-xs ${getStatusRingClass(
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FAF0E6] border-2 border-[#D4B08C] flex items-center justify-center text-sm font-bold text-[#3D2314] uppercase overflow-hidden transition-all shadow-xs ${getStatusRingClass(
                     member.focus_status
                   )}`}
                 >
@@ -149,7 +188,7 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="font-heading tracking-wider">
+                    <span className="font-heading tracking-wider text-[#3D2314]">
                       {member.display_name.substring(0, 2)}
                     </span>
                   )}
@@ -171,33 +210,55 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
                 </div>
               </div>
 
-              {/* Member Name */}
+              {/* Member Name & Tag */}
               <div className="w-full">
-                <div className="text-xs font-bold text-[#854D27] truncate flex items-center justify-center gap-1 font-heading">
+                <div className="text-xs font-bold text-[#3D2314] truncate flex items-center justify-center gap-1 font-heading">
                   <span className="truncate max-w-[90px] sm:max-w-[110px]">
                     {member.display_name}
                   </span>
                   {isMe && (
-                    <span className="px-1.5 py-0.2 rounded text-[10px] bg-[#D95D39] text-white font-semibold flex-shrink-0 font-body">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#D95D39] text-white font-bold flex-shrink-0 font-body">
                       {t('studyYou')}
                     </span>
                   )}
                 </div>
 
                 {/* Focus Status & Minutes */}
-                <p className="text-[11px] text-[#854D27]/75 font-body font-medium truncate mt-0.5 flex items-center justify-center gap-1">
-                  <Clock size={11} className="text-[#D95D39] flex-shrink-0" />
+                <p className="text-[11px] text-[#5C3A21] font-body font-semibold truncate mt-0.5 flex items-center justify-center gap-1">
+                  <Clock
+                    size={12}
+                    className={
+                      isFocusing
+                        ? 'text-[#D95D39] animate-pulse flex-shrink-0'
+                        : 'text-[#5C3A21] flex-shrink-0'
+                    }
+                  />
                   <span className="truncate">
                     {getStatusLabel(member.focus_status, member.current_streak_minutes)}
                   </span>
                 </p>
+
+                {/* 自身の机に表示するセッション目標バッジ */}
+                {isMe && personalGoal && (
+                  <div
+                    className={`mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-body font-medium truncate border flex items-center justify-center gap-1 ${
+                      isGoalCompleted
+                        ? 'bg-emerald-50 text-[#2E7D6F] border-emerald-200 line-through'
+                        : 'bg-[#FAF0E6] text-[#3D2314] border-[#D4B08C]/60'
+                    }`}
+                    title={personalGoal}
+                  >
+                    <Target size={10} className={isGoalCompleted ? 'text-[#2E7D6F]' : 'text-[#D95D39]'} />
+                    <span className="truncate max-w-[100px]">{personalGoal}</span>
+                  </div>
+                )}
               </div>
             </div>
           )
         })}
 
         {members.length === 0 && (
-          <div className="col-span-full py-8 text-center text-xs text-[#854D27]/70 font-body">
+          <div className="col-span-full py-8 text-center text-xs text-[#5C3A21] font-body font-medium">
             {t('studyNoPartnersYet')}
           </div>
         )}

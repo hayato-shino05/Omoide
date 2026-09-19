@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { PomodoroRing } from '@/components/study/PomodoroRing'
 import { PomodoroSettingsModal } from '@/components/study/PomodoroSettingsModal'
 import { DeskPresenceList } from '@/components/study/DeskPresenceList'
+import { StudyRoomView } from '@/components/study/StudyRoomView'
 import { LanguageProvider } from '@/lib/i18n/LanguageContext'
+import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 
 describe('PomodoroRing Component Tests', () => {
@@ -143,5 +145,78 @@ describe('DeskPresenceList Component Tests', () => {
     const coffeeBtn = screen.getByRole('button', { name: /お茶をどうぞ|Warm Tea/i })
     fireEvent.click(coffeeBtn)
     expect(handleSendCheer).toHaveBeenCalledWith('coffee')
+  })
+})
+
+describe('StudyRoomView Music Controls & Sync Tests', () => {
+  it('should render shuffle, repeat, next, and previous buttons and dispatch realtime actions', () => {
+    const handleToggleShuffle = vi.fn()
+    const handleCycleRepeat = vi.fn()
+    const handleNext = vi.fn()
+    const handlePrev = vi.fn()
+
+    useStudyRoomStore.setState({
+      currentRoom: {
+        id: 'room_1',
+        name: 'Kyoto Study Hall',
+        host_id: 'user_host',
+        current_track_id: 'omoide:1',
+        epoch_started_at: new Date().toISOString(),
+        playback_state: 'playing',
+        is_private: false,
+        max_members: 12,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      currentTrack: {
+        id: 'omoide:1',
+        name: 'Sakura Dreams',
+        artistName: 'Omoide Ensemble',
+        url: 'https://example.com/audio.mp3',
+        duration: 180,
+      },
+      roomQueue: ['omoide:1', 'omoide:2', 'omoide:3'],
+      roomTrackIndex: 0,
+      isRoomShuffle: true,
+      roomRepeatMode: 'all',
+      toggleRoomShuffleAction: handleToggleShuffle,
+      cycleRoomRepeatModeAction: handleCycleRepeat,
+      nextRoomTrackAction: handleNext,
+      prevRoomTrackAction: handlePrev,
+    })
+
+    render(
+      <LanguageProvider initialLocale="ja">
+        <MusicPlayerProvider>
+          <StudyRoomView roomId="room_1" onLeave={vi.fn()} />
+        </MusicPlayerProvider>
+      </LanguageProvider>
+    )
+
+    expect(screen.getByText('Kyoto Study Hall')).toBeDefined()
+    expect(screen.getByText('Sakura Dreams')).toBeDefined()
+    expect(screen.getByText('1/3')).toBeDefined()
+
+    // Shuffle button
+    const shuffleBtn = screen.getByRole('button', { name: /シャッフル|Shuffle/i })
+    expect(shuffleBtn.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(shuffleBtn)
+    expect(handleToggleShuffle).toHaveBeenCalled()
+
+    // Repeat button
+    const repeatBtn = screen.getByRole('button', { name: /リピート|Repeat/i })
+    expect(repeatBtn.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(repeatBtn)
+    expect(handleCycleRepeat).toHaveBeenCalled()
+
+    // Next track button
+    const nextBtn = screen.getByRole('button', { name: /次の曲|Next Track/i })
+    fireEvent.click(nextBtn)
+    expect(handleNext).toHaveBeenCalled()
+
+    // Previous track button
+    const prevBtn = screen.getByRole('button', { name: /前の曲|Previous Track/i })
+    fireEvent.click(prevBtn)
+    expect(handlePrev).toHaveBeenCalled()
   })
 })

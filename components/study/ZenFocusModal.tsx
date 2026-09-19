@@ -181,7 +181,8 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
       role="dialog"
       aria-modal="true"
       aria-label={t('studyZenModeTitle')}
-      className={`fixed inset-0 z-50 overflow-hidden bg-black text-[#FFF9F3] flex flex-col justify-between select-none ${
+      style={{ zIndex: 1200 }}
+      className={`fixed inset-0 z-[1200] overflow-hidden bg-black text-[#FFF9F3] flex flex-col justify-between select-none ${
         controlsVisible ? 'cursor-default' : 'cursor-none'
       }`}
     >
@@ -196,9 +197,16 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         active={isOpen}
       />
 
-      {/* 2. 暗色グラデーション・スクリム */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/25 to-black/70 pointer-events-none z-[1]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.45)_100%)] pointer-events-none z-[1]" />
+      {/* 2. テーマ固有の環境光・アンビエントカラーオーバーレイ（季節ごとの固有色を反映） */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[1] transition-all duration-1000"
+        style={{
+          background: `radial-gradient(circle at 50% 45%, ${activeThemeConfig?.colors.primary || '#D95D39'}25 0%, ${activeThemeConfig?.colors.secondary || '#D4B08C'}18 60%, transparent 100%)`,
+          mixBlendMode: 'screen',
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/70 pointer-events-none z-[1]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.40)_100%)] pointer-events-none z-[1]" />
 
       {/* 3. 季節の環境パーティクル効果 */}
       <div className="absolute inset-0 pointer-events-none z-[2] opacity-50 filter blur-[0.2px]">
@@ -243,14 +251,19 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             </div>
           )}
 
-          {/* クイック終了ボタン */}
+          {/* クイック終了ボタン（視認性と操作性を最大化） */}
           <button
             type="button"
             onClick={handleGuardedClose}
             aria-label={t('studyCloseZen')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-[#FFF9F3]/80 hover:text-white hover:bg-rose-500/20 active:scale-95 transition-all shadow-lg cursor-pointer"
+            title={`${t('studyCloseZen')} (Esc)`}
+            className="h-11 min-h-[44px] px-3.5 sm:px-4 flex items-center gap-2 rounded-full bg-stone-950/90 backdrop-blur-md border border-[#D4B08C]/60 text-[#FFF9F3] hover:text-white hover:bg-rose-500/30 hover:border-rose-400/80 active:scale-95 transition-all shadow-xl cursor-pointer font-bold text-xs"
           >
-            <X size={18} />
+            <X size={18} className="text-rose-400" />
+            <span className="tracking-wider">{t('studyCloseZen')}</span>
+            <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 rounded bg-white/10 text-[10px] text-[#D4B08C] font-mono border border-white/10">
+              Esc
+            </kbd>
           </button>
         </div>
       </div>
@@ -319,9 +332,9 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         </div>
       </div>
 
-      {/* 6. フローティングボトムドック */}
+      {/* 6. フローティングボトムドック（常時表示される音楽プレイヤーと干渉しないよう下部に余白を確保） */}
       <div
-        className={`relative z-20 flex items-center justify-center p-4 sm:p-6 transition-all duration-700 ${
+        className={`relative z-20 flex items-center justify-center p-4 sm:p-6 mb-24 md:mb-28 transition-all duration-700 ${
           controlsVisible
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-6 pointer-events-none'

@@ -87,16 +87,14 @@ const StudyRoomHub = dynamic(
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )
 
+const ZenFocusModal = dynamic(
+  () => import('@/components/study/ZenFocusModal').then((mod) => mod.ZenFocusModal),
+  { ssr: false, loading: () => <ModalLoadingSpinner /> }
+)
+
 export function ModalManager() {
-  const { activeModal, messageModalPayload, closeModal } = useUIStore()
+  const { activeModal, isChatOpen, messageModalPayload, closeModal, closeChat } = useUIStore()
   const { t } = useLanguage()
-
-  if (!activeModal) return null
-
-  // ChatRoom は独立したフローティングモーダルとして表示し、Modal ではラップしない
-  if (activeModal === 'chat') {
-    return <ChatRoom onClose={closeModal} />
-  }
 
   const modalConfig: Record<string, { title: string; content: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'widescreen' }> = {
     album: {
@@ -162,14 +160,33 @@ export function ModalManager() {
     },
   }
 
-  const config = modalConfig[activeModal]
-  if (!config) return null
+  const renderActiveModal = () => {
+    if (!activeModal) return null
 
-  const size = config.size || 'lg'
+    // 禅・集中モードは全画面の没入型キャンバスとして表示
+    if (activeModal === 'zenFocus') {
+      return <ZenFocusModal isOpen={true} onClose={closeModal} />
+    }
+
+    const config = modalConfig[activeModal]
+    if (!config) return null
+
+    const size = config.size || 'lg'
+
+    return (
+      <Modal isOpen={true} onClose={closeModal} title={config.title} size={size}>
+        {config.content}
+      </Modal>
+    )
+  }
 
   return (
-    <Modal isOpen={true} onClose={closeModal} title={config.title} size={size}>
-      {config.content}
-    </Modal>
+    <>
+      {/* グループチャット（独立したフローティングモーダルとして最前面に常駐可能） */}
+      {isChatOpen && <ChatRoom onClose={closeChat} />}
+
+      {/* メインモーダル群 */}
+      {renderActiveModal()}
+    </>
   )
 }

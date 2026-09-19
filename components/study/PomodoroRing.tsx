@@ -96,20 +96,20 @@ export function PomodoroRing({
           className={`flex items-center gap-1.5 p-1.5 rounded-full transition-colors ${
             isZen
               ? 'bg-stone-950/70 backdrop-blur-md border border-[#D4B08C]/35 shadow-lg'
-              : 'bg-white border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C]'
+              : 'bg-white border-2 border-[#D4B08C] shadow-2xs'
           }`}
         >
           <button
             type="button"
             onClick={() => onSwitchMode('focus')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold font-body transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'focus'
                 ? isZen
                   ? 'bg-[#D95D39] text-white shadow-md'
-                  : 'bg-[#D95D39] text-white border-2 border-[#854D27] shadow-[2px_2px_0_#854D27]'
+                  : 'bg-[#D95D39] text-white border border-[#854D27] shadow-xs'
                 : isZen
                   ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+                  : 'text-[#5C3A21] hover:bg-[#FAF3EB]'
             }`}
           >
             {t('studyPomodoroMinutes', { min: durations.focus })} {t('studyPomodoroFocus')}
@@ -117,14 +117,14 @@ export function PomodoroRing({
           <button
             type="button"
             onClick={() => onSwitchMode('short_break')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold font-body transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'short_break'
                 ? isZen
                   ? 'bg-[#2E7D6F] text-white shadow-md'
-                  : 'bg-[#2E7D6F] text-white border-2 border-[#1E5249] shadow-[2px_2px_0_#1E5249]'
+                  : 'bg-[#2E7D6F] text-white border border-[#1E5249] shadow-xs'
                 : isZen
                   ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+                  : 'text-[#5C3A21] hover:bg-[#FAF3EB]'
             }`}
           >
             {t('studyPomodoroMinutes', { min: durations.short_break })} {t('studyPomodoroShortBreak')}
@@ -132,14 +132,14 @@ export function PomodoroRing({
           <button
             type="button"
             onClick={() => onSwitchMode('long_break')}
-            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
+            className={`px-3.5 sm:px-4 py-2 rounded-full text-xs font-bold font-body transition-all active:scale-95 cursor-pointer min-h-[44px] flex items-center justify-center ${
               mode === 'long_break'
                 ? isZen
                   ? 'bg-[#4A6572] text-white shadow-md'
-                  : 'bg-[#4A6572] text-white border-2 border-[#2B3C44] shadow-[2px_2px_0_#2B3C44]'
+                  : 'bg-[#4A6572] text-white border border-[#2B3C44] shadow-xs'
                 : isZen
                   ? 'text-white/80 hover:bg-white/10 hover:text-white'
-                  : 'text-[#854D27] hover:bg-[#FAF3EB]'
+                  : 'text-[#5C3A21] hover:bg-[#FAF3EB]'
             }`}
           >
             {t('studyPomodoroMinutes', { min: durations.long_break })} {t('studyPomodoroLongBreak')}
@@ -153,7 +153,7 @@ export function PomodoroRing({
             onClick={onOpenSettings}
             aria-label={t('studyPomodoroSettings')}
             title={t('studyPomodoroSettings')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full bg-white hover:bg-[#FAF3EB] text-[#3D2314] border-2 border-[#D4B08C] shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <Sliders size={17} />
           </button>
@@ -192,8 +192,8 @@ export function PomodoroRing({
         {/* Inner content */}
         <div className="absolute flex flex-col items-center justify-center text-center">
           <div
-            className={`flex items-center gap-1.5 text-xs font-bold mb-1 ${
-              isZen ? 'text-[#FAF6F0] drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-[#854D27]'
+            className={`flex items-center gap-1.5 text-xs font-bold mb-1 font-body ${
+              isZen ? 'text-[#FAF6F0] drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-[#3D2314]'
             }`}
           >
             <CurrentIcon size={15} style={{ color: modeConfig.color }} />
@@ -204,17 +204,17 @@ export function PomodoroRing({
             className={`text-5xl sm:text-6xl font-bold tracking-tight font-mono tabular-nums transition-transform duration-300 ${
               isRunning ? 'scale-105' : 'scale-100'
             } ${
-              isZen ? 'text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]' : 'text-[#854D27]'
+              isZen ? 'text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]' : 'text-[#3D2314]'
             }`}
           >
             {formattedTime}
           </div>
 
           <div
-            className={`mt-2 text-[11px] font-mono font-bold ${
+            className={`mt-2 text-[11px] font-mono font-bold font-body ${
               isZen
                 ? 'text-[#FAF6F0]/85 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]'
-                : 'text-[#854D27]/75'
+                : 'text-[#5C3A21]'
             }`}
           >
             {t('studyPomodoroCycle', { cycle: completedCycles + 1 })} • {streakMinutes}m {t('studyStreak')}
@@ -229,7 +229,7 @@ export function PomodoroRing({
             type="button"
             onClick={isRunning ? onPause : onStart}
             aria-label={isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
-            className="flex items-center justify-center w-14 h-14 rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white border-2 border-[#854D27] shadow-[4px_4px_0_#854D27] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white border-2 border-[#854D27] shadow-xs active:scale-95 transition-all cursor-pointer"
           >
             {isRunning ? <Pause size={22} /> : <Play size={22} className="ml-1 text-white" />}
           </button>
@@ -238,7 +238,7 @@ export function PomodoroRing({
             type="button"
             onClick={onReset}
             aria-label={t('studyPomodoroReset')}
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-white hover:bg-[#FAF3EB] text-[#854D27] border-2 border-[#D4B08C] shadow-[2px_2px_0_#D4B08C] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all cursor-pointer"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white hover:bg-[#FAF3EB] text-[#3D2314] border-2 border-[#D4B08C] shadow-2xs active:scale-95 transition-all cursor-pointer"
           >
             <RotateCcw size={16} />
           </button>

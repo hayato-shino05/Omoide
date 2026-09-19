@@ -10,7 +10,7 @@ export function useAmbientAudio() {
   const audioElementsRef = useRef<Map<AmbientSoundType, HTMLAudioElement>>(new Map())
 
   useEffect(() => {
-    // Khởi tạo audio elements nếu chưa có
+    // 未生成の環境音Audioインスタンスを生成
     if (typeof window === 'undefined') return
 
     const audioMap = audioElementsRef.current
@@ -33,7 +33,7 @@ export function useAmbientAudio() {
     }
   }, [])
 
-  // Đồng bộ âm lượng và phát/dừng dựa trên store
+  // ストアの状態に基づく音量および再生・停止の同期
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -50,7 +50,7 @@ export function useAmbientAudio() {
       if (isPlaying && soundVolume > 0) {
         if (audio.paused) {
           audio.play().catch(() => {
-            // Trình duyệt chặn autoplay khi chưa có tương tác người dùng
+            // ブラウザの自動再生ブロックに対するフォールバック
           })
         }
       } else {

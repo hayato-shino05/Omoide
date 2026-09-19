@@ -3,6 +3,7 @@ import type { ThemeName } from '@/types'
 export type PlaybackState = 'playing' | 'paused' | 'stopped'
 export type FocusStatus = 'focusing' | 'short_break' | 'long_break' | 'idle'
 export type CheerType = 'coffee' | 'fire' | 'sparkle' | 'book'
+export type RoomRepeatMode = 'off' | 'all' | 'one'
 
 export interface StudyRoom {
   id: string
@@ -18,6 +19,12 @@ export interface StudyRoom {
   max_members: number
   created_at: string
   updated_at: string
+  study_room_members?: Array<{
+    id: string
+    display_name: string
+    avatar_url?: string | null
+    focus_status?: FocusStatus
+  }>
 }
 
 export interface StudyRoomMember {
@@ -37,6 +44,11 @@ export interface RoomPlaybackSyncPayload {
   epoch_started_at: string
   playback_state: PlaybackState
   elapsed_seconds: number
+  queue?: string[]
+  current_track_index?: number
+  is_shuffle?: boolean
+  repeat_mode?: RoomRepeatMode
+  triggered_by?: string
 }
 
 export interface SilentCheerPayload {

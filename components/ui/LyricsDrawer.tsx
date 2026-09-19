@@ -127,7 +127,7 @@ export default function LyricsDrawer({ isOpen, onClose, onToggle }: LyricsDrawer
         <span className="tracking-wide text-[11px]">{t('lyrics')}</span>
       </button>
 
-      {/* ドロワー内部コンテンツ（常に完全な背景と境界線を維持し、height co lại theo vật lý mượt mà） */}
+      {/* ドロワー内部コンテンツ（背景と境界線を維持し、スプリング物理演算で滑らかに開閉） */}
       <div
         className={`flex-1 flex flex-col min-h-0 w-full rounded-t-2xl border-t border-x border-amber-950/15 dark:border-amber-100/15 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_-8px_32px_rgba(0,0,0,0.15)] overflow-hidden ${
           isOpen ? 'pointer-events-auto' : 'pointer-events-none'

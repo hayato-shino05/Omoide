@@ -3,9 +3,12 @@ import type { StudyRoom, StudyRoomMember, PlaybackState, FocusStatus } from '@/t
 
 export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   const supabase = getSupabase()
+  // 直近2分以内にハートビートがある実際のアクティブメンバーのみを取得
+  const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+
   const { data, error } = await supabase
     .from('study_rooms')
-    .select('*')
+    .select('*, study_room_members(id, display_name, avatar_url, focus_status, last_heartbeat_at)')
     .order('updated_at', { ascending: false })
     .limit(20)
 
@@ -13,14 +16,23 @@ export async function fetchStudyRooms(): Promise<StudyRoom[]> {
     console.error('[StudyRoom] Error fetching rooms:', error)
     return []
   }
-  return (data as StudyRoom[]) || []
+
+  // 取得したメンバーのうち、ハートビートが有効なメンバーのみにフィルタリング
+  const rooms = ((data as StudyRoom[]) || []).map((room) => ({
+    ...room,
+    study_room_members: (room.study_room_members || []).filter(
+      (m: any) => m.last_heartbeat_at && m.last_heartbeat_at >= activeThreshold
+    ),
+  }))
+
+  return rooms
 }
 
 export async function getStudyRoom(roomId: string): Promise<StudyRoom | null> {
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('study_rooms')
-    .select('*')
+    .select('*, study_room_members(id, display_name, avatar_url, focus_status)')
     .eq('id', roomId)
     .maybeSingle()
 

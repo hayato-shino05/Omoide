@@ -4,7 +4,15 @@ import { useEffect, useRef, useCallback } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
-import type { PlaybackState, CheerType, RoomPlaybackSyncPayload, SilentCheerPayload, StudyRoomMember } from '@/types/study'
+import { updateMemberStatus, leaveStudyRoom } from '@/lib/study/client'
+import type {
+  PlaybackState,
+  CheerType,
+  RoomPlaybackSyncPayload,
+  SilentCheerPayload,
+  StudyRoomMember,
+  RoomRepeatMode,
+} from '@/types/study'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useRoomBgmSync(roomId: string | null) {
@@ -19,18 +27,19 @@ export function useRoomBgmSync(roomId: string | null) {
     addCheer,
     setCurrentTrack,
     currentTrack,
+    setRoomPlaybackState,
     setRealtimeActions,
   } = useStudyRoomStore()
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
 
-  // Khởi tạo Audio element
+  // Audioインスタンスの生成
   useEffect(() => {
     if (typeof window === 'undefined') return
     const audio = new Audio()
     audio.preload = 'auto'
-    audio.loop = true
+    audio.loop = false
     audioRef.current = audio
 
     return () => {
@@ -40,7 +49,7 @@ export function useRoomBgmSync(roomId: string | null) {
     }
   }, [])
 
-  // Điều chỉnh âm lượng theo roomVolume và isSoloMode
+  // 音量およびソロモード設定の同期
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
@@ -49,7 +58,19 @@ export function useRoomBgmSync(roomId: string | null) {
     audio.volume = Math.max(0, Math.min(1, effectiveVolume))
   }, [isSoloMode, roomVolume])
 
-  // Hàm resolve track URL từ trackId
+  // 部屋から退出した際（roomId === null）の完全停止・オーディオリセット
+  useEffect(() => {
+    if (!roomId) {
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+        audio.src = ''
+      }
+      setCurrentTrack(null)
+    }
+  }, [roomId, setCurrentTrack])
+
+  // trackIdから楽曲情報を解決するヘルパー関数
   const resolveTrack = useCallback(async (trackId: string | null) => {
     if (!trackId) {
       setCurrentTrack(null)
@@ -58,7 +79,7 @@ export function useRoomBgmSync(roomId: string | null) {
 
     const cleanId = trackId.includes(':') ? trackId.split(':')[1] : trackId
 
-    // 1. Thử tìm trong preset
+    // 1. プリセット音源から検索
     const preset = JAPAN_PRESET_TRACKS.find((t) => t.id === cleanId || t.id === trackId)
     if (preset) {
       const track = {
@@ -74,7 +95,7 @@ export function useRoomBgmSync(roomId: string | null) {
       return track
     }
 
-    // 2. Query Supabase public.music_tracks
+    // 2. Supabase music_tracks テーブルから取得
     try {
       const supabase = getSupabase()
       const { data } = await supabase
@@ -103,7 +124,7 @@ export function useRoomBgmSync(roomId: string | null) {
     return null
   }, [setCurrentTrack])
 
-  // Đồng bộ phát âm thanh theo epoch time
+  // タイムスタンプ基準での再生位置同期
   const syncPlayback = useCallback((trackUrl: string, epochStartedAt: string, state: PlaybackState) => {
     const audio = audioRef.current
     if (!audio) return
@@ -119,26 +140,235 @@ export function useRoomBgmSync(roomId: string | null) {
 
     const elapsedSeconds = Math.max(0, (Date.now() - new Date(epochStartedAt).getTime()) / 1000)
 
-    // Nếu track có duration và đã lặp lại chu kỳ
+    // ループ計算
     const trackDuration = audio.duration || 0
     let targetTime = elapsedSeconds
     if (trackDuration > 0) {
       targetTime = elapsedSeconds % trackDuration
     }
 
-    // Chỉ nhảy thời gian nếu lệch > 2 giây
+    // 2秒以上のズレがある場合のみシーク
     if (Math.abs(audio.currentTime - targetTime) > 2) {
       audio.currentTime = targetTime
     }
 
     if (audio.paused) {
       audio.play().catch(() => {
-        // Autoplay blocked handling
+        // オートプレイ制限のハンドリング
       })
     }
   }, [])
 
-  // Đăng ký Supabase Realtime Channel
+  // 再生状態およびキューの変更を部屋全体にブロードキャスト
+  const broadcastPlayback = useCallback(
+    async (
+      trackId: string | null,
+      options?: {
+        queue?: string[]
+        currentTrackIndex?: number
+        isShuffle?: boolean
+        repeatMode?: RoomRepeatMode
+        playbackState?: PlaybackState
+      }
+    ) => {
+      if (!roomId) return
+      const now = new Date().toISOString()
+      const state = options?.playbackState || 'playing'
+
+      const storeState = useStudyRoomStore.getState()
+      const activeQueue = options?.queue ?? storeState.roomQueue
+      const activeIndex = options?.currentTrackIndex ?? storeState.roomTrackIndex
+      const activeShuffle = options?.isShuffle ?? storeState.isRoomShuffle
+      const activeRepeat = options?.repeatMode ?? storeState.roomRepeatMode
+
+      // ローカルストア状態を先行更新
+      setRoomPlaybackState({
+        queue: activeQueue,
+        currentTrackIndex: activeIndex,
+        isShuffle: activeShuffle,
+        repeatMode: activeRepeat,
+      })
+
+      if (trackId) {
+        const track = await resolveTrack(trackId)
+        if (track && track.url) {
+          syncPlayback(track.url, now, state)
+        }
+      }
+
+      // 部屋参加者全員へリアルタイムブロードキャスト送信
+      const channel = channelRef.current
+      if (channel) {
+        channel.send({
+          type: 'broadcast',
+          event: 'PLAYBACK_SYNC',
+          payload: {
+            track_id: trackId,
+            epoch_started_at: now,
+            playback_state: state,
+            elapsed_seconds: 0,
+            queue: activeQueue,
+            current_track_index: activeIndex,
+            is_shuffle: activeShuffle,
+            repeat_mode: activeRepeat,
+            triggered_by: userIdentifier,
+          } as RoomPlaybackSyncPayload,
+        })
+      }
+
+      // DB永続化
+      if (trackId) {
+        const supabase = getSupabase()
+        await supabase
+          .from('study_rooms')
+          .update({
+            current_track_id: trackId,
+            epoch_started_at: now,
+            playback_state: state,
+            updated_at: now,
+          })
+          .eq('id', roomId)
+      }
+    },
+    [roomId, userIdentifier, resolveTrack, syncPlayback, setRoomPlaybackState]
+  )
+
+  // キュー・シャッフル・リピート設定に基づく次の曲への自動遷移
+  const nextRoomTrack = useCallback(async () => {
+    const { roomQueue, roomTrackIndex, isRoomShuffle, roomRepeatMode } = useStudyRoomStore.getState()
+    if (roomQueue.length === 0) return
+
+    let nextIndex = (roomTrackIndex + 1) % roomQueue.length
+
+    if (isRoomShuffle && roomQueue.length > 1) {
+      const offset = 1 + Math.floor(Math.random() * (roomQueue.length - 1))
+      nextIndex = (roomTrackIndex + offset) % roomQueue.length
+    } else if (roomRepeatMode === 'off' && roomTrackIndex >= roomQueue.length - 1) {
+      // リピートOFFかつ末尾到達時は再生停止
+      await broadcastPlayback(roomQueue[roomTrackIndex], {
+        currentTrackIndex: roomTrackIndex,
+        playbackState: 'paused',
+      })
+      return
+    }
+
+    const nextTrackId = roomQueue[nextIndex]
+    await broadcastPlayback(nextTrackId, {
+      currentTrackIndex: nextIndex,
+      playbackState: 'playing',
+    })
+  }, [broadcastPlayback])
+
+  // 前の曲へスキップ
+  const prevRoomTrack = useCallback(async () => {
+    const audio = audioRef.current
+    if (audio && audio.currentTime > 3) {
+      audio.currentTime = 0
+      return
+    }
+
+    const { roomQueue, roomTrackIndex, isRoomShuffle } = useStudyRoomStore.getState()
+    if (roomQueue.length === 0) return
+
+    let prevIndex = (roomTrackIndex - 1 + roomQueue.length) % roomQueue.length
+    if (isRoomShuffle && roomQueue.length > 1) {
+      const offset = 1 + Math.floor(Math.random() * (roomQueue.length - 1))
+      prevIndex = (roomTrackIndex + offset) % roomQueue.length
+    }
+
+    const prevTrackId = roomQueue[prevIndex]
+    await broadcastPlayback(prevTrackId, {
+      currentTrackIndex: prevIndex,
+      playbackState: 'playing',
+    })
+  }, [broadcastPlayback])
+
+  // シャッフル切り替え
+  const toggleRoomShuffle = useCallback(async () => {
+    const { isRoomShuffle, currentTrack, roomQueue, roomTrackIndex, roomRepeatMode } = useStudyRoomStore.getState()
+    const newShuffle = !isRoomShuffle
+
+    await broadcastPlayback(currentTrack?.id || roomQueue[roomTrackIndex] || null, {
+      isShuffle: newShuffle,
+      queue: roomQueue,
+      currentTrackIndex: roomTrackIndex,
+      repeatMode: roomRepeatMode,
+    })
+  }, [broadcastPlayback])
+
+  // リピートモード切り替え ('off' -> 'all' -> 'one' -> 'off')
+  const cycleRoomRepeatMode = useCallback(async () => {
+    const { roomRepeatMode, currentTrack, roomQueue, roomTrackIndex, isRoomShuffle } = useStudyRoomStore.getState()
+    const nextRepeat: RoomRepeatMode =
+      roomRepeatMode === 'off' ? 'all' : roomRepeatMode === 'all' ? 'one' : 'off'
+
+    await broadcastPlayback(currentTrack?.id || roomQueue[roomTrackIndex] || null, {
+      repeatMode: nextRepeat,
+      queue: roomQueue,
+      currentTrackIndex: roomTrackIndex,
+      isShuffle: isRoomShuffle,
+    })
+  }, [broadcastPlayback])
+
+  // 部屋全体の再生キュー一括更新
+  const setRoomQueue = useCallback(
+    async (newQueue: string[], startIndex = 0) => {
+      if (newQueue.length === 0) return
+      const targetIndex = Math.max(0, Math.min(newQueue.length - 1, startIndex))
+      const targetTrackId = newQueue[targetIndex]
+
+      await broadcastPlayback(targetTrackId, {
+        queue: newQueue,
+        currentTrackIndex: targetIndex,
+        playbackState: 'playing',
+      })
+    },
+    [broadcastPlayback]
+  )
+
+  // 楽曲変更処理
+  const changeRoomTrack = useCallback(
+    async (trackId: string) => {
+      const { roomQueue } = useStudyRoomStore.getState()
+      let updatedQueue = [...roomQueue]
+      let targetIndex = updatedQueue.indexOf(trackId)
+
+      if (targetIndex === -1) {
+        updatedQueue = [trackId, ...updatedQueue]
+        targetIndex = 0
+      }
+
+      await broadcastPlayback(trackId, {
+        queue: updatedQueue,
+        currentTrackIndex: targetIndex,
+        playbackState: 'playing',
+      })
+    },
+    [broadcastPlayback]
+  )
+
+  // 楽曲再生終了時の自動遷移イベントリスナー
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleEnded = () => {
+      const { roomRepeatMode, currentTrack } = useStudyRoomStore.getState()
+      if (roomRepeatMode === 'one' && currentTrack) {
+        audio.currentTime = 0
+        audio.play().catch(() => {})
+      } else {
+        nextRoomTrack()
+      }
+    }
+
+    audio.addEventListener('ended', handleEnded)
+    return () => {
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [nextRoomTrack])
+
+  // Supabase Realtime Channel 購読処理
   useEffect(() => {
     if (!roomId || typeof window === 'undefined') return
 
@@ -153,21 +383,38 @@ export function useRoomBgmSync(roomId: string | null) {
 
     channelRef.current = channel
 
-    // 1. Lắng nghe Broadcast PLAYBACK_SYNC
+    // 1. PLAYBACK_SYNC ブロードキャスト受信
     channel.on('broadcast', { event: 'PLAYBACK_SYNC' }, async ({ payload }) => {
-      const { track_id, epoch_started_at, playback_state } = payload as RoomPlaybackSyncPayload
+      const {
+        track_id,
+        epoch_started_at,
+        playback_state,
+        queue,
+        current_track_index,
+        is_shuffle,
+        repeat_mode,
+      } = payload as RoomPlaybackSyncPayload
+
+      // ストアの同期
+      setRoomPlaybackState({
+        queue: queue,
+        currentTrackIndex: current_track_index,
+        isShuffle: is_shuffle,
+        repeatMode: repeat_mode,
+      })
+
       const track = await resolveTrack(track_id)
       if (track && track.url) {
         syncPlayback(track.url, epoch_started_at, playback_state)
       }
     })
 
-    // 2. Lắng nghe Broadcast SILENT_CHEER
+    // 2. SILENT_CHEER ブロードキャスト受信
     channel.on('broadcast', { event: 'SILENT_CHEER' }, ({ payload }) => {
       addCheer(payload as SilentCheerPayload)
     })
 
-    // 3. Quản lý Presence
+    // 3. Presence 状態同期
     channel
       .on('presence', { event: 'sync' }, () => {
         const presenceState = channel.presenceState<StudyRoomMember>()
@@ -194,7 +441,7 @@ export function useRoomBgmSync(roomId: string | null) {
         })
       })
 
-    // Subscribe channel và track presence
+    // チャンネル購読開始およびプレゼンストラッキング
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         await channel.track({
@@ -205,7 +452,7 @@ export function useRoomBgmSync(roomId: string | null) {
           joined_at: new Date().toISOString(),
         })
 
-        // Tải ngay trạng thái phát bài hát ban đầu của phòng
+        // 初回入室時の再生情報取得
         try {
           const { data: roomData } = await supabase
             .from('study_rooms')
@@ -225,104 +472,126 @@ export function useRoomBgmSync(roomId: string | null) {
       }
     })
 
+    // 定期的なハートビート送信（30秒間隔でDB状態を最新化）
+    const heartbeatInterval = window.setInterval(() => {
+      if (roomId && userIdentifier) {
+        updateMemberStatus(roomId, userIdentifier, 'focusing', 0).catch(() => {})
+      }
+    }, 30000)
+
+    // タブ終了・リロード時の自動退出処理
+    const handleBeforeUnload = () => {
+      if (roomId && userIdentifier) {
+        leaveStudyRoom(roomId, userIdentifier).catch(() => {})
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
     return () => {
-      channel.unsubscribe()
+      window.clearInterval(heartbeatInterval)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      if (channel) {
+        channel.untrack().catch(() => {})
+        channel.unsubscribe().catch(() => {})
+      }
       channelRef.current = null
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+        audio.src = ''
+      }
     }
-  }, [roomId, userIdentifier, displayName, resolveTrack, syncPlayback, addCheer, setMembers, addMember, removeMember])
+  }, [
+    roomId,
+    userIdentifier,
+    displayName,
+    resolveTrack,
+    syncPlayback,
+    addCheer,
+    setMembers,
+    addMember,
+    removeMember,
+    setRoomPlaybackState,
+  ])
 
-  // Hàm phát nhạc phòng (chỉ Host)
-  const changeRoomTrack = useCallback(async (trackId: string) => {
-    if (!roomId) return
-    const now = new Date().toISOString()
-    const track = await resolveTrack(trackId)
+  // ポモドーロに基づくプレゼンス状態の更新
+  const updatePresenceStatus = useCallback(
+    async (focusStatus: 'focusing' | 'short_break' | 'long_break' | 'idle', streakMinutes: number) => {
+      const channel = channelRef.current
+      if (channel) {
+        await channel.track({
+          user_identifier: userIdentifier,
+          display_name: displayName,
+          focus_status: focusStatus,
+          current_streak_minutes: streakMinutes,
+          joined_at: new Date().toISOString(),
+        })
+      }
+    },
+    [userIdentifier, displayName]
+  )
 
-    if (track && track.url) {
-      syncPlayback(track.url, now, 'playing')
-    }
+  // 静かな応援の送信
+  const sendSilentCheer = useCallback(
+    (cheerType: CheerType) => {
+      const cheerPayload: SilentCheerPayload = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        sender_name: displayName || 'Anonymous',
+        cheer_type: cheerType,
+        timestamp: Date.now(),
+      }
 
-    // Broadcast tới các thành viên
-    const channel = channelRef.current
-    if (channel) {
-      channel.send({
-        type: 'broadcast',
-        event: 'PLAYBACK_SYNC',
-        payload: {
-          track_id: trackId,
-          epoch_started_at: now,
-          playback_state: 'playing',
-          elapsed_seconds: 0,
-        } as RoomPlaybackSyncPayload,
-      })
-    }
+      addCheer(cheerPayload)
 
-    // Cập nhật DB
-    const supabase = getSupabase()
-    await supabase
-      .from('study_rooms')
-      .update({
-        current_track_id: trackId,
-        epoch_started_at: now,
-        playback_state: 'playing',
-        updated_at: now,
-      })
-      .eq('id', roomId)
-  }, [roomId, resolveTrack, syncPlayback])
+      const channel = channelRef.current
+      if (channel) {
+        channel.send({
+          type: 'broadcast',
+          event: 'SILENT_CHEER',
+          payload: cheerPayload,
+        })
+      }
+    },
+    [displayName, addCheer]
+  )
 
-  // Hàm cập nhật Presence theo Pomodoro
-  const updatePresenceStatus = useCallback(async (focusStatus: 'focusing' | 'short_break' | 'long_break' | 'idle', streakMinutes: number) => {
-    const channel = channelRef.current
-    if (channel) {
-      await channel.track({
-        user_identifier: userIdentifier,
-        display_name: displayName,
-        focus_status: focusStatus,
-        current_streak_minutes: streakMinutes,
-        joined_at: new Date().toISOString(),
-      })
-    }
-  }, [userIdentifier, displayName])
-
-  // Hàm gửi Silent Cheer
-  const sendSilentCheer = useCallback((cheerType: CheerType) => {
-    const cheerPayload: SilentCheerPayload = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      sender_name: displayName || 'Anonymous',
-      cheer_type: cheerType,
-      timestamp: Date.now(),
-    }
-
-    // Thêm local
-    addCheer(cheerPayload)
-
-    // Broadcast
-    const channel = channelRef.current
-    if (channel) {
-      channel.send({
-        type: 'broadcast',
-        event: 'SILENT_CHEER',
-        payload: cheerPayload,
-      })
-    }
-  }, [displayName, addCheer])
-
-  // リアルタイムアクションをストアに登録（グローバル経由でどこからでも呼び出し可能）
+  // 各種アクションのストア登録
   useEffect(() => {
     setRealtimeActions({
       changeRoomTrack,
       sendSilentCheer,
       updatePresenceStatus,
+      toggleRoomShuffle,
+      cycleRoomRepeatMode,
+      nextRoomTrack,
+      prevRoomTrack,
+      setRoomQueue,
     })
 
     return () => {
       setRealtimeActions(null)
     }
-  }, [changeRoomTrack, sendSilentCheer, updatePresenceStatus, setRealtimeActions])
+  }, [
+    changeRoomTrack,
+    sendSilentCheer,
+    updatePresenceStatus,
+    toggleRoomShuffle,
+    cycleRoomRepeatMode,
+    nextRoomTrack,
+    prevRoomTrack,
+    setRoomQueue,
+    setRealtimeActions,
+  ])
 
   return {
     currentTrack,
     changeRoomTrack,
     sendSilentCheer,
     updatePresenceStatus,
+    toggleRoomShuffle,
+    cycleRoomRepeatMode,
+    nextRoomTrack,
+    prevRoomTrack,
+    setRoomQueue,
   }
 }

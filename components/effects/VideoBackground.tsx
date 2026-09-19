@@ -39,12 +39,13 @@ export function VideoBackground({
 
   // props の videoUrl 変更を useEffect で安全に同期
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      setCurrentSrc(videoUrl)
-      setHasError(false)
-      setVideoLoaded(false)
-    })
-    return () => cancelAnimationFrame(raf)
+    setCurrentSrc(videoUrl)
+    setHasError(false)
+    setVideoLoaded(false)
+    if (videoRef.current) {
+      videoRef.current.load()
+      videoRef.current.play().catch(() => {})
+    }
   }, [videoUrl])
 
   // YouTube の開始位置を props の最新状態から導出
@@ -185,6 +186,8 @@ export function VideoBackground({
       <>
         <video
           ref={videoRef}
+          key={currentSrc}
+          src={currentSrc}
           autoPlay
           loop
           muted
