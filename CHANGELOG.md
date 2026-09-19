@@ -2,10 +2,17 @@
 
 このプロジェクトの変更履歴は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) の形式に沿い、バージョンは [Semantic Versioning](https://semver.org/lang/ja/) に従います。
 
-## [Unreleased]
+## [1.0.0] - 2026-09-20
 
 ### Added
 
+- リアルタイム音楽同期勉強部屋（Study Room）機能を追加（ホストBGM同期、選曲キュー、シャッフル、リピート、NTP ドリフト補正）
+- メンバーからの楽曲リクエスト送信およびホスト承認モデレーション機能を追加（`SongRequestListModal`）
+- ホスト退出時の自動ホスト権限移譲（Host Migration）および放置部屋の24時間クリーンアップを追加
+- 個人環境音ミキサー（Ambient Mixer）を追加（雨音、喫茶店、風鈴、暖炉の4系統独立音量調整およびプリセット）
+- 全画面 Zen 集中モード（Zen Focus）およびポモドーロタイマー（Pomodoro Ring、Solfeggio 528Hz 和みチャイム、Streak 記録）を追加
+- 参加者の机グリッド存在感表示（Desk Presence）および静音非言語応援機能（Silent Cheer: ☕, 🔥, ✨, 📖）を追加
+- ブラウザのデフォルトダイアログ（`alert` / `confirm`）を完全排除し、カスタム `ConfirmModal` および `Toast` システムへ刷新
 - アプリ名を「Omoide（想い出箱）」へ刷新し、ロゴ・ファビコン・アプリアイコン・フッター表記を更新
 - 「あの日」の思い出フラッシュバック、日替わりおみくじ、タイムカプセルを追加
 - Three.js による 3D 想い出みくじ（みくじ筒・神社・桜と金粉のパーティクル・12 種の運勢）を追加

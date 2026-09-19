@@ -91,6 +91,16 @@ app/
     │   ├── access/route.ts # POST（アクセスコードで開封）
     │   └── uploads/route.ts # POST（写真の署名付きアップロード準備）, DELETE（取消）
     │
+    ├── study/              # 勉強部屋（Study Room）リアルタイム同期 & 集中 API
+    │   ├── create/route.ts # POST（部屋作成・ホスト認証トークン発行）
+    │   ├── join/route.ts   # POST（部屋参加・メンバー認証トークン発行）
+    │   ├── leave/route.ts  # POST（部屋退出・ホスト自動マイグレーション）
+    │   ├── member-status/route.ts # POST（集中状態・Streak・ハートビート更新）
+    │   ├── playback/route.ts      # POST（ホスト楽曲再生タイムライン同期）
+    │   ├── request-song/route.ts  # POST（メンバーからの楽曲リクエスト送信）
+    │   ├── respond-song-request/route.ts # POST（ホストによるリクエスト承認・却下）
+    │   └── verify-passcode/route.ts      # POST（非公開部屋パスコード検証）
+    │
     └── internal/
         └── birthday-scheduler/route.ts # POST（誕生日スレッド定期生成。シークレット認証付き）
 ```
@@ -112,6 +122,7 @@ app/
 | `Select.tsx` | セレクトボックス |
 | `Card.tsx` | 汎用カードコンテナ |
 | `Modal.tsx` | モーダルダイアログ（sm, md, lg, xl, widescreen） |
+| `ConfirmModal.tsx` | 操作確認用カスタムモーダル（ブラウザ alert/confirm 代替） |
 | `ModalManager.tsx` | 全体のモーダル状態管理 |
 | `Toast.tsx` | トースト通知コンポーネント |
 | `Loading.tsx` | ローディングスピナー |
@@ -273,6 +284,26 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 
 ---
 
+### 勉強部屋・Zen集中コンポーネント（`/components/study/`）
+
+作業や学習に集中するためのリアルタイム同期型バーチャル空間コンポーネント群です。
+
+| Component | 説明 |
+|---|---|
+| `StudyRoomHub.tsx` | 勉強部屋のロビー一覧・部屋作成・非公開パスコード入力モーダル |
+| `StudyRoomView.tsx` | 勉強部屋ビュー。ホストBGM同期・DJ操作・机グリッド・楽曲リクエスト管理 |
+| `ZenFocusModal.tsx` | 全画面 Zen 集中モード。ポモドーロタイマー・環境音ミキサー・季節背景演出 |
+| `PomodoroRing.tsx` | SVG 円形プログレスリングタイマー（集中/小休憩/大休憩 & Solfeggio 528Hz チャイム） |
+| `PomodoroSettingsModal.tsx` | ポモドーロ時間設定モーダル（25分/5分/15分等のカスタマイズ） |
+| `AmbientMixerModal.tsx` | 4系統個人環境音（雨音/喫茶店/風鈴/暖炉）ミキサーモーダル |
+| `DeskPresenceList.tsx` | 参加者の勉強机グリッド（アバター・集中状態・Streak・非言語応援） |
+| `DualAudioControls.tsx` | 部屋BGMと個人環境音の2系統独立音量コントロールバー |
+| `SongRequestListModal.tsx` | ホスト向け楽曲リクエスト一覧・承認（キュー追加）/ 却下モーダル |
+| `SilentCheerOverlay.tsx` | 参加者から送られた非言語応援アイコンが浮遊する静音アニメーション |
+| `GlobalStudyRoomSession.tsx` | 部屋退室時やアプリ全体のセッション維持・ハートビートハンドラ |
+
+---
+
 ### レイアウトコンポーネント（`/components/layout/`）
 
 ページ全体の骨組みを定義するコンポーネントです。
@@ -326,6 +357,14 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `usePuzzleGame.ts` | パズルゲームのロジック |
 | `useQuiz.ts` | クイズロジック |
 
+**勉強部屋・集中・オーディオ系 Hooks**
+
+| Hook | 説明 |
+|------|------|
+| `useRoomBgmSync.ts` | 勉強部屋のホスト楽曲再生タイムライン同期、NTP ドリフト補正、キュー・シャッフル・リピート状態管理 |
+| `usePomodoro.ts` | ポモドーロタイマーのインターバル制御、Solfeggio 528Hz チャイム発音、集中 Streak の記録 |
+| `useAmbientAudio.ts` | 4系統環境音（雨・カフェ・風鈴・暖炉）の Web Audio API による合成再生と音量適用 |
+
 **ユーティリティ Hooks**
 
 | Hook | 説明 |
@@ -347,6 +386,8 @@ Zustand を使ったグローバル状態管理レイヤーです。必要に応
 | `birthdayStore.ts` | 誕生日データの状態（CRUD / 次の誕生日など） |
 | `themeStore.ts` | テーマ選択（季節・日本 / 国際イベントから自動判定） |
 | `musicStore.ts` | 音楽プレーヤー設定の永続化（音量 / リピート / シャッフル）。再生状態そのものは `useMusicPlayer` が管理 |
+| `studyRoomStore.ts` | 勉強部屋のルーム情報、メンバー一覧、楽曲キュー、リクエスト一覧、ホスト状態 |
+| `ambientSoundStore.ts` | 個人環境音ミキサーのチャンネル音量（雨・カフェ・風鈴・暖炉）およびマスター音量 |
 | `gameStore.ts` | ゲームスコアやハイスコア管理 |
 | `uiStore.ts` | モーダル / トーストなど UI 状態 |
 | `index.ts` | 各ストアのエクスポート集約 |

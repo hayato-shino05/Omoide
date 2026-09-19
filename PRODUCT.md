@@ -1,15 +1,17 @@
-# Omoide Music
+# Omoide Music & Study Room
 
 ## Product context
 
-Omoide is a birthday-memory web app: a shared place to celebrate, record, and revisit memories. Music is a listening layer inside that experience, not a separate music service.
+Omoide is a birthday-memory and shared community web app: a warm space to celebrate, record, revisit memories, and co-work with friends and family. Music and shared soundscapes act as ambient supporting layers across these experiences.
 
 ## Product goal
 
-Let a user choose one song, preview it, confirm it, and keep listening while they remain in the birthday-memory experience. The selected reference must be safe to carry between the picker, player, composer, and published memory card.
+1. **Music Player**: Let a user choose one song, preview it, confirm it, and keep listening while they remain in the birthday-memory experience.
+2. **Study Room & Zen Focus**: Provide a synchronized virtual coworking room and an immersive Zen focus canvas where participants share peaceful presence without disrupting individual deep work.
 
 ## Core capabilities
 
+### Music Listening
 1. `MusicPlayer`: desktop now-playing bar with Play/Pause, previous/next, shuffle (🔀), repeat modes (🔁 off/all/one), custom progress-filled seek bar, volume control, lyrics drawer toggle, and song picker button.
 2. `LyricsDrawer`: expandable/collapsible drawer presenting real-time synchronized LRC lyrics with smooth auto-scroll.
 3. `MobileBottomDock`: mobile listening bar and navigation entry, with safe-area-aware placement.
@@ -17,13 +19,25 @@ Let a user choose one song, preview it, confirm it, and keep listening while the
 5. `State Persistence`: playback position, active track, shuffle, and repeat modes persist across browser refreshes and sessions via Zustand and `localStorage`.
 6. `SelectedMusicTrackRow` & `MusicComment`: selection in post composer and memory cards preserving attached track references.
 
+### Study Room & Zen Focus
+7. `StudyRoomHub`: Room lobby displaying active study rooms, quick room creation, and password protection for private rooms.
+8. `StudyRoomView`: Real-time room co-working environment. Features host playback synchronization with automatic NTP drift correction, shared queue management, shuffle/repeat sync, member song requests, and automatic host migration when the host departs.
+9. `SongRequestListModal`: Host-moderated request queue allowing hosts to review, approve (auto-append to room queue), or dismiss member song suggestions.
+10. `AmbientMixerModal`: 4-channel synthesizer (Rain, Cafe, Wind chimes, Fireplace) with independent sliders and instant mood presets.
+11. `DualAudioControls`: Independent volume control for synchronized room BGM and personal ambient soundscapes, including a "Listen Solo" feature to mute room BGM while maintaining presence.
+12. `DeskPresenceList` & `SilentCheerOverlay`: Participant presence grid displaying focus status, streak counters, and floating silent cheer emoji reactions (☕, 🔥, ✨, 📖).
+13. `ZenFocusModal`: Fullscreen distraction-free canvas featuring Pomodoro intervals (25m/5m/15m), Solfeggio 528Hz completion chimes, custom SVG progress ring, and seasonal theme backgrounds.
+
 ## Core interaction
 
-`choose → preview → confirm` is the mental model.
+`choose → preview → confirm` is the music mental model.
+`join → set soundscape → focus → cheer` is the study room mental model.
 
 - Preview starts or stops listening only; it does not commit a selection.
 - `Confirm` commits the selected `provider:trackId` to the calling surface.
 - `Cancel` or `Escape` stops preview and leaves the previously confirmed value unchanged.
+- Study room members can listen to shared host BGM or mute it locally while mixing personal ambient sounds.
+- Host migration automatically promotes the longest-standing active member if the current host leaves.
 - Loading, empty, unavailable, blocked, playback-error, and retry states are explicit and recoverable where possible.
 - A page transition or unmount stops audio and does not retain an unconfirmed choice.
 

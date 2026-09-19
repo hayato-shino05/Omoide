@@ -93,6 +93,15 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | `Gift` | Virtual gifts | Select and send digital celebration gifts. |
 | `Share2` | Sharing links | Share the celebration page through social platforms, the Web Share API, or a copied link. |
 
+### STUDY ROOM & ZEN FOCUS
+
+| Icon | Feature | Description |
+|---|---|---|
+| `BookOpen` | Study Room (Coworking) | Synchronized virtual coworking space. Features host music selection, shared queue playback, shuffle and repeat synchronization with automatic NTP drift correction, member song request submission with host approval moderation, and automatic host migration upon departure. |
+| `Sparkles` | Zen Focus Mode & Pomodoro | Fullscreen immersive canvas (Fullscreen API & keyboard shortcuts). Offers 25m focus / 5m short break / 15m long break cycles, an SVG circular progress ring, Solfeggio 528Hz peaceful chime audio on cycle completion, and continuous focus streak tracking. |
+| `Sliders` | Personal Ambient Soundscape Mixer | 4-channel Web Audio synthesizer providing independent volume controls and one-click presets for Rain (`rain`), Cafe (`cafe`), Wind Chimes (`wind_chime`), and Fireplace (`fireplace`). Supports dual-audio sovereignty allowing participants to mute room BGM while keeping personal ambient sounds active. |
+| `Coffee` | Desk Presence & Silent Cheer | Participant desk grid (avatars, focus status, streaks) and floating silent cheer icons (☕ Tea, 🔥 Flame, ✨ Sparkle, 📖 Read) that drift smoothly without disruptive notification sounds. |
+
 ### THEMES & MOBILE OPTIMIZATION
 
 | Icon | Feature | Description |
