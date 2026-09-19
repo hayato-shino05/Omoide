@@ -72,6 +72,8 @@ const OnThisDayFlashback = dynamic(
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )
 
+import type { ZenFocusModalProps } from '@/components/study/ZenFocusModal'
+
 const DailyOmikuji = dynamic(
   () => import('@/components/features/DailyOmikuji').then((mod) => mod.DailyOmikuji),
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
@@ -87,7 +89,7 @@ const StudyRoomHub = dynamic(
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )
 
-const ZenFocusModal = dynamic(
+const ZenFocusModal = dynamic<ZenFocusModalProps>(
   () => import('@/components/study/ZenFocusModal').then((mod) => mod.ZenFocusModal),
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )

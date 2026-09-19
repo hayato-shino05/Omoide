@@ -30,7 +30,7 @@ import { PomodoroSettingsModal } from './PomodoroSettingsModal'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import type { ThemeName } from '@/types'
 
-interface ZenFocusModalProps {
+export interface ZenFocusModalProps {
   isOpen: boolean
   onClose: () => void
   onCycleComplete?: (mode: string, streakMinutes: number) => void
