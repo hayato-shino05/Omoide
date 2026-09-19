@@ -122,17 +122,11 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/join', () => {
     it('非公開部屋への不正なパスコードでの参加を403で拒絶すること', async () => {
-      const mockRoomChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { id: 'room_priv', is_private: true, passcode: 'pass123', max_members: 10 },
-          error: null,
-        }),
-      }
-
       vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
-        from: vi.fn().mockReturnValue(mockRoomChain),
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'INVALID_PASSCODE' },
+        }),
       } as any)
 
       const request = new NextRequest('http://localhost:3000/api/study/join', {
@@ -151,30 +145,10 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('満席の部屋への新規参加を409で拒絶すること', async () => {
-      const mockRoomChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { id: 'room_full', is_private: false, passcode: null, max_members: 2 },
-          error: null,
-        }),
-      }
-
-      const mockMembersChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({
-          data: [
-            { user_identifier: 'u1', last_heartbeat_at: new Date().toISOString() },
-            { user_identifier: 'u2', last_heartbeat_at: new Date().toISOString() },
-          ],
-          error: null,
-        }),
-      }
-
       vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
-        from: vi.fn((table: string) => {
-          if (table === 'study_rooms') return mockRoomChain
-          return mockMembersChain
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'ROOM_FULL' },
         }),
       } as any)
 
@@ -193,41 +167,16 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('正常な参加リクエストでメンバー情報を保存し200を返すこと', async () => {
-      const mockRoomChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { id: 'room_ok', is_private: false, passcode: null, max_members: 10 },
-          error: null,
-        }),
-      }
-
-      const mockMembersSelectChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-        upsert: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'mem_1',
-                room_id: 'room_ok',
-                user_identifier: 'u_alice',
-                display_name: 'Alice',
-                focus_status: 'focusing',
-              },
-              error: null,
-            }),
-          }),
-        }),
-      }
-
       vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
-        from: vi.fn((table: string) => {
-          if (table === 'study_rooms') return mockRoomChain
-          return mockMembersSelectChain
+        rpc: vi.fn().mockResolvedValue({
+          data: {
+            id: 'mem_1',
+            room_id: 'room_ok',
+            user_identifier: 'u_alice',
+            display_name: 'Alice',
+            focus_status: 'focusing',
+          },
+          error: null,
         }),
       } as any)
 
@@ -248,17 +197,11 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/playback', () => {
     it('非ホストによるBGM操作リクエストを403で拒絶すること（権限保護）', async () => {
-      const mockChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { id: 'room_1', host_id: 'host_real' },
-          error: null,
-        }),
-      }
-
       vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
-        from: vi.fn().mockReturnValue(mockChain),
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'UNAUTHORIZED_HOST' },
+        }),
       } as any)
 
       const request = new NextRequest('http://localhost:3000/api/study/playback', {
@@ -277,22 +220,11 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('正規ホストによるBGM操作リクエストを受け入れ200を返すこと', async () => {
-      const mockSelectChain: any = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { id: 'room_1', host_id: 'host_real' },
+      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: { success: true },
           error: null,
         }),
-        update: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          }),
-        }),
-      }
-
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
-        from: vi.fn().mockReturnValue(mockSelectChain),
       } as any)
 
       const request = new NextRequest('http://localhost:3000/api/study/playback', {
