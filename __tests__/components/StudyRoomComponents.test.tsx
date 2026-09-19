@@ -221,4 +221,68 @@ describe('StudyRoomView Music Controls & Sync Tests', () => {
     fireEvent.click(prevBtn)
     expect(handlePrev).toHaveBeenCalled()
   })
+
+  it('非ホストのメンバーによるBGM操作時はアクションが実行されないこと（ホスト限定ガード）', () => {
+    const handleToggleShuffle = vi.fn()
+    const handleCycleRepeat = vi.fn()
+    const handleNext = vi.fn()
+    const handlePrev = vi.fn()
+    const handleUpdatePlayback = vi.fn()
+
+    useStudyRoomStore.setState({
+      userIdentifier: 'user_member',
+      isHost: false,
+      currentRoom: {
+        id: 'room_1',
+        name: 'Kyoto Study Hall',
+        host_id: 'user_host',
+        current_track_id: 'omoide:1',
+        epoch_started_at: new Date().toISOString(),
+        playback_state: 'playing',
+        is_private: false,
+        max_members: 12,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      currentTrack: {
+        id: 'omoide:1',
+        name: 'Sakura Dreams',
+        artistName: 'Omoide Ensemble',
+        url: 'https://example.com/audio.mp3',
+        duration: 180,
+      },
+      roomQueue: ['omoide:1', 'omoide:2'],
+      roomTrackIndex: 0,
+      isRoomShuffle: false,
+      roomRepeatMode: 'off',
+      toggleRoomShuffleAction: handleToggleShuffle,
+      cycleRoomRepeatModeAction: handleCycleRepeat,
+      nextRoomTrackAction: handleNext,
+      prevRoomTrackAction: handlePrev,
+      updatePlaybackStateAction: handleUpdatePlayback,
+    })
+
+    render(
+      <LanguageProvider initialLocale="ja">
+        <MusicPlayerProvider>
+          <StudyRoomView roomId="room_1" onLeave={vi.fn()} />
+        </MusicPlayerProvider>
+      </LanguageProvider>
+    )
+
+    // 非ホストがシャッフルをクリックしてもハンドラーは呼ばれない
+    const shuffleBtn = screen.getByRole('button', { name: /シャッフル|Shuffle/i })
+    fireEvent.click(shuffleBtn)
+    expect(handleToggleShuffle).not.toHaveBeenCalled()
+
+    // 非ホストがスキップをクリックしてもハンドラーは呼ばれない
+    const nextBtn = screen.getByRole('button', { name: /次の曲|Next Track/i })
+    fireEvent.click(nextBtn)
+    expect(handleNext).not.toHaveBeenCalled()
+
+    // 非ホストが再生・一時停止をクリックしてもハンドラーは呼ばれない
+    const playPauseBtn = screen.getByRole('button', { name: /一時停止|Pause|再生|Play/i })
+    fireEvent.click(playPauseBtn)
+    expect(handleUpdatePlayback).not.toHaveBeenCalled()
+  })
 })

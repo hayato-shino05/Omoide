@@ -60,6 +60,7 @@ function formatDuration(seconds: number): string {
 export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   const {
     currentRoom,
+    isHost: storeIsHost,
     currentTrack,
     isSoloMode,
     roomVolume,
@@ -89,7 +90,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   const toast = useToast()
 
   // ホスト権限判定（部屋の作成者・ホストのみBGMの全体制御が可能）
-  const isHost = Boolean(currentRoom?.host_id && currentRoom.host_id === userIdentifier)
+  const isHost = Boolean(storeIsHost || (currentRoom?.host_id && currentRoom.host_id === userIdentifier))
 
   const changeRoomTrack = changeRoomTrackAction || (async () => {})
   const sendSilentCheer = sendSilentCheerAction || (() => {})
