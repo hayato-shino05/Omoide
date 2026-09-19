@@ -13,7 +13,6 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Music,
   Timer,
 } from 'lucide-react'
 import { PomodoroRing } from './PomodoroRing'
@@ -23,7 +22,6 @@ import { ThemeEffects } from '@/components/effects/ThemeEffects'
 import { THEMES } from '@/config/themes'
 import { VISUAL_THEME_KEYS } from '@/config/visualThemes'
 import { useTheme } from '@/lib/hooks/useTheme'
-import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { AmbientMixerModal } from './AmbientMixerModal'
@@ -38,7 +36,6 @@ interface ZenFocusModalProps {
 
 export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModalProps) {
   const { theme: globalTheme, themeConfig: globalThemeConfig } = useTheme()
-  const { currentTrack, isSoloMode, setIsSoloMode } = useStudyRoomStore()
   const { volumes } = useAmbientSoundStore()
   const { t, language } = useLanguage()
 
@@ -243,27 +240,8 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
           <span className="text-xs text-[#FAF6F0]/90 font-medium">{themeDisplayName}</span>
         </div>
 
-        {/* 部屋のBGM & ソロ消音トグル */}
+        {/* クイック終了ボタン（視認性と操作性を最大化） */}
         <div className="flex items-center gap-2">
-          {currentTrack && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-950/75 backdrop-blur-md border border-[#D4B08C]/35 text-xs text-[#FFF9F3] shadow-lg">
-              <Music size={13} className="text-[#D95D39]" />
-              <span className="font-medium truncate max-w-[160px]">{currentTrack.name}</span>
-              <button
-                type="button"
-                onClick={() => setIsSoloMode(!isSoloMode)}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors border cursor-pointer ${
-                  isSoloMode
-                    ? 'bg-[#D95D39] text-white border-[#D95D39]'
-                    : 'bg-white/10 text-white/80 border-white/20 hover:bg-white/20'
-                }`}
-              >
-                {isSoloMode ? t('studySoloMuteRoom') : t('studyRoomBgm')}
-              </button>
-            </div>
-          )}
-
-          {/* クイック終了ボタン（視認性と操作性を最大化） */}
           <button
             type="button"
             onClick={handleGuardedClose}

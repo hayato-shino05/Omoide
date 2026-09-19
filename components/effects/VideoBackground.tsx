@@ -27,9 +27,8 @@ export function VideoBackground({
   videoDuration = 0,
 }: VideoBackgroundProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [currentSrc, setCurrentSrc] = useState(videoUrl)
-  const [remountKey, setRemountKey] = useState(0)
   const [hasError, setHasError] = useState(false)
+  const [prevVideoUrl, setPrevVideoUrl] = useState(videoUrl)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const prefersReducedMotion = usePrefersReducedMotion()
   const mounted = useSyncExternalStore(
@@ -38,13 +37,14 @@ export function VideoBackground({
     () => false
   )
 
-  // videoUrl 変更時に state を更新し、remountKey をインクリメントして video 要素を確実に再マウント
-  useEffect(() => {
-    setCurrentSrc(videoUrl)
-    setRemountKey((k) => k + 1)
+  // videoUrl 変更時に error とロード状態をリセット
+  if (videoUrl !== prevVideoUrl) {
+    setPrevVideoUrl(videoUrl)
     setHasError(false)
     setVideoLoaded(false)
-  }, [videoUrl])
+  }
+
+  const currentSrc = hasError && fallbackUrl ? fallbackUrl : videoUrl
 
   // YouTube の開始位置を props の最新状態から導出
   const startSeconds = useMemo(() => {
@@ -97,12 +97,7 @@ export function VideoBackground({
   }, [videoLoaded, syncToServerTime])
 
   const handleError = () => {
-    if (!hasError && fallbackUrl) {
-      setCurrentSrc(fallbackUrl)
-      setHasError(true)
-    } else {
-      setHasError(true)
-    }
+    setHasError(true)
   }
 
   if (!active) return null
@@ -184,7 +179,7 @@ export function VideoBackground({
       <>
         <video
           ref={videoRef}
-          key={`${currentSrc}-${remountKey}`}
+          key={currentSrc}
           src={currentSrc}
           autoPlay
           loop

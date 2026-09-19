@@ -158,10 +158,14 @@ export function StudyRoomHub() {
 
     const creds = resolveUserCredentials(userIdentifier, displayName)
     const targetRoom = joiningRoom
-    const joined = await joinStudyRoom(targetRoom.id, {
-      user_identifier: creds.effectiveId,
-      display_name: creds.effectiveName,
-    })
+    const joined = await joinStudyRoom(
+      targetRoom.id,
+      {
+        user_identifier: creds.effectiveId,
+        display_name: creds.effectiveName,
+      },
+      joinPasscode.trim()
+    )
     if (joined) {
       setRoom(targetRoom)
       setJoiningRoom(null)

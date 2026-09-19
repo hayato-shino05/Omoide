@@ -116,6 +116,22 @@ export async function updateStudyRoomPlayback(
   },
   hostId?: string
 ): Promise<boolean> {
+  // サーバーサイドAPI経由でホスト権限を厳格に検証して更新
+  if (hostId) {
+    try {
+      const res = await fetch('/api/study/playback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, hostId, payload }),
+      })
+      if (res.ok) {
+        return true
+      }
+    } catch (err) {
+      console.error('[StudyRoom] Error updating playback via API:', err)
+    }
+  }
+
   const supabase = getSupabase()
   let query = supabase
     .from('study_rooms')
@@ -148,8 +164,24 @@ export async function joinStudyRoom(
     user_identifier: string
     display_name: string
     avatar_url?: string
-  }
+  },
+  passcode?: string
 ): Promise<StudyRoomMember | null> {
+  // サーバーサイドAPI経由でパスコード検証および人数制限を厳格にチェック
+  try {
+    const res = await fetch('/api/study/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, member, passcode }),
+    })
+    if (res.ok) {
+      const { data } = await res.json()
+      if (data) return data as StudyRoomMember
+    }
+  } catch (err) {
+    console.error('[StudyRoom] Error joining room via API:', err)
+  }
+
   const supabase = getSupabase()
 
   // 部屋の最大収容人数を取得
