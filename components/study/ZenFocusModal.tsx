@@ -50,6 +50,15 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const [focusGoal, setFocusGoal] = useState('')
   const [isGoalCompleted, setIsGoalCompleted] = useState(false)
   const [isControlsVisible, setIsControlsVisible] = useState(true)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+
+  // モーダル再表示時にコントロールの表示状態を初期化
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen) {
+      setIsControlsVisible(true)
+    }
+  }
 
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isInteractingRef = useRef(false)
@@ -64,6 +73,9 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   // 3.5秒無操作時の自動非表示タイマー
   useEffect(() => {
     if (!isOpen) return
+
+    // モーダルオープン時のインタラクション状態初期化
+    isInteractingRef.current = false
 
     const clearTimer = () => {
       if (idleTimerRef.current) {

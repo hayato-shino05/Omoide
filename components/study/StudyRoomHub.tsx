@@ -103,18 +103,23 @@ export function StudyRoomHub() {
     if (typeof window === 'undefined') return
     const urlParams = new URLSearchParams(window.location.search)
     const queryRoomId = urlParams.get('studyRoom')
-    if (queryRoomId && !currentRoom) {
+    if (queryRoomId && !currentRoom && userIdentifier) {
+      // 退室時の再入室ループを防ぐため、URLクエリパラメータを即座に消去
+      window.history.replaceState({}, '', window.location.pathname)
+
       getStudyRoom(queryRoomId).then(async (room) => {
         if (room) {
           if (room.is_private) {
             setJoiningRoom(room)
           } else {
             const creds = resolveUserCredentials(userIdentifier, displayName)
-            setRoom(room)
-            await joinStudyRoom(room.id, {
+            const joined = await joinStudyRoom(room.id, {
               user_identifier: creds.effectiveId,
               display_name: creds.effectiveName,
             })
+            if (joined) {
+              setRoom(room)
+            }
           }
         }
       })
@@ -131,11 +136,13 @@ export function StudyRoomHub() {
     }
 
     const creds = resolveUserCredentials(userIdentifier, displayName)
-    setRoom(room)
-    await joinStudyRoom(room.id, {
+    const joined = await joinStudyRoom(room.id, {
       user_identifier: creds.effectiveId,
       display_name: creds.effectiveName,
     })
+    if (joined) {
+      setRoom(room)
+    }
   }
 
   // 非公開部屋のパスコード確認および入室
@@ -148,12 +155,15 @@ export function StudyRoomHub() {
     }
 
     const creds = resolveUserCredentials(userIdentifier, displayName)
-    setRoom(joiningRoom)
-    await joinStudyRoom(joiningRoom.id, {
+    const targetRoom = joiningRoom
+    const joined = await joinStudyRoom(targetRoom.id, {
       user_identifier: creds.effectiveId,
       display_name: creds.effectiveName,
     })
-    setJoiningRoom(null)
+    if (joined) {
+      setRoom(targetRoom)
+      setJoiningRoom(null)
+    }
   }
 
   // 新規部屋作成処理
@@ -577,8 +587,7 @@ export function StudyRoomHub() {
         isOpen={isSongPickerOpen}
         onClose={() => setIsSongPickerOpen(false)}
         onConfirm={(ref) => {
-          const cleanId = ref.includes(':') ? ref.split(':')[1] : ref
-          setSelectedTrackId(cleanId)
+          setSelectedTrackId(ref)
           setIsSongPickerOpen(false)
         }}
         initialValue={selectedTrackId || undefined}

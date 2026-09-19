@@ -4,7 +4,7 @@ import type { StudyRoom, StudyRoomMember, PlaybackState, FocusStatus } from '@/t
 export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   const supabase = getSupabase()
   // 直近2分以内にハートビートがある実際のアクティブメンバーのみを取得
-  const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  const activeThresholdMs = Date.now() - 2 * 60 * 1000
 
   const { data, error } = await supabase
     .from('study_rooms')
@@ -21,7 +21,7 @@ export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   const rooms = ((data as StudyRoom[]) || []).map((room) => ({
     ...room,
     study_room_members: (room.study_room_members || []).filter(
-      (m: any) => m.last_heartbeat_at && m.last_heartbeat_at >= activeThreshold
+      (m) => m.last_heartbeat_at && new Date(m.last_heartbeat_at).getTime() >= activeThresholdMs
     ),
   }))
 
@@ -111,6 +111,46 @@ export async function joinStudyRoom(
   }
 ): Promise<StudyRoomMember | null> {
   const supabase = getSupabase()
+
+  // 部屋の最大収容人数を取得
+  const { data: roomData, error: roomError } = await supabase
+    .from('study_rooms')
+    .select('max_members')
+    .eq('id', roomId)
+    .maybeSingle()
+
+  if (roomError || !roomData) {
+    console.error('[StudyRoom] Error fetching room capacity:', roomError)
+    return null
+  }
+
+  const maxMembers = roomData.max_members || 20
+  const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+
+  // 既存メンバー一覧を取得し、アクティブ人数と既存所属状況を確認
+  const { data: existingMembers, error: membersError } = await supabase
+    .from('study_room_members')
+    .select('user_identifier, last_heartbeat_at')
+    .eq('room_id', roomId)
+
+  if (membersError) {
+    console.error('[StudyRoom] Error checking room members:', membersError)
+    return null
+  }
+
+  const activeMembers = ((existingMembers as StudyRoomMember[]) || []).filter(
+    (m: StudyRoomMember) => m.last_heartbeat_at && m.last_heartbeat_at >= activeThreshold
+  )
+  const isAlreadyMember = ((existingMembers as StudyRoomMember[]) || []).some(
+    (m: StudyRoomMember) => m.user_identifier === member.user_identifier
+  )
+
+  // 満席かつ新規参加の場合は入室不可として処理を中断
+  if (!isAlreadyMember && activeMembers.length >= maxMembers) {
+    console.warn('[StudyRoom] Room is full:', roomId)
+    return null
+  }
+
   const { data, error } = await supabase
     .from('study_room_members')
     .upsert(

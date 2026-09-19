@@ -148,17 +148,27 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
 
   const handleCopyLink = () => {
     if (typeof window === 'undefined') return
-    const url = new URL(window.location.href)
-    url.searchParams.set('studyRoom', roomId)
-    navigator.clipboard.writeText(url.toString()).then(() => {
-      setIsCopied(true)
-      setTimeout(() => setIsCopied(false), 2000)
-    })
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('studyRoom', roomId)
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard
+          .writeText(url.toString())
+          .then(() => {
+            setIsCopied(true)
+            setTimeout(() => setIsCopied(false), 2000)
+          })
+          .catch((e) => {
+            console.warn('[StudyRoomView] Clipboard copy failed:', e)
+          })
+      }
+    } catch (e) {
+      console.warn('[StudyRoomView] Failed to build or copy share URL:', e)
+    }
   }
 
   const handleSongConfirm = (reference: string) => {
-    const cleanId = reference.includes(':') ? reference.split(':')[1] : reference
-    changeRoomTrack(cleanId)
+    changeRoomTrack(reference)
     setIsSongPickerOpen(false)
   }
 
@@ -360,7 +370,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 title={isRoomShuffle ? t('studyShuffleOn') : t('studyShuffleOff')}
                 aria-label={t('studyShuffle')}
                 aria-pressed={isRoomShuffle}
-                className={`flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                   isRoomShuffle
                     ? 'bg-[#D95D39] text-white border-[#854D27]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'
@@ -375,7 +385,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 onClick={prevTrack}
                 title={t('studyPreviousTrack')}
                 aria-label={t('studyPreviousTrack')}
-                className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
                 <SkipBack size={16} />
               </button>
@@ -386,7 +396,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 onClick={nextTrack}
                 title={t('studyNextTrack')}
                 aria-label={t('studyNextTrack')}
-                className="flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
+                className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
               >
                 <SkipForward size={16} />
               </button>
@@ -404,7 +414,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 }
                 aria-label={t('repeat')}
                 aria-pressed={roomRepeatMode !== 'off'}
-                className={`flex items-center justify-center w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
                   roomRepeatMode !== 'off'
                     ? 'bg-[#2E7D6F] text-white border-[#1B4D44]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'

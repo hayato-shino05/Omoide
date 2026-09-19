@@ -80,10 +80,17 @@ export function useRoomBgmSync(roomId: string | null) {
     const cleanId = trackId.includes(':') ? trackId.split(':')[1] : trackId
 
     // 1. プリセット音源から検索
-    const preset = JAPAN_PRESET_TRACKS.find((t) => t.id === cleanId || t.id === trackId)
+    const preset = JAPAN_PRESET_TRACKS.find(
+      (t) =>
+        t.id === cleanId ||
+        t.id === trackId ||
+        t.reference === trackId ||
+        (t.trackId === cleanId && t.provider === 'jamendo')
+    )
     if (preset) {
       const track = {
-        id: preset.id,
+        id: preset.id || trackId,
+        reference: preset.reference || trackId,
         name: preset.name,
         url: preset.audioUrl,
         duration: preset.duration,
@@ -95,18 +102,66 @@ export function useRoomBgmSync(roomId: string | null) {
       return track
     }
 
-    // 2. Supabase music_tracks テーブルから取得
+    // 2. 外部配信サービス（Jamendo, SoundCloud 等）または URL の場合: /api/music/resolve を呼び出し
+    if (
+      trackId.startsWith('jamendo:') ||
+      trackId.startsWith('soundcloud:') ||
+      trackId.startsWith('http://') ||
+      trackId.startsWith('https://')
+    ) {
+      try {
+        const res = await fetch(`/api/music/resolve?ref=${encodeURIComponent(trackId)}`)
+        if (res.ok) {
+          const payload = await res.json()
+          const data = payload?.data
+          const streamUrl = data?.streamUrl || data?.audioUrl || data?.url
+          if (data && streamUrl) {
+            const track = {
+              id: trackId,
+              reference: trackId,
+              name: data.name || data.title || 'Room BGM',
+              url: streamUrl,
+              duration: data.duration,
+              artistName: data.artistName || data.artist,
+              albumImage: data.albumImage || data.cover_url,
+              lyricsLrc: data.lyricsLrc || data.lyrics_lrc,
+            }
+            setCurrentTrack(track)
+            return track
+          }
+        }
+      } catch (e) {
+        console.error('[RoomBgmSync] Failed to resolve external track via API:', e)
+      }
+
+      // 直接アクセス可能な HTTP(S) URL の場合のフォールバック
+      if (trackId.startsWith('http://') || trackId.startsWith('https://')) {
+        const track = {
+          id: trackId,
+          reference: trackId,
+          name: 'Room BGM',
+          url: trackId,
+          duration: 0,
+        }
+        setCurrentTrack(track)
+        return track
+      }
+    }
+
+    // 3. Omoide楽曲（omoide:ID または 単一ID）: Supabase music_tracks テーブルから取得
     try {
       const supabase = getSupabase()
+      const queryId = trackId.startsWith('omoide:') ? trackId.replace('omoide:', '') : cleanId
       const { data } = await supabase
         .from('music_tracks')
         .select('*')
-        .eq('id', cleanId)
+        .eq('id', queryId)
         .maybeSingle()
 
       if (data) {
         const track = {
           id: data.id,
+          reference: `omoide:${data.id}`,
           name: data.title || data.name || 'Room BGM',
           url: data.audio_url || data.url,
           duration: data.duration,
@@ -353,12 +408,16 @@ export function useRoomBgmSync(roomId: string | null) {
     if (!audio) return
 
     const handleEnded = () => {
-      const { roomRepeatMode, currentTrack } = useStudyRoomStore.getState()
+      const { roomRepeatMode, currentTrack, currentRoom, userIdentifier, isHost } = useStudyRoomStore.getState()
       if (roomRepeatMode === 'one' && currentTrack) {
         audio.currentTime = 0
         audio.play().catch(() => {})
       } else {
-        nextRoomTrack()
+        // ホストのみが次の曲への自動遷移をトリガー（複数リスナーによる同時ランダム選曲の競合を防止）
+        const isUserHost = isHost || Boolean(currentRoom && userIdentifier && currentRoom.host_id === userIdentifier)
+        if (isUserHost) {
+          nextRoomTrack()
+        }
       }
     }
 

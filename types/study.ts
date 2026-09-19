@@ -24,6 +24,7 @@ export interface StudyRoom {
     display_name: string
     avatar_url?: string | null
     focus_status?: FocusStatus
+    last_heartbeat_at?: string
   }>
 }
 

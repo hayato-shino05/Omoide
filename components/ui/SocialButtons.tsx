@@ -34,6 +34,15 @@ export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
   const { t } = useLanguage()
   const { openModal } = useUIStore()
   const [showShareMenu, setShowShareMenu] = useState(false)
+  const [prevZenMode, setPrevZenMode] = useState(isZenMode)
+
+  // 禅・集中モードへの切り替え時に共有メニューの状態をリセット
+  if (isZenMode !== prevZenMode) {
+    setPrevZenMode(isZenMode)
+    if (isZenMode) {
+      setShowShareMenu(false)
+    }
+  }
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = 'translate(-2px, -2px)'

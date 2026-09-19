@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { CloudRain, Coffee, Wind, Flame, Volume2, VolumeX, RotateCcw, X, Sliders } from 'lucide-react'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -24,8 +25,13 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
     muteAll,
   } = useAmbientSoundStore()
   const { t } = useLanguage()
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
-  // Close on Escape
+  // Escapeキー押下でモーダルを閉じる
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -36,7 +42,7 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
   const getIcon = (id: AmbientSoundType) => {
     switch (id) {
@@ -55,12 +61,12 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
     return t(sound.nameKey) || sound.defaultName
   }
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="ambient-mixer-title"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-200"
+      className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-200"
     >
       <div className="relative w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFF9F3] border-3 border-[#D4B08C] text-[#854D27] shadow-[8px_8px_0_#D4B08C]">
         {/* Header */}
@@ -185,5 +191,8 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
       </div>
     </div>
   )
+
+  // 最前面（z-[100000]）のポータルとして body 直下に描画
+  return createPortal(modalContent, document.body)
 }
 

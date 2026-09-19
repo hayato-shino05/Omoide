@@ -154,7 +154,7 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
 
       addCheer: (cheer) =>
         set((state) => ({
-          cheers: [...state.cheers.slice(-15), cheer], // 最大15件の最新リアクションを保持
+          cheers: state.cheers.slice(-14).concat(cheer), // 最大15件の最新リアクションを保持
         })),
 
       removeCheer: (cheerId) =>

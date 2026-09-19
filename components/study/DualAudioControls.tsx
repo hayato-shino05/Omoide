@@ -25,8 +25,7 @@ export function DualAudioControls({ onHostChangeTrack }: DualAudioControlsProps)
   const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
 
   const handleSongConfirm = (reference: string) => {
-    const cleanId = reference.includes(':') ? reference.split(':')[1] : reference
-    onHostChangeTrack?.(cleanId)
+    onHostChangeTrack?.(reference)
     setIsSongPickerOpen(false)
   }
 
