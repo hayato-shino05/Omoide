@@ -8,7 +8,6 @@ import { updateMemberStatus, leaveStudyRoom, updateStudyRoomPlayback } from '@/l
 import type {
   PlaybackState,
   CheerType,
-  RoomPlaybackSyncPayload,
   SilentCheerPayload,
   StudyRoomMember,
   RoomRepeatMode,
@@ -256,7 +255,6 @@ export function useRoomBgmSync(roomId: string | null) {
       }
 
       // DB永続化（サーバーサイドAPI経由でホスト権限とトークンを検証して更新）
-      let broadcastSignature: string | undefined = undefined
       if (trackId) {
         const hostId = currentRoom?.host_id || userIdentifier
         const result = await updateStudyRoomPlayback(
@@ -271,28 +269,6 @@ export function useRoomBgmSync(roomId: string | null) {
         if (!result.success) {
           return
         }
-        broadcastSignature = result.signature
-      }
-
-      // 部屋参加者全員へ暗号署名付きリアルタイムブロードキャスト送信
-      const channel = channelRef.current
-      if (channel) {
-        channel.send({
-          type: 'broadcast',
-          event: 'PLAYBACK_SYNC',
-          payload: {
-            track_id: trackId,
-            epoch_started_at: now,
-            playback_state: state,
-            elapsed_seconds: 0,
-            queue: activeQueue,
-            current_track_index: activeIndex,
-            is_shuffle: activeShuffle,
-            repeat_mode: activeRepeat,
-            triggered_by: userIdentifier,
-            signature: broadcastSignature,
-          } as RoomPlaybackSyncPayload,
-        })
       }
     },
     [roomId, resolveTrack, syncPlayback, setRoomPlaybackState]
@@ -477,44 +453,7 @@ export function useRoomBgmSync(roomId: string | null) {
 
     channelRef.current = channel
 
-    // 1. PLAYBACK_SYNC サーバー署名付きブロードキャスト受信
-    channel.on('broadcast', { event: 'PLAYBACK_SYNC' }, async ({ payload }) => {
-      const {
-        track_id,
-        epoch_started_at,
-        playback_state,
-        queue,
-        current_track_index,
-        is_shuffle,
-        repeat_mode,
-        signature,
-      } = payload as RoomPlaybackSyncPayload
-
-      // サーバー署名のない不正なクライアントブロードキャストを拒否
-      if (!signature) {
-        return
-      }
-
-      // 署名付き正規ブロードキャストによるストアと再生の即時同期
-      setRoomPlaybackState({
-        queue: queue,
-        currentTrackIndex: current_track_index,
-        isShuffle: is_shuffle,
-        repeatMode: repeat_mode,
-      })
-
-      const track = await resolveTrack(track_id)
-      if (track && track.url) {
-        syncPlayback(track.url, epoch_started_at, playback_state)
-      }
-    })
-
-    // 2. SILENT_CHEER ブロードキャスト受信
-    channel.on('broadcast', { event: 'SILENT_CHEER' }, ({ payload }) => {
-      addCheer(payload as SilentCheerPayload)
-    })
-
-    // 3. PostgreSQL テーブル更新リアルタイム同期（偽装不可能なサーバー認証DB変更）
+    // 1. PostgreSQL テーブル更新リアルタイム同期（偽装不可能なサーバー認証DB変更のみを受信）
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'study_rooms', filter: `id=eq.${roomId}` },
@@ -537,7 +476,12 @@ export function useRoomBgmSync(roomId: string | null) {
       }
     )
 
-    // 4. Presence 状態同期
+    // 2. SILENT_CHEER ブロードキャスト受信
+    channel.on('broadcast', { event: 'SILENT_CHEER' }, ({ payload }) => {
+      addCheer(payload as SilentCheerPayload)
+    })
+
+    // 3. Presence 状態同期
     channel
       .on('presence', { event: 'sync' }, () => {
         const presenceState = channel.presenceState<StudyRoomMember>()
