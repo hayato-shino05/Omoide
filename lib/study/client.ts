@@ -1,12 +1,44 @@
 import { getSupabase } from '@/lib/supabase/client'
 import type { StudyRoom, StudyRoomMember, PlaybackState, FocusStatus } from '@/types/study'
 
+export function getStoredHostToken(roomId: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(`omoide_host_token_${roomId}`)
+  } catch {
+    return null
+  }
+}
+
+export function setStoredHostToken(roomId: string, token: string) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(`omoide_host_token_${roomId}`, token)
+  } catch {}
+}
+
+export function getStoredMemberToken(roomId: string): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(`omoide_member_token_${roomId}`)
+  } catch {
+    return null
+  }
+}
+
+export function setStoredMemberToken(roomId: string, token: string) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(`omoide_member_token_${roomId}`, token)
+  } catch {}
+}
+
 export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   const supabase = getSupabase()
   // 直近2分以内にハートビートがある実際のアクティブメンバーのみを取得
   const activeThresholdMs = Date.now() - 2 * 60 * 1000
 
-  // パスコード等の機密情報を除外した安全なカラムのみを取得
+  // パスコード・トークン等の機密情報を除外した安全な公開カラムのみを取得
   const { data, error } = await supabase
     .from('study_rooms')
     .select(
@@ -83,28 +115,27 @@ export interface CreateStudyRoomInput {
 }
 
 export async function createStudyRoom(input: CreateStudyRoomInput): Promise<StudyRoom | null> {
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from('study_rooms')
-    .insert({
-      name: input.name,
-      description: input.description || null,
-      host_id: input.host_id,
-      current_track_id: input.current_track_id || null,
-      is_private: Boolean(input.is_private),
-      passcode: input.passcode || null,
-      theme_override: input.theme_override || null,
-      playback_state: 'playing',
-      epoch_started_at: new Date().toISOString(),
+  try {
+    const res = await fetch('/api/study/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     })
-    .select()
-    .single()
 
-  if (error || !data) {
-    console.error('[StudyRoom] Error creating room:', error)
+    if (!res.ok) {
+      return null
+    }
+
+    const payload = await res.json()
+    if (payload?.data && payload?.hostToken) {
+      setStoredHostToken(payload.data.id, payload.hostToken)
+      return payload.data as StudyRoom
+    }
+    return null
+  } catch (err) {
+    console.error('[StudyRoom] Error creating room via API:', err)
     return null
   }
-  return data as StudyRoom
 }
 
 export async function updateStudyRoomPlayback(
@@ -121,12 +152,14 @@ export async function updateStudyRoomPlayback(
     return false
   }
 
+  const hostToken = getStoredHostToken(roomId)
+
   // サーバーサイドAPI経由でホスト権限を厳格に検証して更新（クライアント直接更新バイパスを排除）
   try {
     const res = await fetch('/api/study/playback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, hostId, payload }),
+      body: JSON.stringify({ roomId, hostId, hostToken, payload }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -151,16 +184,23 @@ export async function joinStudyRoom(
   },
   passcode?: string
 ): Promise<StudyRoomMember | null> {
-  // サーバーサイドAPI経由でパスコード検証および最大収容人数をアトミックに検証（クライアント直接挿入バイパスを排除）
+  const memberToken = getStoredMemberToken(roomId)
+
+  // サーバーサイドAPI経由でパスコード検証・トークン照合・定員制限をアトミックに検証
   try {
     const res = await fetch('/api/study/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, member, passcode }),
+      body: JSON.stringify({ roomId, member, passcode, memberToken }),
     })
     if (res.ok) {
-      const { data } = await res.json()
-      if (data) return data as StudyRoomMember
+      const payload = await res.json()
+      if (payload?.data) {
+        if (payload.memberToken) {
+          setStoredMemberToken(roomId, payload.memberToken)
+        }
+        return payload.data as StudyRoomMember
+      }
     }
     return null
   } catch (err) {
@@ -170,18 +210,18 @@ export async function joinStudyRoom(
 }
 
 export async function leaveStudyRoom(roomId: string, user_identifier: string): Promise<boolean> {
-  const supabase = getSupabase()
-  const { error } = await supabase
-    .from('study_room_members')
-    .delete()
-    .eq('room_id', roomId)
-    .eq('user_identifier', user_identifier)
-
-  if (error) {
-    console.error('[StudyRoom] Error leaving room:', error)
+  const memberToken = getStoredMemberToken(roomId)
+  try {
+    const res = await fetch('/api/study/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, userIdentifier: user_identifier, memberToken }),
+    })
+    return res.ok
+  } catch (err) {
+    console.error('[StudyRoom] Error leaving room via API:', err)
     return false
   }
-  return true
 }
 
 export async function updateMemberStatus(
@@ -190,22 +230,24 @@ export async function updateMemberStatus(
   focus_status: FocusStatus,
   current_streak_minutes: number
 ): Promise<boolean> {
-  const supabase = getSupabase()
-  const { error } = await supabase
-    .from('study_room_members')
-    .update({
-      focus_status,
-      current_streak_minutes,
-      last_heartbeat_at: new Date().toISOString(),
+  const memberToken = getStoredMemberToken(roomId)
+  try {
+    const res = await fetch('/api/study/member-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roomId,
+        userIdentifier: user_identifier,
+        memberToken,
+        focusStatus: focus_status,
+        streakMinutes: current_streak_minutes,
+      }),
     })
-    .eq('room_id', roomId)
-    .eq('user_identifier', user_identifier)
-
-  if (error) {
-    console.error('[StudyRoom] Error updating member status:', error)
+    return res.ok
+  } catch (err) {
+    console.error('[StudyRoom] Error updating member status via API:', err)
     return false
   }
-  return true
 }
 
 export async function fetchRoomMembers(roomId: string): Promise<StudyRoomMember[]> {

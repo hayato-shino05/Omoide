@@ -481,7 +481,14 @@ export function useRoomBgmSync(roomId: string | null) {
         current_track_index,
         is_shuffle,
         repeat_mode,
+        triggered_by,
       } = payload as RoomPlaybackSyncPayload
+
+      // ホストからのブロードキャストか検証（非ホストからの不正な同期ブロードキャストを拒否）
+      const { currentRoom } = useStudyRoomStore.getState()
+      if (currentRoom?.host_id && triggered_by && triggered_by !== currentRoom.host_id) {
+        return
+      }
 
       // ストアの同期
       setRoomPlaybackState({

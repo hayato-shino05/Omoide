@@ -1,13 +1,79 @@
 begin;
 
--- 1. join_study_room (Security Definer RPC)
--- パスコード検証・定員制限・メンバー追加をアトミックにDB内で厳格検証
+-- 1. カラムの追加（ホスト・メンバーの検証用トークンハッシュ）
+alter table public.study_rooms
+  add column if not exists host_token_hash text;
+
+alter table public.study_room_members
+  add column if not exists member_token_hash text;
+
+-- 2. create_study_room (Security Definer RPC)
+-- ホストトークンハッシュを保持し部屋を安全に作成
+create or replace function public.create_study_room(
+  p_name text,
+  p_description text default null,
+  p_host_id text default null,
+  p_host_token_hash text default null,
+  p_is_private boolean default false,
+  p_passcode text default null,
+  p_current_track_id text default null,
+  p_theme_override text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_room public.study_rooms;
+begin
+  if p_name is null or char_length(btrim(p_name)) not between 1 and 100
+     or p_host_id is null or char_length(btrim(p_host_id)) not between 1 and 100 then
+    raise exception using errcode = '22023', message = 'INVALID_INPUT';
+  end if;
+
+  insert into public.study_rooms (
+    name,
+    description,
+    host_id,
+    host_token_hash,
+    is_private,
+    passcode,
+    current_track_id,
+    theme_override,
+    playback_state,
+    epoch_started_at,
+    created_at,
+    updated_at
+  ) values (
+    btrim(p_name),
+    nullif(btrim(p_description), ''),
+    btrim(p_host_id),
+    nullif(btrim(p_host_token_hash), ''),
+    coalesce(p_is_private, false),
+    nullif(btrim(p_passcode), ''),
+    nullif(btrim(p_current_track_id), ''),
+    nullif(btrim(p_theme_override), ''),
+    'playing',
+    now(),
+    now(),
+    now()
+  )
+  returning * into v_room;
+
+  return to_jsonb(v_room);
+end;
+$$;
+
+-- 3. join_study_room (Security Definer RPC)
+-- パスコード検証・メンバートークン検証・定員制限・メンバー参加をアトミックにDB内で厳格検証
 create or replace function public.join_study_room(
   p_room_id uuid,
   p_user_identifier text,
   p_display_name text,
   p_avatar_url text default null,
-  p_passcode text default null
+  p_passcode text default null,
+  p_member_token_hash text default null
 )
 returns jsonb
 language plpgsql
@@ -17,7 +83,7 @@ as $$
 declare
   v_room public.study_rooms;
   v_active_count integer;
-  v_is_existing boolean;
+  v_existing_member public.study_room_members;
   v_member public.study_room_members;
 begin
   -- 1. 入力パラメータのバリデーション
@@ -39,20 +105,28 @@ begin
     end if;
   end if;
 
-  -- 4. 既存所属状況および直近2分のアクティブ人数の確認
-  select exists (
-    select 1 from public.study_room_members
-    where room_id = p_room_id and user_identifier = btrim(p_user_identifier)
-  ) into v_is_existing;
-
-  select count(*) into v_active_count
+  -- 4. 既存メンバーの取得およびトークン検証（他者IDの不正ななりすまし・上書きを防止）
+  select * into v_existing_member
   from public.study_room_members
-  where room_id = p_room_id
-    and last_heartbeat_at >= now() - interval '2 minutes';
+  where room_id = p_room_id and user_identifier = btrim(p_user_identifier);
 
-  -- 満席かつ新規入室の場合は拒絶
-  if not v_is_existing and v_active_count >= v_room.max_members then
-    raise exception using errcode = '23514', message = 'ROOM_FULL';
+  if found then
+    -- 既存メンバーにトークンハッシュが設定されている場合、渡されたトークンハッシュとの一致を必須化
+    if v_existing_member.member_token_hash is not null then
+      if p_member_token_hash is null or btrim(p_member_token_hash) <> v_existing_member.member_token_hash then
+        raise exception using errcode = '42501', message = 'INVALID_MEMBER_TOKEN';
+      end if;
+    end if;
+  else
+    -- 新規参加時の満席判定（直近2分以内にアクティブなメンバー数をカウント）
+    select count(*) into v_active_count
+    from public.study_room_members
+    where room_id = p_room_id
+      and last_heartbeat_at >= now() - interval '2 minutes';
+
+    if v_active_count >= v_room.max_members then
+      raise exception using errcode = '23514', message = 'ROOM_FULL';
+    end if;
   end if;
 
   -- 5. メンバーの参加・更新 (upsert)
@@ -62,6 +136,7 @@ begin
     display_name,
     avatar_url,
     focus_status,
+    member_token_hash,
     last_heartbeat_at
   ) values (
     p_room_id,
@@ -69,12 +144,14 @@ begin
     btrim(p_display_name),
     nullif(btrim(p_avatar_url), ''),
     'focusing',
+    nullif(btrim(p_member_token_hash), ''),
     now()
   )
   on conflict (room_id, user_identifier) do update set
     display_name = excluded.display_name,
     avatar_url = excluded.avatar_url,
     focus_status = 'focusing',
+    member_token_hash = coalesce(excluded.member_token_hash, public.study_room_members.member_token_hash),
     last_heartbeat_at = now()
   returning * into v_member;
 
@@ -82,11 +159,12 @@ begin
 end;
 $$;
 
--- 2. update_study_room_playback (Security Definer RPC)
--- ホスト権限をDB内で直接検証し、BGM再生状態を更新
+-- 4. update_study_room_playback (Security Definer RPC)
+-- ホスト権限およびホストトークンをDB内で検証し、BGM再生状態を更新
 create or replace function public.update_study_room_playback(
   p_room_id uuid,
   p_host_id text,
+  p_host_token_hash text default null,
   p_current_track_id text default null,
   p_epoch_started_at timestamptz default now(),
   p_playback_state text default 'playing'
@@ -108,9 +186,16 @@ begin
     raise exception using errcode = 'P0002', message = 'ROOM_NOT_FOUND';
   end if;
 
-  -- ホスト権限チェック
+  -- ホストIDの一致確認
   if v_room.host_id <> btrim(p_host_id) then
     raise exception using errcode = '42501', message = 'UNAUTHORIZED_HOST';
+  end if;
+
+  -- ホストトークンハッシュが設定されている場合の検証
+  if v_room.host_token_hash is not null then
+    if p_host_token_hash is null or btrim(p_host_token_hash) <> v_room.host_token_hash then
+      raise exception using errcode = '42501', message = 'UNAUTHORIZED_HOST';
+    end if;
   end if;
 
   -- 再生状態の更新
@@ -126,15 +211,108 @@ begin
 end;
 $$;
 
--- 3. study_room_members の直接匿名 INSERT / study_rooms の直接匿名 UPDATE を制限
-revoke insert on table public.study_room_members from anon;
-drop policy if exists "Allow insert study_room_members" on public.study_room_members;
+-- 5. update_study_room_member_status (Security Definer RPC)
+-- メンバートークンを検証してステータス・集中時間を更新
+create or replace function public.update_study_room_member_status(
+  p_room_id uuid,
+  p_user_identifier text,
+  p_member_token_hash text default null,
+  p_focus_status text default 'focusing',
+  p_streak_minutes integer default 0
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_member public.study_room_members;
+begin
+  if p_room_id is null or p_user_identifier is null then
+    raise exception using errcode = '22023', message = 'INVALID_INPUT';
+  end if;
 
-revoke update on table public.study_rooms from anon;
+  select * into v_member
+  from public.study_room_members
+  where room_id = p_room_id and user_identifier = btrim(p_user_identifier);
+
+  if not found then
+    raise exception using errcode = 'P0002', message = 'MEMBER_NOT_FOUND';
+  end if;
+
+  if v_member.member_token_hash is not null then
+    if p_member_token_hash is null or btrim(p_member_token_hash) <> v_member.member_token_hash then
+      raise exception using errcode = '42501', message = 'UNAUTHORIZED_MEMBER';
+    end if;
+  end if;
+
+  update public.study_room_members
+  set
+    focus_status = coalesce(p_focus_status, 'focusing'),
+    current_streak_minutes = coalesce(p_streak_minutes, 0),
+    last_heartbeat_at = now()
+  where room_id = p_room_id and user_identifier = btrim(p_user_identifier);
+
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- 6. leave_study_room (Security Definer RPC)
+-- メンバートークンを検証して安全に部屋から退出
+create or replace function public.leave_study_room(
+  p_room_id uuid,
+  p_user_identifier text,
+  p_member_token_hash text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_member public.study_room_members;
+begin
+  if p_room_id is null or p_user_identifier is null then
+    raise exception using errcode = '22023', message = 'INVALID_INPUT';
+  end if;
+
+  select * into v_member
+  from public.study_room_members
+  where room_id = p_room_id and user_identifier = btrim(p_user_identifier);
+
+  if not found then
+    return jsonb_build_object('success', true);
+  end if;
+
+  if v_member.member_token_hash is not null then
+    if p_member_token_hash is null or btrim(p_member_token_hash) <> v_member.member_token_hash then
+      raise exception using errcode = '42501', message = 'UNAUTHORIZED_MEMBER';
+    end if;
+  end if;
+
+  delete from public.study_room_members
+  where room_id = p_room_id and user_identifier = btrim(p_user_identifier);
+
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+-- 7. study_room_members / study_rooms の直接テーブル変更権限を制限
+revoke insert, update, delete on table public.study_rooms from anon;
+drop policy if exists "Allow insert study_rooms" on public.study_rooms;
 drop policy if exists "Allow update study_rooms" on public.study_rooms;
+drop policy if exists "Allow delete study_rooms" on public.study_rooms;
 
--- 4. RPC実行権限の付与
-grant execute on function public.join_study_room(uuid, text, text, text, text) to anon, authenticated, service_role;
-grant execute on function public.update_study_room_playback(uuid, text, text, timestamptz, text) to anon, authenticated, service_role;
+revoke insert, update, delete on table public.study_room_members from anon;
+drop policy if exists "Allow insert study_room_members" on public.study_room_members;
+drop policy if exists "Allow update study_room_members" on public.study_room_members;
+drop policy if exists "Allow delete study_room_members" on public.study_room_members;
+
+-- 8. RPC実行権限の付与
+grant execute on function public.create_study_room(text, text, text, text, boolean, text, text, text) to anon, authenticated, service_role;
+grant execute on function public.join_study_room(uuid, text, text, text, text, text) to anon, authenticated, service_role;
+grant execute on function public.update_study_room_playback(uuid, text, text, text, timestamptz, text) to anon, authenticated, service_role;
+grant execute on function public.update_study_room_member_status(uuid, text, text, text, integer) to anon, authenticated, service_role;
+grant execute on function public.leave_study_room(uuid, text, text) to anon, authenticated, service_role;
 
 commit;

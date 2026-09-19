@@ -325,12 +325,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => handleHostAction(() => setIsSongPickerOpen(true))}
+                disabled={!isHost}
                 title={isHost ? t('studyChangeSong') : t('studyHostOnlyTooltip')}
                 aria-label={t('studyChangeSong')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer font-body min-h-[38px] ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all font-body min-h-[38px] ${
                   isHost
-                    ? 'bg-[#D95D39] hover:bg-[#C24E2B] text-white border-[#854D27] shadow-2xs active:scale-95'
-                    : 'bg-[#FAF0E6] text-[#5C3A21] border-[#D4B08C] opacity-80'
+                    ? 'bg-[#D95D39] hover:bg-[#C24E2B] text-white border-[#854D27] shadow-2xs active:scale-95 cursor-pointer'
+                    : 'bg-[#FAF0E6] text-[#5C3A21] border-[#D4B08C] opacity-60 cursor-not-allowed'
                 }`}
               >
                 <Music size={13} />
@@ -404,6 +405,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => handleHostAction(toggleShuffle)}
+                disabled={!isHost}
                 title={
                   !isHost
                     ? t('studyHostOnlyTooltip')
@@ -413,11 +415,15 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 }
                 aria-label={t('studyShuffle')}
                 aria-pressed={isRoomShuffle}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs ${
                   isRoomShuffle
                     ? 'bg-[#D95D39] text-white border-[#854D27]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'
-                } ${!isHost ? 'opacity-75' : ''}`}
+                } ${
+                  isHost
+                    ? 'active:scale-95 cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
+                }`}
               >
                 <Shuffle size={16} />
               </button>
@@ -426,10 +432,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => handleHostAction(prevTrack)}
+                disabled={!isHost}
                 title={!isHost ? t('studyHostOnlyTooltip') : t('studyPreviousTrack')}
                 aria-label={t('studyPreviousTrack')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer ${
-                  !isHost ? 'opacity-75' : ''
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs ${
+                  isHost
+                    ? 'active:scale-95 cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
                 }`}
               >
                 <SkipBack size={16} />
@@ -439,6 +448,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={togglePlayPause}
+                disabled={!isHost}
                 title={
                   !isHost
                     ? t('studyHostOnlyTooltip')
@@ -447,8 +457,10 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                     : t('play')
                 }
                 aria-label={isRoomPlaying ? t('pause') : t('play')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] active:scale-95 transition-all shadow-2xs cursor-pointer ${
-                  !isHost ? 'opacity-75' : ''
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] transition-all shadow-2xs ${
+                  isHost
+                    ? 'active:scale-95 cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
                 }`}
               >
                 {isRoomPlaying ? <Pause size={17} /> : <Play size={17} className="ml-0.5" />}
@@ -458,10 +470,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => handleHostAction(nextTrack)}
+                disabled={!isHost}
                 title={!isHost ? t('studyHostOnlyTooltip') : t('studyNextTrack')}
                 aria-label={t('studyNextTrack')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer ${
-                  !isHost ? 'opacity-75' : ''
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs ${
+                  isHost
+                    ? 'active:scale-95 cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
                 }`}
               >
                 <SkipForward size={16} />
@@ -471,6 +486,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => handleHostAction(cycleRepeat)}
+                disabled={!isHost}
                 title={
                   !isHost
                     ? t('studyHostOnlyTooltip')
@@ -482,11 +498,15 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 }
                 aria-label={t('repeat')}
                 aria-pressed={roomRepeatMode !== 'off'}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all active:scale-95 cursor-pointer shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs ${
                   roomRepeatMode !== 'off'
                     ? 'bg-[#2E7D6F] text-white border-[#1B4D44]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'
-                } ${!isHost ? 'opacity-75' : ''}`}
+                } ${
+                  isHost
+                    ? 'active:scale-95 cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
+                }`}
               >
                 {roomRepeatMode === 'one' ? <Repeat1 size={16} /> : <Repeat size={16} />}
               </button>
