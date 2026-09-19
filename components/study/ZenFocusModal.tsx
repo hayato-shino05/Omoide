@@ -23,9 +23,11 @@ import { THEMES } from '@/config/themes'
 import { VISUAL_THEME_KEYS } from '@/config/visualThemes'
 import { useTheme } from '@/lib/hooks/useTheme'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
+import { useAmbientAudio } from '@/lib/hooks/useAmbientAudio'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { AmbientMixerModal } from './AmbientMixerModal'
 import { PomodoroSettingsModal } from './PomodoroSettingsModal'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import type { ThemeName } from '@/types'
 
 interface ZenFocusModalProps {
@@ -38,6 +40,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const { theme: globalTheme, themeConfig: globalThemeConfig } = useTheme()
   const { volumes } = useAmbientSoundStore()
   const { t, language } = useLanguage()
+  useAmbientAudio()
 
   const [zenTheme, setZenTheme] = useState<ThemeName | 'auto'>('auto')
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -47,6 +50,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
   const [focusGoal, setFocusGoal] = useState('')
   const [isGoalCompleted, setIsGoalCompleted] = useState(false)
   const [isControlsVisible, setIsControlsVisible] = useState(true)
+  const [isExitConfirmOpen, setIsExitConfirmOpen] = useState(false)
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
 
   // モーダル再表示時にコントロールの表示状態を初期化
@@ -135,15 +139,22 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
-  // セッション実行中の誤終了防止ガード
-  const handleGuardedClose = useCallback(() => {
-    if (!pomodoro.isRunning || confirm(t('studyExitZenConfirm'))) {
-      if (typeof document !== 'undefined' && document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {})
-      }
-      onClose()
+  const executeClose = useCallback(() => {
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
     }
-  }, [pomodoro.isRunning, onClose, t])
+    setIsExitConfirmOpen(false)
+    onClose()
+  }, [onClose])
+
+  // セッション実行中の誤終了防止ガード（ブラウザ標準ダイアログを排除しカスタムモーダルを表示）
+  const handleGuardedClose = useCallback(() => {
+    if (!pomodoro.isRunning) {
+      executeClose()
+    } else {
+      setIsExitConfirmOpen(true)
+    }
+  }, [pomodoro.isRunning, executeClose])
 
   // キーボードショートカット（F: 全画面 / Esc: 終了ガード）
   useEffect(() => {
@@ -247,7 +258,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={handleGuardedClose}
             aria-label={t('studyCloseZen')}
             title={`${t('studyCloseZen')} (Esc)`}
-            className="h-11 min-h-[44px] px-3.5 sm:px-4 flex items-center gap-2 rounded-full bg-stone-950/90 backdrop-blur-md border border-[#D4B08C]/60 text-[#FFF9F3] hover:text-white hover:bg-rose-500/30 hover:border-rose-400/80 active:scale-95 transition-all shadow-xl cursor-pointer font-bold text-xs"
+            className="h-11 min-h-[44px] px-3.5 sm:px-4 flex items-center gap-2 rounded-full bg-stone-950/90 backdrop-blur-md border border-[#D4B08C]/60 text-[#FFF9F3] hover:text-white hover:bg-rose-500/30 hover:border-rose-400/80 active:scale-[0.96] transition-all shadow-xl cursor-pointer font-bold text-xs focus-visible:ring-2 focus-visible:ring-white/50"
           >
             <X size={18} className="text-rose-400" />
             <span className="tracking-wider">{t('studyCloseZen')}</span>
@@ -347,7 +358,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             type="button"
             onClick={pomodoro.isRunning ? pomodoro.pause : pomodoro.start}
             aria-label={pomodoro.isRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
-            className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white shadow-md active:scale-95 transition-all cursor-pointer"
+            className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#D95D39] hover:bg-[#C24E2B] text-white shadow-md active:scale-[0.96] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white/50"
           >
             {pomodoro.isRunning ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
           </button>
@@ -358,7 +369,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={pomodoro.reset}
             title={t('studyPomodoroReset')}
             aria-label={t('studyPomodoroReset')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-[0.96] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white/50"
           >
             <RotateCcw size={17} />
           </button>
@@ -377,7 +388,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             }}
             title={t('studyPomodoroSettings')}
             aria-label={t('studyPomodoroSettings')}
-            className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${
+            className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-white/50 ${
               isSettingsOpen
                 ? 'bg-white/25 text-white'
                 : 'hover:bg-white/15 text-white/80 hover:text-white'
@@ -400,7 +411,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
               }}
               title={t('studyAmbientTheme')}
               aria-label={t('studyAmbientTheme')}
-              className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-95 ${
+              className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all cursor-pointer active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-white/50 ${
                 showThemePicker
                   ? 'bg-white/25 text-white'
                   : 'hover:bg-white/15 text-white/80 hover:text-white'
@@ -490,7 +501,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             }}
             title={t('studyAmbientSounds')}
             aria-label={t('studyAmbientSounds')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all relative cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-[0.96] transition-all relative cursor-pointer focus-visible:ring-2 focus-visible:ring-white/50"
           >
             <Sliders size={17} className={activeAmbientCount > 0 ? 'text-[#D95D39]' : ''} />
             {activeAmbientCount > 0 && (
@@ -508,7 +519,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={toggleFullscreen}
             title={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
             aria-label={isFullscreen ? t('studyExitFullscreen') : t('studyEnterFullscreen')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/15 text-white/80 hover:text-white active:scale-[0.96] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white/50"
           >
             {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
@@ -519,7 +530,7 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
             onClick={handleGuardedClose}
             title={t('studyCloseZen')}
             aria-label={t('studyCloseZen')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-rose-500/20 text-white/80 hover:text-rose-300 active:scale-95 transition-all cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-rose-500/20 text-white/80 hover:text-rose-300 active:scale-[0.96] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-white/50"
           >
             <X size={17} />
           </button>
@@ -536,6 +547,19 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
         currentDurations={pomodoro.durations}
         onSave={pomodoro.updateDurations}
         onResetDefaults={pomodoro.resetToDefaults}
+      />
+
+      {/* 9. 集中モード終了確認モーダル（ブラウザ標準ダイアログ排除） */}
+      <ConfirmModal
+        isOpen={isExitConfirmOpen}
+        title={t('studyCloseZen')}
+        description={t('studyExitZenConfirm')}
+        confirmText={t('studyCloseZen')}
+        cancelText={t('cancel')}
+        icon="alert"
+        variant="warning"
+        onConfirm={executeClose}
+        onCancel={() => setIsExitConfirmOpen(false)}
       />
     </div>
   )

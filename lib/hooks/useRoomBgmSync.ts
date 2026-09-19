@@ -4,13 +4,20 @@ import { useEffect, useRef, useCallback } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
-import { updateMemberStatus, leaveStudyRoom, updateStudyRoomPlayback } from '@/lib/study/client'
+import {
+  updateMemberStatus,
+  leaveStudyRoom,
+  updateStudyRoomPlayback,
+  requestStudyRoomSong,
+  respondStudyRoomSongRequest,
+} from '@/lib/study/client'
 import type {
   PlaybackState,
   CheerType,
   SilentCheerPayload,
   StudyRoomMember,
   RoomRepeatMode,
+  SongRequest,
 } from '@/types/study'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -28,6 +35,7 @@ export function useRoomBgmSync(roomId: string | null) {
     currentTrack,
     setRoomPlaybackState,
     setRealtimeActions,
+    setRoom,
   } = useStudyRoomStore()
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -463,6 +471,7 @@ export function useRoomBgmSync(roomId: string | null) {
       { event: 'UPDATE', schema: 'public', table: 'study_rooms', filter: `id=eq.${roomId}` },
       async (payload) => {
         const updated = payload.new as {
+          host_id?: string | null
           current_track_id?: string | null
           epoch_started_at?: string
           playback_state?: PlaybackState
@@ -470,14 +479,28 @@ export function useRoomBgmSync(roomId: string | null) {
           current_track_index?: number
           is_shuffle?: boolean
           repeat_mode?: RoomRepeatMode
+          song_requests?: SongRequest[]
         }
 
-        // キュー・シャッフル・リピート状態の同期
+        // ホスト変更（Host Migration）の検知・同期
+        if (updated.host_id) {
+          const currentRoom = useStudyRoomStore.getState().currentRoom
+          if (currentRoom && currentRoom.host_id !== updated.host_id) {
+            setRoom({
+              ...currentRoom,
+              host_id: updated.host_id,
+            })
+          }
+        }
+
+        // キュー・シャッフル・リピート・楽曲リクエスト状態の同期
         setRoomPlaybackState({
           queue: Array.isArray(updated.queue) ? updated.queue : undefined,
-          currentTrackIndex: typeof updated.current_track_index === 'number' ? updated.current_track_index : undefined,
+          currentTrackIndex:
+            typeof updated.current_track_index === 'number' ? updated.current_track_index : undefined,
           isShuffle: typeof updated.is_shuffle === 'boolean' ? updated.is_shuffle : undefined,
           repeatMode: updated.repeat_mode || undefined,
+          songRequests: Array.isArray(updated.song_requests) ? updated.song_requests : undefined,
         })
 
         if (updated && updated.current_track_id) {
@@ -596,6 +619,7 @@ export function useRoomBgmSync(roomId: string | null) {
     addMember,
     removeMember,
     setRoomPlaybackState,
+    setRoom,
   ])
 
   // ポモドーロに基づくプレゼンス状態の更新
@@ -639,6 +663,28 @@ export function useRoomBgmSync(roomId: string | null) {
     [displayName, addCheer]
   )
 
+  // メンバーによる楽曲リクエスト送信
+  const requestSong = useCallback(
+    async (track: { id: string; name: string; artistName?: string; albumImage?: string }): Promise<boolean> => {
+      if (!roomId || !userIdentifier) return false
+      const res = await requestStudyRoomSong(roomId, userIdentifier, track)
+      return res.success
+    },
+    [roomId, userIdentifier]
+  )
+
+  // ホストによる楽曲リクエスト承認・却下
+  const respondSongRequest = useCallback(
+    async (requestId: string, action: 'approve' | 'reject'): Promise<boolean> => {
+      if (!roomId) return false
+      const { currentRoom, userIdentifier } = useStudyRoomStore.getState()
+      const hostId = currentRoom?.host_id || userIdentifier
+      const res = await respondStudyRoomSongRequest(roomId, hostId, requestId, action)
+      return res.success
+    },
+    [roomId]
+  )
+
   // 各種アクションのストア登録
   useEffect(() => {
     setRealtimeActions({
@@ -651,6 +697,8 @@ export function useRoomBgmSync(roomId: string | null) {
       prevRoomTrack,
       setRoomQueue,
       updatePlaybackState,
+      requestSong,
+      respondSongRequest,
     })
 
     return () => {
@@ -666,6 +714,8 @@ export function useRoomBgmSync(roomId: string | null) {
     prevRoomTrack,
     setRoomQueue,
     updatePlaybackState,
+    requestSong,
+    respondSongRequest,
     setRealtimeActions,
   ])
 
@@ -680,5 +730,7 @@ export function useRoomBgmSync(roomId: string | null) {
     prevRoomTrack,
     setRoomQueue,
     updatePlaybackState,
+    requestSong,
+    respondSongRequest,
   }
 }

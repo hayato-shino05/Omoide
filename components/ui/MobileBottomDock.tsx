@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
+import { useToast } from '@/components/ui/Toast'
 import { buildLineShareUrl } from '@/lib/share'
 import { Icon } from './Icon'
 import SongPickerModal from '@/components/community/SongPickerModal'
@@ -38,6 +39,7 @@ export function MobileBottomDock() {
     playbackError,
     retry,
   } = useMusicPlayer()
+  const toast = useToast()
   const [showMenuSheet, setShowMenuSheet] = useState(false)
   const [showMusicList, setShowMusicList] = useState(false)
   const [showVolumePopup, setShowVolumePopup] = useState(false)
@@ -185,12 +187,12 @@ export function MobileBottomDock() {
         if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
           try {
             await navigator.clipboard.writeText(shareUrl)
-            alert(t('linkCopied'))
+            toast.success(t('linkCopied'))
             return
           } catch {
           }
         }
-        window.prompt(t('copyLinkPrompt'), shareUrl)
+        toast.info(t('linkCopied'))
         break
     }
   }
@@ -255,7 +257,7 @@ export function MobileBottomDock() {
             <button
               type="button"
               onClick={() => setIsLyricsOpen(true)}
-              className="min-h-[44px] min-w-[36px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+              className="min-h-[44px] min-w-[36px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-[0.96] cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
               aria-label={t('lyricsTitle')}
             >
               <Icon name="Mic" size={18} useSvg />
@@ -265,7 +267,7 @@ export function MobileBottomDock() {
             <button
               type="button"
               onClick={() => setIsPickerOpen(true)}
-              className="min-h-[44px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+              className="min-h-[44px] px-1.5 flex items-center justify-center rounded-lg text-xs font-bold text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-[0.96] cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
               aria-label={t('selectMusic')}
             >
               <Icon name="Search" size={18} useSvg />
@@ -284,7 +286,7 @@ export function MobileBottomDock() {
                   showVolumePopup
                     ? 'bg-[color-mix(in_srgb,var(--music-accent)_15%,var(--music-surface))] text-[var(--music-accent)]'
                     : 'text-slate-700 dark:text-slate-300'
-                } hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]`}
+                } hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-[0.96] cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]`}
                 aria-label={t('volume')}
                 aria-expanded={showVolumePopup}
               >
@@ -315,7 +317,7 @@ export function MobileBottomDock() {
                     <button
                       type="button"
                       onClick={handleMuteToggle}
-                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-95 cursor-pointer transition-colors"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] hover:bg-[color-mix(in_srgb,var(--music-accent)_10%,var(--music-surface))] active:scale-[0.96] cursor-pointer transition-colors"
                       aria-label={isMuted || volume === 0 ? t('unmute') : t('mute')}
                     >
                       <Icon name={isMuted || volume === 0 ? 'VolumeX' : 'Volume2'} size={18} useSvg className="text-current" />
@@ -372,7 +374,7 @@ export function MobileBottomDock() {
               {/* 前の曲 */}
               <button
                 onClick={prevTrack}
-                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
                 aria-label={t('previousTrack')}
               >
                 <Icon name="SkipBack" size={20} useSvg className="text-current" />
@@ -383,11 +385,11 @@ export function MobileBottomDock() {
                 onClick={toggle}
                 disabled={!currentTrack || isLoading}
                 aria-busy={isLoading}
-                className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full bg-[var(--music-accent)] text-white shadow-xs flex items-center justify-center active:scale-95 cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] hover:brightness-105 transition-all"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full bg-[var(--music-accent)] text-white shadow-xs flex items-center justify-center active:scale-[0.96] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] hover:brightness-105 transition-all"
                 aria-label={isPlaying ? t('pause') : t('play')}
               >
                 {isLoading ? (
-                  <Icon name="LoaderCircle" size={20} useSvg className="animate-spin text-white" />
+                  <Icon name="LoaderCircle" size={20} useSvg className="motion-safe:animate-spin text-white" />
                 ) : (
                   <Icon name={isPlaying ? 'Pause' : 'Play'} size={20} useSvg className="text-white fill-current" />
                 )}
@@ -396,7 +398,7 @@ export function MobileBottomDock() {
               {/* 次の曲 */}
               <button
                 onClick={nextTrack}
-                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
+                className="min-w-[44px] min-h-[44px] bg-transparent hover:scale-105 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-transform text-slate-700 dark:text-slate-300 hover:text-[var(--music-accent)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
                 aria-label={t('nextTrack')}
               >
                 <Icon name="SkipForward" size={20} useSvg className="text-current" />

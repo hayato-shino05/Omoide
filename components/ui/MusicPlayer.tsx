@@ -158,7 +158,7 @@ export function MusicPlayer() {
                 onError={() => setArtworkFailedFor(currentTrack?.id ?? null)}
               />
             ) : isPlaying ? (
-              <Disc3 className="w-7 h-7 text-[#D95D39] animate-[spin_8s_linear_infinite]" />
+              <Disc3 className="w-7 h-7 text-[#D95D39] motion-safe:animate-[spin_8s_linear_infinite]" />
             ) : (
               <Music className="w-6 h-6 text-[#D95D39]/80" />
             )}
@@ -171,9 +171,9 @@ export function MusicPlayer() {
               </span>
               {/* 和風音波アニメーション */}
               <div className="flex items-end gap-0.5 h-3" aria-hidden="true">
-                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'animate-soundbar-1' : 'h-1 opacity-35'}`} />
-                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'animate-soundbar-2' : 'h-2 opacity-35'}`} />
-                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'animate-soundbar-3' : 'h-1.5 opacity-35'}`} />
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-1' : 'h-1 opacity-35'}`} />
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-2' : 'h-2 opacity-35'}`} />
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-3' : 'h-1.5 opacity-35'}`} />
               </div>
             </div>
             <strong className="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5 leading-snug">
@@ -192,7 +192,7 @@ export function MusicPlayer() {
             {/* シャッフル（再生コントローラー左側） */}
             <button
               type="button"
-              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden ${
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden ${
                 isShuffle
                   ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
                   : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
@@ -208,7 +208,7 @@ export function MusicPlayer() {
             {/* 前の曲 */}
             <button
               type="button"
-              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-95 flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
               onClick={prevTrack}
               aria-label={t('previousTrack')}
             >
@@ -218,7 +218,7 @@ export function MusicPlayer() {
             {/* メイン再生 / 一時停止ボタン */}
             <button
               type="button"
-              className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-full bg-[#D95D39] hover:bg-[#c44e2b] text-white shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#D95D39]/60 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+              className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-full bg-[#D95D39] hover:bg-[#c44e2b] text-white shadow-md hover:shadow-lg active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#D95D39]/60 focus-visible:ring-offset-2 focus-visible:outline-hidden"
               onClick={toggle}
               aria-label={isPlaying ? t('pause') : t('play')}
               aria-pressed={isPlaying}
@@ -226,7 +226,7 @@ export function MusicPlayer() {
               disabled={!currentTrack || isLoading}
             >
               {isLoading ? (
-                <LoaderCircle className="w-5 h-5 animate-spin text-white" aria-hidden="true" />
+                <LoaderCircle className="w-5 h-5 motion-safe:animate-spin text-white" aria-hidden="true" />
               ) : isPlaying ? (
                 <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
               ) : (
@@ -237,7 +237,7 @@ export function MusicPlayer() {
             {/* 次の曲 */}
             <button
               type="button"
-              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-95 flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
               onClick={nextTrack}
               aria-label={t('nextTrack')}
             >
@@ -247,7 +247,7 @@ export function MusicPlayer() {
             {/* リピート（再生コントローラー右側） */}
             <button
               type="button"
-              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden relative ${
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden relative ${
                 repeatMode !== 'off'
                   ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
                   : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
@@ -296,7 +296,7 @@ export function MusicPlayer() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-95 flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
               onClick={handleMuteToggle}
               aria-label={isMuted || volume === 0 ? t('unmute') : t('mute')}
               aria-pressed={isMuted || volume === 0}
@@ -341,7 +341,7 @@ export function MusicPlayer() {
             onClick={() => setIsPickerOpen(true)}
             disabled={isCommitting}
             aria-label={t('selectMusic')}
-            className="min-h-[44px] px-4 py-2 inline-flex items-center gap-2 rounded-xl bg-amber-50/60 dark:bg-slate-800/80 border border-amber-950/15 dark:border-amber-100/15 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-[#D95D39]/10 hover:border-[#D95D39]/40 hover:text-[#D95D39] dark:hover:text-[#D95D39] active:scale-98 cursor-pointer transition-all shadow-xs disabled:opacity-60 disabled:cursor-wait focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden whitespace-nowrap"
+            className="min-h-[44px] px-4 py-2 inline-flex items-center gap-2 rounded-xl bg-amber-50/60 dark:bg-slate-800/80 border border-amber-950/15 dark:border-amber-100/15 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-[#D95D39]/10 hover:border-[#D95D39]/40 hover:text-[#D95D39] dark:hover:text-[#D95D39] active:scale-[0.96] cursor-pointer transition-all shadow-xs disabled:opacity-60 disabled:cursor-wait focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden whitespace-nowrap"
           >
             <Disc3 className="w-4 h-4 text-[#D95D39] shrink-0" aria-hidden="true" />
             <span>{isCommitting ? t('loading') : t('selectMusic')}</span>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, isServerSupabaseConfigured } from '@/lib/supabase/server'
 import { createHash } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
         ? createHash('sha256').update(memberToken.trim()).digest('hex')
         : null
 
+    if (!isServerSupabaseConfigured()) {
+      return NextResponse.json({ success: true, migrated_host_id: null }, { status: 200 })
+    }
+
     const supabase = getServiceSupabase()
 
     const { data, error } = await supabase.rpc('leave_study_room', {
@@ -36,7 +40,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '退室処理に失敗しました' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data }, { status: 200 })
+    return NextResponse.json(
+      { success: true, data, migrated_host_id: data?.migrated_host_id ?? null },
+      { status: 200 }
+    )
   } catch (err) {
     console.error('[API study/leave] Error:', err)
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 })

@@ -7,10 +7,13 @@ import { POST as joinRoomPost } from '@/app/api/study/join/route'
 import { POST as playbackPost } from '@/app/api/study/playback/route'
 import { POST as memberStatusPost } from '@/app/api/study/member-status/route'
 import { POST as leaveRoomPost } from '@/app/api/study/leave/route'
+import { POST as requestSongPost } from '@/app/api/study/request-song/route'
+import { POST as respondSongRequestPost } from '@/app/api/study/respond-song-request/route'
 import * as supabaseServerModule from '@/lib/supabase/server'
 
 vi.mock('@/lib/supabase/server', () => ({
   getServiceSupabase: vi.fn(),
+  isServerSupabaseConfigured: vi.fn(() => true),
 }))
 
 describe('Study Room Server-side API Authorization & Security Tests', () => {
@@ -335,7 +338,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     it('退室リクエストを正常に処理し200を返すこと', async () => {
       vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
-          data: { success: true },
+          data: { success: true, migrated_host_id: null },
           error: null,
         }),
       } as any)
@@ -353,6 +356,163 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.success).toBe(true)
+    })
+
+    it('ホスト退出時に後続メンバーへの権限移行（migrated_host_id）を返すこと', async () => {
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: { success: true, migrated_host_id: 'next_active_user' },
+          error: null,
+        }),
+      } as any)
+
+      const request = new NextRequest('http://localhost:3000/api/study/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: 'room_1',
+          userIdentifier: 'current_host',
+          memberToken: 'valid_host_token',
+        }),
+      })
+      const res = await leaveRoomPost(request)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(json.migrated_host_id).toBe('next_active_user')
+    })
+  })
+
+  describe('POST /api/study/request-song', () => {
+    it('無効なパラメータの場合は400を返すこと', async () => {
+      const request = new NextRequest('http://localhost:3000/api/study/request-song', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: '', trackId: '' }),
+      })
+      const res = await requestSongPost(request)
+      expect(res.status).toBe(400)
+    })
+
+    it('待機上限10曲超過エラー（429）を適切にハンドリングすること', async () => {
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'REQUEST_QUEUE_FULL' },
+        }),
+      } as any)
+
+      const request = new NextRequest('http://localhost:3000/api/study/request-song', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: 'room_1',
+          userIdentifier: 'member_1',
+          memberToken: 'valid_token',
+          trackId: 'omoide:track1',
+          trackName: 'Sakura Breeze',
+        }),
+      })
+      const res = await requestSongPost(request)
+      expect(res.status).toBe(429)
+      const json = await res.json()
+      expect(json.error).toContain('リクエスト待機数が上限')
+    })
+
+    it('正規メンバーによる楽曲リクエストを受け入れ200を返すこと', async () => {
+      const mockUpdatedRequests = [
+        {
+          id: 'req_1',
+          track_id: 'omoide:track1',
+          track_name: 'Sakura Breeze',
+          artist_name: 'Omoide Artist',
+          requested_by_id: 'member_1',
+          requested_by_name: 'Bob',
+          created_at: new Date().toISOString(),
+        },
+      ]
+
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: mockUpdatedRequests,
+          error: null,
+        }),
+      } as any)
+
+      const request = new NextRequest('http://localhost:3000/api/study/request-song', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: 'room_1',
+          userIdentifier: 'member_1',
+          memberToken: 'valid_token',
+          trackId: 'omoide:track1',
+          trackName: 'Sakura Breeze',
+          artistName: 'Omoide Artist',
+        }),
+      })
+      const res = await requestSongPost(request)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(json.song_requests).toHaveLength(1)
+    })
+  })
+
+  describe('POST /api/study/respond-song-request', () => {
+    it('非ホストによる審査リクエストを403で拒絶すること', async () => {
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'UNAUTHORIZED_HOST' },
+        }),
+      } as any)
+
+      const request = new NextRequest('http://localhost:3000/api/study/respond-song-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: 'room_1',
+          hostId: 'attacker_user',
+          hostToken: 'fake_token',
+          requestId: 'req_1',
+          action: 'approve',
+        }),
+      })
+      const res = await respondSongRequestPost(request)
+      expect(res.status).toBe(403)
+      const json = await res.json()
+      expect(json.error).toBe('ホスト権限の認証に失敗しました')
+    })
+
+    it('ホストによる承認リクエストでキューに追加され200を返すこと', async () => {
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
+        rpc: vi.fn().mockResolvedValue({
+          data: {
+            success: true,
+            song_requests: [],
+            queue: ['omoide:track1'],
+          },
+          error: null,
+        }),
+      } as any)
+
+      const request = new NextRequest('http://localhost:3000/api/study/respond-song-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: 'room_1',
+          hostId: 'host_1',
+          hostToken: 'valid_token',
+          requestId: 'req_1',
+          action: 'approve',
+        }),
+      })
+      const res = await respondSongRequestPost(request)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(json.queue).toContain('omoide:track1')
     })
   })
 })

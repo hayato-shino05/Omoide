@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, isServerSupabaseConfigured } from '@/lib/supabase/server'
 import { createHash, createHmac } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
@@ -14,6 +14,15 @@ export async function POST(request: NextRequest) {
       typeof hostToken === 'string' && hostToken.trim()
         ? createHash('sha256').update(hostToken.trim()).digest('hex')
         : null
+
+    // オフライン・ローカル開発用のフォールバック処理（Supabase環境変数が未設定の場合）
+    if (!isServerSupabaseConfigured()) {
+      const secretKey = hostTokenHash || 'omoide-study-secret'
+      const signPayload = `${roomId}:${payload.current_track_id || ''}:${payload.playback_state || 'playing'}`
+      const signature = createHmac('sha256', secretKey).update(signPayload).digest('hex')
+
+      return NextResponse.json({ success: true, signature }, { status: 200 })
+    }
 
     const supabase = getServiceSupabase()
 

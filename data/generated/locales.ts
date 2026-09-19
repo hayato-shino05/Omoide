@@ -397,6 +397,7 @@ export const translationKeys = [
   "studyGoalPlaceholder",
   "studyHeroDesc",
   "studyHeroTitle",
+  "studyHostMigrated",
   "studyHostOnlyNotice",
   "studyHostOnlyTooltip",
   "studyIncorrectPasscode",
@@ -450,6 +451,9 @@ export const translationKeys = [
   "studyRepeatAll",
   "studyRepeatOff",
   "studyRepeatOne",
+  "studyRequestFailed",
+  "studyRequestSent",
+  "studyRequestSong",
   "studyRoomBgm",
   "studyRoomDesc",
   "studyRoomDescLabel",
@@ -469,6 +473,7 @@ export const translationKeys = [
   "studySilentCheer",
   "studySoloMuteRoom",
   "studySoloZen",
+  "studySongRequests",
   "studyStageAudience",
   "studyStageDj",
   "studyStreak",
@@ -1133,7 +1138,12 @@ export const localePacks = [
       "studyQueueCount": "{count} tracks",
       "studyActiveMembers": "{count} studying",
       "studyEmptyMembers": "Open desks",
-      "studyDesksOccupied": "{current}/{max} desks"
+      "studyDesksOccupied": "{current}/{max} desks",
+      "studyRequestSong": "Request Song",
+      "studySongRequests": "Requests ({count})",
+      "studyRequestSent": "Song request sent (waiting for host approval)",
+      "studyRequestFailed": "Failed to send song request",
+      "studyHostMigrated": "The host left. You are now the new room DJ!"
     }
   },
   {
@@ -1698,7 +1708,12 @@ export const localePacks = [
       "studyQueueCount": "{count}曲",
       "studyActiveMembers": "{count}人が勉強中",
       "studyEmptyMembers": "空席あり",
-      "studyDesksOccupied": "{current}/{max} 席"
+      "studyDesksOccupied": "{current}/{max} 席",
+      "studyRequestSong": "楽曲リクエスト",
+      "studySongRequests": "リクエスト ({count})",
+      "studyRequestSent": "楽曲リクエストを送信しました（ホストの承認待ち）",
+      "studyRequestFailed": "リクエストの送信に失敗しました",
+      "studyHostMigrated": "ホストが退出したため、あなたが新しいDJになりました"
     }
   }
 ] as const satisfies readonly GeneratedLocalePack[]

@@ -7,6 +7,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 let serviceClientInstance: SupabaseClient | null = null
 
 /**
+ * サーバーサイドでSupabase接続環境変数が設定されているか判定
+ */
+export function isServerSupabaseConfigured(): boolean {
+  return Boolean(
+    supabaseUrl &&
+    (supabaseServiceRoleKey || supabaseAnonKey) &&
+    supabaseUrl !== 'https://placeholder.supabase.co'
+  )
+}
+
+/**
  * サーバーサイド専用の特権・保護されたSupabaseクライアントを取得
  * SERVICE_ROLE_KEYが利用可能な場合はそれを優先し、未設定時はANON_KEYをフォールバックとして使用
  */

@@ -560,6 +560,11 @@
     "studyQueueCount": "{count}曲",
     "studyActiveMembers": "{count}人が勉強中",
     "studyEmptyMembers": "空席あり",
-    "studyDesksOccupied": "{current}/{max} 席"
+    "studyDesksOccupied": "{current}/{max} 席",
+    "studyRequestSong": "楽曲リクエスト",
+    "studySongRequests": "リクエスト ({count})",
+    "studyRequestSent": "楽曲リクエストを送信しました（ホストの承認待ち）",
+    "studyRequestFailed": "リクエストの送信に失敗しました",
+    "studyHostMigrated": "ホストが退出したため、あなたが新しいDJになりました"
   }
 }

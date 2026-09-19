@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Radio,
   LogOut,
@@ -24,6 +24,7 @@ import {
   SkipForward,
   Repeat,
   Repeat1,
+  ListMusic,
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useUIStore } from '@/lib/stores/uiStore'
@@ -31,10 +32,13 @@ import { usePomodoro } from '@/lib/hooks/usePomodoro'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useToast } from '@/components/ui/Toast'
+import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
 import { DeskPresenceList } from './DeskPresenceList'
 import { SilentCheerOverlay } from './SilentCheerOverlay'
 import { ZenFocusModal } from './ZenFocusModal'
 import { PomodoroSettingsModal } from './PomodoroSettingsModal'
+import { SongRequestListModal } from './SongRequestListModal'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import SongPickerModal from '@/components/community/SongPickerModal'
 import { leaveStudyRoom, updateMemberStatus } from '@/lib/study/client'
 
@@ -70,6 +74,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     roomTrackIndex,
     isRoomShuffle,
     roomRepeatMode,
+    songRequests,
     changeRoomTrackAction,
     sendSilentCheerAction,
     updatePresenceStatusAction,
@@ -78,9 +83,11 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     nextRoomTrackAction,
     prevRoomTrackAction,
     updatePlaybackStateAction,
+    requestSongAction,
     setIsSoloMode,
     setRoomVolume,
     setAmbientMixerOpen,
+    setSongRequestModalOpen,
     resetRoom,
   } = useStudyRoomStore()
 
@@ -91,6 +98,19 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
 
   // ホスト権限判定（部屋の作成者・ホストのみBGMの全体制御が可能）
   const isHost = Boolean(storeIsHost || (currentRoom?.host_id && currentRoom.host_id === userIdentifier))
+
+  // ホスト離脱によるホスト権限移行（Host Migration）の検知とトースト通知
+  const prevHostIdRef = useRef<string | null>(currentRoom?.host_id || null)
+  useEffect(() => {
+    if (currentRoom?.host_id) {
+      if (prevHostIdRef.current && prevHostIdRef.current !== currentRoom.host_id) {
+        if (currentRoom.host_id === userIdentifier) {
+          toast.info(t('studyHostMigrated'))
+        }
+      }
+      prevHostIdRef.current = currentRoom.host_id
+    }
+  }, [currentRoom?.host_id, userIdentifier, toast, t])
 
   const changeRoomTrack = changeRoomTrackAction || (async () => {})
   const sendSilentCheer = sendSilentCheerAction || (() => {})
@@ -122,7 +142,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
 
   const [isZenOpen, setIsZenOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false)
   const [isSongPickerOpen, setIsSongPickerOpen] = useState(false)
+  const [songPickerMode, setSongPickerMode] = useState<'change' | 'request'>('change')
   const [isPomodoroSettingsOpen, setIsPomodoroSettingsOpen] = useState(false)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
 
@@ -164,13 +186,16 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
 
   const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
 
-  const handleLeave = async () => {
-    if (confirm(t('studyLeaveConfirm'))) {
-      await leaveStudyRoom(roomId, userIdentifier)
-      resetRoom()
-      useAmbientSoundStore.getState().setIsPlaying(false)
-      onLeave()
-    }
+  const handleLeave = () => {
+    setIsLeaveConfirmOpen(true)
+  }
+
+  const executeLeave = async () => {
+    await leaveStudyRoom(roomId, userIdentifier)
+    resetRoom()
+    useAmbientSoundStore.getState().setIsPlaying(false)
+    setIsLeaveConfirmOpen(false)
+    onLeave()
   }
 
   const handleCopyLink = () => {
@@ -194,13 +219,40 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     }
   }
 
-  const handleSongConfirm = (reference: string) => {
-    if (!isHost) {
-      toast.info(t('studyHostOnlyNotice'))
-      return
+  const handleSongConfirm = async (reference: string) => {
+    if (songPickerMode === 'change') {
+      if (!isHost) {
+        toast.info(t('studyHostOnlyNotice'))
+        return
+      }
+      changeRoomTrack(reference)
+      setIsSongPickerOpen(false)
+    } else {
+      // メンバーによる楽曲リクエスト送信
+      const cleanId = reference.includes(':') ? reference.split(':')[1] : reference
+      const preset = JAPAN_PRESET_TRACKS.find(
+        (t) =>
+          t.id === cleanId ||
+          t.id === reference ||
+          t.reference === reference ||
+          (t.trackId === cleanId && t.provider === 'jamendo')
+      )
+      const trackPayload = {
+        id: reference,
+        name: preset?.name || 'Requested Track',
+        artistName: preset?.artistName || 'Unknown Artist',
+        albumImage: preset?.albumImage,
+      }
+      if (requestSongAction) {
+        const success = await requestSongAction(trackPayload)
+        if (success) {
+          toast.success(t('studyRequestSent'))
+        } else {
+          toast.error(t('studyRequestFailed'))
+        }
+      }
+      setIsSongPickerOpen(false)
     }
-    changeRoomTrack(reference)
-    setIsSongPickerOpen(false)
   }
 
   return (
@@ -256,7 +308,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={() => setIsZenOpen(true)}
             aria-label={t('studyZenMode')}
             title={t('studyZenMode')}
-            className="flex items-center gap-1.5 px-3.5 sm:px-4 h-11 min-h-[44px] rounded-xl text-xs font-bold bg-[#D95D39] hover:bg-[#C24E2B] active:scale-95 text-white border-2 border-[#854D27] shadow-[2px_2px_0_#854D27] transition-all cursor-pointer font-body"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 h-11 min-h-[44px] rounded-xl text-xs font-bold bg-[#D95D39] hover:bg-[#C24E2B] active:scale-[0.96] text-white border-2 border-[#854D27] shadow-[2px_2px_0_#854D27] transition-all cursor-pointer font-body focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
           >
             <Maximize2 size={15} />
             <span className="hidden sm:inline">{t('studyZenMode')}</span>
@@ -268,7 +320,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={handleCopyLink}
             title={t('studyCopyInviteLink')}
             aria-label={t('studyCopyInviteLink')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#FAF0E6] hover:bg-[#F3E5D8] active:scale-95 text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#FAF0E6] hover:bg-[#F3E5D8] active:scale-[0.96] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
           >
             {isCopied ? <Check size={17} className="text-[#2E7D6F]" /> : <Share2 size={17} />}
           </button>
@@ -279,7 +331,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={() => closeModal()}
             title={t('studyMinimizeRoom')}
             aria-label={t('studyMinimizeRoom')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#FAF0E6] hover:bg-[#F3E5D8] active:scale-95 text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#FAF0E6] hover:bg-[#F3E5D8] active:scale-[0.96] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
           >
             <Minus size={18} />
           </button>
@@ -290,7 +342,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
             onClick={handleLeave}
             title={t('studyLeaveRoom')}
             aria-label={t('studyLeaveRoom')}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-800 border border-rose-300 transition-all shadow-2xs cursor-pointer"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-[0.96] text-rose-800 border border-rose-300 transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             <LogOut size={17} />
           </button>
@@ -321,22 +373,57 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 )}
               </div>
 
-              {/* 選曲ボタン（ホストのみ操作可能） */}
-              <button
-                type="button"
-                onClick={() => handleHostAction(() => setIsSongPickerOpen(true))}
-                disabled={!isHost}
-                title={isHost ? t('studyChangeSong') : t('studyHostOnlyTooltip')}
-                aria-label={t('studyChangeSong')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all font-body min-h-[38px] ${
-                  isHost
-                    ? 'bg-[#D95D39] hover:bg-[#C24E2B] text-white border-[#854D27] shadow-2xs active:scale-95 cursor-pointer'
-                    : 'bg-[#FAF0E6] text-[#5C3A21] border-[#D4B08C] opacity-60 cursor-not-allowed'
-                }`}
-              >
-                <Music size={13} />
-                <span>{t('studyChangeSong')}</span>
-              </button>
+              {/* 選曲・リクエスト操作ボタン群 */}
+              <div className="flex items-center gap-2">
+                {/* ホスト用: リクエスト審査ボタン */}
+                {isHost ? (
+                  <button
+                    type="button"
+                    onClick={() => setSongRequestModalOpen(true)}
+                    aria-label={t('studySongRequests', { count: songRequests.length })}
+                    className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all font-body min-h-[38px] bg-white hover:bg-[#FAF0E6] text-[#5C3A21] border-[#D4B08C] shadow-2xs active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
+                  >
+                    <ListMusic size={14} className="text-[#D95D39]" />
+                    <span>{t('studySongRequests', { count: songRequests.length })}</span>
+                    {songRequests.length > 0 && (
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D95D39] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D95D39]" />
+                      </span>
+                    )}
+                  </button>
+                ) : (
+                  /* メンバー用: 楽曲リクエスト送信ボタン */
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSongPickerMode('request')
+                      setIsSongPickerOpen(true)
+                    }}
+                    aria-label={t('studyRequestSong')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all font-body min-h-[38px] bg-[#2E7D6F] hover:bg-[#25665B] text-white border-[#1B4D44] shadow-2xs active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2E7D6F]/40"
+                  >
+                    <Music size={13} />
+                    <span>{t('studyRequestSong')}</span>
+                  </button>
+                )}
+
+                {/* ホスト用: 選曲ボタン */}
+                {isHost && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSongPickerMode('change')
+                      setIsSongPickerOpen(true)
+                    }}
+                    aria-label={t('studyChangeSong')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all font-body min-h-[38px] bg-[#D95D39] hover:bg-[#C24E2B] text-white border-[#854D27] shadow-2xs active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
+                  >
+                    <Music size={13} />
+                    <span>{t('studyChangeSong')}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Turntable Vinyl Hero */}
@@ -386,7 +473,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                     {[40, 75, 55, 90, 60, 85, 45, 70, 60, 95].map((h, i) => (
                       <span
                         key={i}
-                        className="w-1 bg-[#D95D39] rounded-full animate-pulse"
+                        className="w-1 bg-[#D95D39] rounded-full motion-safe:animate-pulse"
                         style={{
                           height: `${h}%`,
                           animationDelay: `${i * 100}ms`,
@@ -415,13 +502,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 }
                 aria-label={t('studyShuffle')}
                 aria-pressed={isRoomShuffle}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   isRoomShuffle
                     ? 'bg-[#D95D39] text-white border-[#854D27]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'
                 } ${
                   isHost
-                    ? 'active:scale-95 cursor-pointer'
+                    ? 'active:scale-[0.96] cursor-pointer'
                     : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -435,9 +522,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 disabled={!isHost}
                 title={!isHost ? t('studyHostOnlyTooltip') : t('studyPreviousTrack')}
                 aria-label={t('studyPreviousTrack')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   isHost
-                    ? 'active:scale-95 cursor-pointer'
+                    ? 'active:scale-[0.96] cursor-pointer'
                     : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -457,9 +544,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                     : t('play')
                 }
                 aria-label={isRoomPlaying ? t('pause') : t('play')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] transition-all shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white border border-[#854D27] transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   isHost
-                    ? 'active:scale-95 cursor-pointer'
+                    ? 'active:scale-[0.96] cursor-pointer'
                     : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -473,9 +560,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 disabled={!isHost}
                 title={!isHost ? t('studyHostOnlyTooltip') : t('studyNextTrack')}
                 aria-label={t('studyNextTrack')}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   isHost
-                    ? 'active:scale-95 cursor-pointer'
+                    ? 'active:scale-[0.96] cursor-pointer'
                     : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -498,13 +585,13 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 }
                 aria-label={t('repeat')}
                 aria-pressed={roomRepeatMode !== 'off'}
-                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs ${
+                className={`flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl border transition-all shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   roomRepeatMode !== 'off'
                     ? 'bg-[#2E7D6F] text-white border-[#1B4D44]'
                     : 'bg-white text-[#5C3A21] hover:bg-[#FAF0E6] border-[#D4B08C]'
                 } ${
                   isHost
-                    ? 'active:scale-95 cursor-pointer'
+                    ? 'active:scale-[0.96] cursor-pointer'
                     : 'opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -521,7 +608,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                 type="button"
                 onClick={() => setIsSoloMode(!isSoloMode)}
                 aria-label={isSoloMode ? t('unmute') : t('studySoloMuteRoom')}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-95 font-body min-h-[44px] shadow-2xs ${
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer active:scale-[0.96] font-body min-h-[44px] shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   isSoloMode
                     ? 'bg-amber-100 text-amber-950 border-amber-300'
                     : 'bg-white hover:bg-[#FAF0E6] text-[#3D2314] border-[#D4B08C]'
@@ -541,7 +628,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
                   value={isSoloMode ? 0 : roomVolume}
                   onChange={(e) => setRoomVolume(parseFloat(e.target.value))}
                   aria-label={t('studyRoomBgm')}
-                  className="w-full h-1.5 bg-[#D4B08C]/40 rounded-lg appearance-none cursor-pointer accent-[#D95D39] disabled:opacity-30"
+                  className="w-full h-1.5 bg-[#D4B08C]/40 rounded-lg appearance-none cursor-pointer accent-[#D95D39] disabled:opacity-30 focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
                 />
                 <span className="text-xs font-mono text-[#3D2314] font-bold tabular-nums w-10 text-right">
                   {isSoloMode ? '0%' : `${Math.round(roomVolume * 100)}%`}
@@ -554,7 +641,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               type="button"
               onClick={() => setAmbientMixerOpen(true)}
               aria-label={t('studyAmbientSounds')}
-              className={`flex items-center justify-between w-full px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 cursor-pointer font-body min-h-[44px] shadow-2xs ${
+              className={`flex items-center justify-between w-full px-3.5 py-2 rounded-xl text-xs font-bold border transition-all active:scale-[0.96] cursor-pointer font-body min-h-[44px] shadow-2xs focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                 activeAmbientCount > 0 && isAmbientPlaying
                   ? 'bg-emerald-50 text-[#2E7D6F] border-[#2E7D6F]'
                   : 'bg-white text-[#3D2314] hover:bg-[#FAF0E6] border-[#D4B08C]'
@@ -579,7 +666,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => switchPomodoroMode('focus')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   mode === 'focus'
                     ? 'bg-[#D95D39] text-white shadow-xs'
                     : 'text-[#5C3A21] hover:bg-white/80'
@@ -590,7 +677,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => switchPomodoroMode('short_break')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   mode === 'short_break'
                     ? 'bg-[#2E7D6F] text-white shadow-xs'
                     : 'text-[#5C3A21] hover:bg-white/80'
@@ -601,7 +688,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               <button
                 type="button"
                 onClick={() => switchPomodoroMode('long_break')}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center ${
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer font-body min-h-[38px] text-center focus-visible:ring-2 focus-visible:ring-[#854D27]/40 ${
                   mode === 'long_break'
                     ? 'bg-[#4A6572] text-white shadow-xs'
                     : 'text-[#5C3A21] hover:bg-white/80'
@@ -632,7 +719,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               type="button"
               onClick={isPomodoroRunning ? pausePomodoro : startPomodoro}
               aria-label={isPomodoroRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}
-              className="flex-1 flex items-center justify-center gap-2 h-11 min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer font-body"
+              className="flex-1 flex items-center justify-center gap-2 h-11 min-h-[44px] rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] text-white font-bold text-xs shadow-xs active:scale-[0.96] transition-all cursor-pointer font-body focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
             >
               {isPomodoroRunning ? <Pause size={17} /> : <Play size={17} className="ml-0.5" />}
               <span>{isPomodoroRunning ? t('studyPomodoroPause') : t('studyPomodoroStart')}</span>
@@ -643,7 +730,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               onClick={resetPomodoro}
               aria-label={t('studyPomodoroReset')}
               title={t('studyPomodoroReset')}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-[0.96] transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
             >
               <RotateCcw size={17} />
             </button>
@@ -653,7 +740,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
               onClick={() => setIsPomodoroSettingsOpen(true)}
               aria-label={t('studyPomodoroSettings')}
               title={t('studyPomodoroSettings')}
-              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-95 transition-all shadow-2xs cursor-pointer"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white hover:bg-[#FAF0E6] text-[#3D2314] border border-[#D4B08C] active:scale-[0.96] transition-all shadow-2xs cursor-pointer focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
             >
               <SlidersHorizontal size={17} />
             </button>
@@ -680,12 +767,28 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
         onResetDefaults={resetToDefaults}
       />
 
-      {/* 6. 楽曲カタログ選択モーダル（全参加者利用可能） */}
+      {/* 6. 楽曲リクエスト審査モーダル */}
+      <SongRequestListModal />
+
+      {/* 7. 楽曲カタログ選択モーダル（全参加者利用可能） */}
       <SongPickerModal
         isOpen={isSongPickerOpen}
         onClose={() => setIsSongPickerOpen(false)}
         onConfirm={handleSongConfirm}
         initialValue={currentTrack?.id}
+      />
+
+      {/* 8. 退出確認モーダル（ブラウザ標準ダイアログ排除） */}
+      <ConfirmModal
+        isOpen={isLeaveConfirmOpen}
+        title={t('studyLeaveRoom')}
+        description={t('studyLeaveConfirm')}
+        confirmText={t('studyDisconnectRoom')}
+        cancelText={t('cancel')}
+        icon="logout"
+        variant="danger"
+        onConfirm={executeLeave}
+        onCancel={() => setIsLeaveConfirmOpen(false)}
       />
     </div>
   )

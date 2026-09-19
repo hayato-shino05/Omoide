@@ -5,6 +5,17 @@ export type FocusStatus = 'focusing' | 'short_break' | 'long_break' | 'idle'
 export type CheerType = 'coffee' | 'fire' | 'sparkle' | 'book'
 export type RoomRepeatMode = 'off' | 'all' | 'one'
 
+export interface SongRequest {
+  id: string
+  track_id: string
+  track_name: string
+  artist_name: string
+  album_image?: string | null
+  requested_by_id: string
+  requested_by_name: string
+  created_at: string
+}
+
 export interface StudyRoom {
   id: string
   name: string
@@ -17,6 +28,11 @@ export interface StudyRoom {
   is_private: boolean
   passcode?: string | null
   max_members: number
+  queue?: string[]
+  current_track_index?: number
+  is_shuffle?: boolean
+  repeat_mode?: RoomRepeatMode
+  song_requests?: SongRequest[]
   created_at: string
   updated_at: string
   study_room_members?: Array<{

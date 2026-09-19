@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { StudyRoom, StudyRoomMember, SilentCheerPayload, CheerType, FocusStatus, RoomRepeatMode, PlaybackState } from '@/types/study'
+import type { StudyRoom, StudyRoomMember, SilentCheerPayload, CheerType, FocusStatus, RoomRepeatMode, PlaybackState, SongRequest } from '@/types/study'
 import type { SavedTrack } from '@/lib/stores/musicStore'
 
 export interface StudyRoomStore {
@@ -19,6 +19,8 @@ export interface StudyRoomStore {
   isAmbientMixerOpen: boolean
   personalGoal: string
   isGoalCompleted: boolean
+  songRequests: SongRequest[]
+  isSongRequestModalOpen: boolean
 
   // 部屋全体のプレイリストキュー・シャッフル・リピート状態
   roomQueue: string[]
@@ -36,6 +38,8 @@ export interface StudyRoomStore {
   prevRoomTrackAction: (() => Promise<void>) | null
   setRoomQueueAction: ((queue: string[], startIndex?: number) => Promise<void>) | null
   updatePlaybackStateAction: ((playbackState: PlaybackState) => Promise<void>) | null
+  requestSongAction: ((track: { id: string; name: string; artistName?: string; albumImage?: string }) => Promise<boolean>) | null
+  respondSongRequestAction: ((requestId: string, action: 'approve' | 'reject') => Promise<boolean>) | null
 
   setRoom: (room: StudyRoom | null) => void
   setMembers: (members: StudyRoomMember[]) => void
@@ -51,11 +55,16 @@ export interface StudyRoomStore {
   setAmbientMixerOpen: (isOpen: boolean) => void
   setPersonalGoal: (goal: string) => void
   toggleGoalCompleted: () => void
+  setSongRequests: (requests: SongRequest[]) => void
+  addSongRequest: (request: SongRequest) => void
+  removeSongRequest: (requestId: string) => void
+  setSongRequestModalOpen: (isOpen: boolean) => void
   setRoomPlaybackState: (state: {
     queue?: string[]
     currentTrackIndex?: number
     isShuffle?: boolean
     repeatMode?: RoomRepeatMode
+    songRequests?: SongRequest[]
   }) => void
   setRealtimeActions: (actions: {
     changeRoomTrack: (trackId: string) => Promise<void>
@@ -67,6 +76,8 @@ export interface StudyRoomStore {
     prevRoomTrack: () => Promise<void>
     setRoomQueue: (queue: string[], startIndex?: number) => Promise<void>
     updatePlaybackState: (playbackState: PlaybackState) => Promise<void>
+    requestSong?: (track: { id: string; name: string; artistName?: string; albumImage?: string }) => Promise<boolean>
+    respondSongRequest?: (requestId: string, action: 'approve' | 'reject') => Promise<boolean>
   } | null) => void
   resetRoom: () => void
 }
@@ -87,6 +98,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
       isAmbientMixerOpen: false,
       personalGoal: '',
       isGoalCompleted: false,
+      songRequests: [],
+      isSongRequestModalOpen: false,
 
       roomQueue: [],
       roomTrackIndex: 0,
@@ -102,6 +115,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
       prevRoomTrackAction: null,
       setRoomQueueAction: null,
       updatePlaybackStateAction: null,
+      requestSongAction: null,
+      respondSongRequestAction: null,
 
       setRoom: (room) => {
         const userId = get().userIdentifier
@@ -109,7 +124,16 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           currentRoom: room,
           isHost: Boolean(room && userId && room.host_id === userId),
           roomSessionStartedAt: room ? get().roomSessionStartedAt || Date.now() : null,
-          roomQueue: room?.current_track_id ? [room.current_track_id] : get().roomQueue,
+          roomQueue:
+            room?.queue && room.queue.length > 0
+              ? room.queue
+              : room?.current_track_id
+              ? [room.current_track_id]
+              : get().roomQueue,
+          roomTrackIndex: room?.current_track_index ?? get().roomTrackIndex,
+          isRoomShuffle: room?.is_shuffle ?? get().isRoomShuffle,
+          roomRepeatMode: room?.repeat_mode ?? get().roomRepeatMode,
+          songRequests: room?.song_requests ?? [],
         })
       },
 
@@ -171,6 +195,20 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
 
       toggleGoalCompleted: () => set((state) => ({ isGoalCompleted: !state.isGoalCompleted })),
 
+      setSongRequests: (songRequests) => set({ songRequests }),
+
+      addSongRequest: (request) =>
+        set((state) => ({
+          songRequests: [...state.songRequests.filter((r) => r.id !== request.id), request],
+        })),
+
+      removeSongRequest: (requestId) =>
+        set((state) => ({
+          songRequests: state.songRequests.filter((r) => r.id !== requestId),
+        })),
+
+      setSongRequestModalOpen: (isSongRequestModalOpen) => set({ isSongRequestModalOpen }),
+
       setRoomPlaybackState: (playbackState) =>
         set((state) => ({
           roomQueue: playbackState.queue !== undefined ? playbackState.queue : state.roomQueue,
@@ -182,6 +220,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
             playbackState.isShuffle !== undefined ? playbackState.isShuffle : state.isRoomShuffle,
           roomRepeatMode:
             playbackState.repeatMode !== undefined ? playbackState.repeatMode : state.roomRepeatMode,
+          songRequests:
+            playbackState.songRequests !== undefined ? playbackState.songRequests : state.songRequests,
         })),
 
       setRealtimeActions: (actions) =>
@@ -195,6 +235,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           prevRoomTrackAction: actions?.prevRoomTrack ?? null,
           setRoomQueueAction: actions?.setRoomQueue ?? null,
           updatePlaybackStateAction: actions?.updatePlaybackState ?? null,
+          requestSongAction: actions?.requestSong ?? null,
+          respondSongRequestAction: actions?.respondSongRequest ?? null,
         }),
 
       resetRoom: () =>
@@ -209,6 +251,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           isAmbientMixerOpen: false,
           personalGoal: '',
           isGoalCompleted: false,
+          songRequests: [],
+          isSongRequestModalOpen: false,
           roomQueue: [],
           roomTrackIndex: 0,
           isRoomShuffle: false,
@@ -222,6 +266,8 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           prevRoomTrackAction: null,
           setRoomQueueAction: null,
           updatePlaybackStateAction: null,
+          requestSongAction: null,
+          respondSongRequestAction: null,
         }),
     }),
     {

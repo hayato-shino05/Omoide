@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Camera, Upload, Download, RotateCcw, X, Plus } from 'lucide-react'
 import { photoStrips, frameCategories, PhotoStripConfig } from '@/config/frames'
-
+import { useToast } from '@/components/ui/Toast'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export default function PhotoFrame() {
   const { t } = useLanguage()
+  const toast = useToast()
   const [selectedStrip, setSelectedStrip] = useState<PhotoStripConfig>(photoStrips[0])
   const [selectedCategory, setSelectedCategory] = useState<string>('trending')
   const [userImages, setUserImages] = useState<(string | null)[]>([null, null, null, null])
@@ -230,7 +231,7 @@ export default function PhotoFrame() {
       setIsCapturing(true)
     } catch (err) {
       console.error('Camera error:', err)
-      alert(t('cameraAccessError'))
+      toast.error(t('cameraAccessError'))
     }
   }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, isServerSupabaseConfigured } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,6 +7,11 @@ export async function POST(request: NextRequest) {
 
     if (!roomId || typeof roomId !== 'string' || typeof passcode !== 'string') {
       return NextResponse.json({ valid: false, error: '無効なリクエストです' }, { status: 400 })
+    }
+
+    // オフライン・ローカル開発用のフォールバック処理（Supabase環境変数が未設定の場合）
+    if (!isServerSupabaseConfigured()) {
+      return NextResponse.json({ valid: true }, { status: 200 })
     }
 
     const supabase = getServiceSupabase()

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
   Lock,
@@ -222,7 +223,7 @@ export function StudyRoomHub() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#FFFDF9] via-[#FAF3EB] to-[#F5EBE1] border-2 border-[#D4B08C] shadow-xs mb-6">
         <div className="max-w-xl">
           <div className="flex items-center gap-2 text-[#D95D39] text-xs font-bold uppercase tracking-wider mb-1.5 font-body">
-            <Radio size={15} className="animate-pulse" />
+            <Radio size={15} className="motion-safe:animate-pulse" />
             <span>{t('studyRoomTitle')}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#3D2314] font-heading tracking-tight">
@@ -237,7 +238,7 @@ export function StudyRoomHub() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] active:scale-95 text-white text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] active:scale-[0.96] text-white text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[44px]"
           >
             <Plus size={16} />
             <span>{t('studyCreateRoom')}</span>
@@ -246,7 +247,7 @@ export function StudyRoomHub() {
           <button
             type="button"
             onClick={() => setIsZenSoloOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#FAF0E6] active:scale-95 text-[#3D2314] border border-[#D4B08C] text-xs font-bold transition-all shadow-2xs cursor-pointer min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#FAF0E6] active:scale-[0.96] text-[#3D2314] border border-[#D4B08C] text-xs font-bold transition-all shadow-2xs cursor-pointer min-h-[44px]"
           >
             <Maximize2 size={15} className="text-[#D95D39]" />
             <span>{t('studySoloZen')}</span>
@@ -263,7 +264,7 @@ export function StudyRoomHub() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('studySearchPlaceholder')}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:border-[#3D2314] shadow-inner transition-colors font-body min-h-[44px]"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:ring-2 focus:ring-[#854D27]/30 focus:border-[#3D2314] shadow-inner transition-colors font-body min-h-[44px]"
           />
         </div>
 
@@ -272,7 +273,7 @@ export function StudyRoomHub() {
           onClick={loadRooms}
           title={t('studyRefreshRooms')}
           aria-label={t('studyRefreshRooms')}
-          className="p-2.5 rounded-xl bg-white hover:bg-[#FAF0E6] border-2 border-[#D4B08C] text-[#3D2314] transition-all shadow-xs active:scale-95 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="p-2.5 rounded-xl bg-white hover:bg-[#FAF0E6] border-2 border-[#D4B08C] text-[#3D2314] transition-all shadow-xs active:scale-[0.96] cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#854D27]/30"
         >
           <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
         </button>
@@ -288,7 +289,7 @@ export function StudyRoomHub() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#D95D39] text-white text-xs font-bold hover:bg-[#c44e2b] active:scale-95 transition-all shadow-xs cursor-pointer min-h-[44px]"
+            className="mt-4 px-4 py-2 rounded-xl bg-[#D95D39] text-white text-xs font-bold hover:bg-[#c44e2b] active:scale-[0.96] transition-all shadow-xs cursor-pointer min-h-[44px]"
           >
             {t('studyCreateFirstRoom')}
           </button>
@@ -376,7 +377,7 @@ export function StudyRoomHub() {
                     <div className="flex items-center gap-1.5 text-[11px] font-bold font-body">
                       <span
                         className={`w-2 h-2 rounded-full ${
-                          roomMembers.length > 0 ? 'bg-[#2E7D6F] animate-pulse' : 'bg-stone-300'
+                          roomMembers.length > 0 ? 'bg-[#2E7D6F] motion-safe:animate-pulse' : 'bg-stone-300'
                         }`}
                       />
                       <span className={roomMembers.length > 0 ? 'text-[#2E7D6F]' : 'text-[#854D27]/80'}>
@@ -397,9 +398,9 @@ export function StudyRoomHub() {
                     </span>
                     {isPlaying && (
                       <span className="inline-flex items-end gap-0.5 h-3 ml-0.5" aria-hidden="true">
-                        <span className="w-0.5 h-2 bg-[#D95D39] rounded-full animate-pulse" />
-                        <span className="w-0.5 h-3 bg-[#D95D39] rounded-full animate-pulse delay-75" />
-                        <span className="w-0.5 h-1.5 bg-[#D95D39] rounded-full animate-pulse delay-150" />
+                        <span className="w-0.5 h-2 bg-[#D95D39] rounded-full motion-safe:animate-pulse" />
+                        <span className="w-0.5 h-3 bg-[#D95D39] rounded-full motion-safe:animate-pulse delay-75" />
+                        <span className="w-0.5 h-1.5 bg-[#D95D39] rounded-full motion-safe:animate-pulse delay-150" />
                       </span>
                     )}
                   </div>
@@ -407,7 +408,7 @@ export function StudyRoomHub() {
                   <button
                     type="button"
                     onClick={() => handleJoinRoom(room)}
-                    className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] active:scale-95 text-white text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[44px] flex items-center justify-center font-body"
+                    className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#C24E2B] active:scale-[0.96] text-white text-xs font-bold transition-all shadow-xs cursor-pointer min-h-[44px] flex items-center justify-center font-body focus:outline-none focus:ring-2 focus:ring-[#854D27]/30"
                   >
                     {t('studyJoinRoom')}
                   </button>
@@ -419,171 +420,187 @@ export function StudyRoomHub() {
       )}
 
       {/* Create Room Modal */}
-      {isCreateModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-room-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFFDF9] border-3 border-[#D4B08C] text-[#3D2314] shadow-[8px_8px_0_#D4B08C]">
-            <div className="flex items-center justify-between pb-3 border-b-2 border-[#D4B08C] mb-4">
-              <h2 id="create-room-title" className="text-base font-bold text-[#3D2314] font-heading">
-                {t('studyCreateRoom')}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                aria-label={t('close')}
-                className="p-1.5 rounded-lg text-[#3D2314] hover:bg-[#FAF0E6] transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateRoom} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
-                  {t('studyRoomName')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder={t('studyRoomNamePlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:border-[#3D2314] font-body"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
-                  {t('studyRoomDescLabel')}
-                </label>
-                <textarea
-                  rows={2}
-                  value={newRoomDesc}
-                  onChange={(e) => setNewRoomDesc(e.target.value)}
-                  placeholder={t('studyRoomDescPlaceholder')}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:border-[#3D2314] resize-none font-body"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
-                  {t('studyInitialBgm')}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsSongPickerOpen(true)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] hover:border-[#3D2314] transition-all cursor-pointer font-body min-h-[44px]"
-                >
-                  <span className="truncate">
-                    {selectedTrackId ? t('studyTrackSelected', { id: selectedTrackId }) : t('studySelectTrack')}
-                  </span>
-                  <Music size={14} className="text-[#D95D39] flex-shrink-0 ml-2" />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="isPrivateCheckbox"
-                  checked={isPrivate}
-                  onChange={(e) => setIsPrivate(e.target.checked)}
-                  className="rounded border-[#D4B08C] text-[#D95D39] focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="isPrivateCheckbox" className="text-xs text-[#3D2314] font-medium cursor-pointer font-body">
-                  {t('studyPrivateRoomOption')}
-                </label>
-              </div>
-
-              {isPrivate && (
-                <div>
-                  <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
-                    {t('roomPasscode')} *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={passcode}
-                    onChange={(e) => setPasscode(e.target.value)}
-                    placeholder={t('studyEnterPasscode')}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:border-[#3D2314] font-body"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t-2 border-[#D4B08C]">
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-room-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+              className="w-full max-w-md p-6 sm:p-7 rounded-2xl bg-[#FFFDF9] border-2 border-[#D4B08C] text-[#3D2314] shadow-2xl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[#D4B08C]/60 mb-4">
+                <h2 id="create-room-title" className="text-base font-bold text-[#3D2314] font-heading">
+                  {t('studyCreateRoom')}
+                </h2>
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5C3A21] hover:text-[#3D2314] active:scale-95 transition-all cursor-pointer min-h-[44px]"
+                  aria-label={t('close')}
+                  className="p-1.5 rounded-xl text-[#3D2314] hover:bg-[#FAF0E6] active:scale-[0.96] transition-all cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateRoom} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
+                    {t('studyRoomName')} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    placeholder={t('studyRoomNamePlaceholder')}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:ring-2 focus:ring-[#854D27]/30 focus:border-[#3D2314] font-body min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
+                    {t('studyRoomDescLabel')}
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={newRoomDesc}
+                    onChange={(e) => setNewRoomDesc(e.target.value)}
+                    placeholder={t('studyRoomDescPlaceholder')}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:ring-2 focus:ring-[#854D27]/30 focus:border-[#3D2314] resize-none font-body"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
+                    {t('studyInitialBgm')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsSongPickerOpen(true)}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-[#D4B08C] text-xs text-[#3D2314] hover:border-[#3D2314] active:scale-[0.96] transition-all cursor-pointer font-body min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#854D27]/30"
+                  >
+                    <span className="truncate">
+                      {selectedTrackId ? t('studyTrackSelected', { id: selectedTrackId }) : t('studySelectTrack')}
+                    </span>
+                    <Music size={14} className="text-[#D95D39] flex-shrink-0 ml-2" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="isPrivateCheckbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                    className="rounded border-[#D4B08C] text-[#D95D39] focus:ring-0 cursor-pointer w-5 h-5"
+                  />
+                  <label htmlFor="isPrivateCheckbox" className="text-xs text-[#3D2314] font-medium cursor-pointer font-body">
+                    {t('studyPrivateRoomOption')}
+                  </label>
+                </div>
+
+                {isPrivate && (
+                  <div>
+                    <label className="block text-xs font-bold text-[#3D2314] mb-1 font-body">
+                      {t('roomPasscode')} *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={passcode}
+                      onChange={(e) => setPasscode(e.target.value)}
+                      placeholder={t('studyEnterPasscode')}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D4B08C] text-xs text-[#3D2314] placeholder-[#854D27]/40 focus:outline-none focus:ring-2 focus:ring-[#854D27]/30 focus:border-[#3D2314] font-body min-h-[44px]"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#D4B08C]/60">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-[#5C3A21] hover:text-[#3D2314] hover:bg-[#FAF0E6] active:scale-[0.96] transition-all cursor-pointer min-h-[44px]"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-[0.96] transition-all disabled:opacity-50 cursor-pointer min-h-[44px] focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
+                  >
+                    {isSubmitting ? t('studyCreatingRoom') : t('createRoom')}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Private Room Passcode Dialog */}
+      <AnimatePresence>
+        {joiningRoom && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="private-room-join-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+              className="w-full max-w-sm p-6 rounded-2xl bg-[#FFFDF9] border-2 border-[#D4B08C] text-[#3D2314] shadow-2xl"
+            >
+              <h2 id="private-room-join-title" className="text-base font-bold text-[#3D2314] mb-1 font-heading">
+                {t('studyPrivateRoom')}
+              </h2>
+              <p className="text-xs text-[#5C3A21] font-medium mb-4 truncate font-body">{joiningRoom.name}</p>
+
+              <input
+                type="password"
+                autoFocus
+                value={joinPasscode}
+                onChange={(e) => {
+                  setJoinPasscode(e.target.value)
+                  setPasscodeError(false)
+                }}
+                placeholder={t('studyEnterPasscode')}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D4B08C] text-xs text-[#3D2314] focus:outline-none focus:border-[#3D2314] mb-2 font-body min-h-[44px]"
+              />
+
+              {passcodeError && (
+                <p className="text-[11px] text-rose-600 font-semibold mb-3 font-body">{t('studyIncorrectPasscode')}</p>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#D4B08C]/60">
+                <button
+                  type="button"
+                  onClick={() => setJoiningRoom(null)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#5C3A21] hover:text-[#3D2314] hover:bg-[#FAF0E6] active:scale-[0.96] transition-all cursor-pointer min-h-[44px]"
                 >
                   {t('cancel')}
                 </button>
                 <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-95 transition-all disabled:opacity-50 cursor-pointer min-h-[44px]"
+                  type="button"
+                  onClick={handleConfirmPrivateJoin}
+                  className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-[0.96] transition-all cursor-pointer min-h-[44px] focus-visible:ring-2 focus-visible:ring-[#854D27]/40"
                 >
-                  {isSubmitting ? t('studyCreatingRoom') : t('createRoom')}
+                  {t('studyJoinRoom')}
                 </button>
               </div>
-            </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {/* Private Room Passcode Dialog */}
-      {joiningRoom && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="private-room-join-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm p-6 rounded-2xl bg-[#FFFDF9] border-3 border-[#D4B08C] text-[#3D2314] shadow-[8px_8px_0_#D4B08C]">
-            <h2 id="private-room-join-title" className="text-base font-bold text-[#3D2314] mb-1 font-heading">
-              {t('studyPrivateRoom')}
-            </h2>
-            <p className="text-xs text-[#5C3A21] font-medium mb-4 truncate font-body">{joiningRoom.name}</p>
-
-            <input
-              type="password"
-              autoFocus
-              value={joinPasscode}
-              onChange={(e) => {
-                setJoinPasscode(e.target.value)
-                setPasscodeError(false)
-              }}
-              placeholder={t('studyEnterPasscode')}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white border-2 border-[#D4B08C] text-xs text-[#3D2314] focus:outline-none focus:border-[#3D2314] mb-2 font-body"
-            />
-
-            {passcodeError && (
-              <p className="text-[11px] text-rose-600 font-semibold mb-3 font-body">{t('studyIncorrectPasscode')}</p>
-            )}
-
-            <div className="flex items-center justify-end gap-2.5 pt-3">
-              <button
-                type="button"
-                onClick={() => setJoiningRoom(null)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-[#5C3A21] hover:text-[#3D2314] active:scale-95 cursor-pointer min-h-[44px]"
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPrivateJoin}
-                className="px-4 py-2 rounded-xl bg-[#D95D39] hover:bg-[#c44e2b] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
-              >
-                {t('studyJoinRoom')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Solo Zen Focus Modal */}
       <ZenFocusModal isOpen={isZenSoloOpen} onClose={() => setIsZenSoloOpen(false)} />

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase/server'
+import { getServiceSupabase, isServerSupabaseConfigured } from '@/lib/supabase/server'
 import { randomBytes, createHash } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
@@ -29,6 +29,28 @@ export async function POST(request: NextRequest) {
 
     const memberTokenHash = createHash('sha256').update(effectiveMemberToken).digest('hex')
 
+    // オフライン・ローカル開発用のフォールバック処理（Supabase環境変数が未設定の場合）
+    if (!isServerSupabaseConfigured()) {
+      const mockMemberData = {
+        id: `member-${Date.now()}`,
+        room_id: roomId,
+        user_identifier: member.user_identifier.trim(),
+        display_name: member.display_name.trim(),
+        avatar_url: member.avatar_url ? member.avatar_url.trim() : null,
+        focus_status: 'focusing',
+        last_heartbeat_at: new Date().toISOString(),
+      }
+
+      return NextResponse.json(
+        {
+          data: mockMemberData,
+          memberToken: effectiveMemberToken,
+          isNewToken,
+        },
+        { status: 200 }
+      )
+    }
+
     const supabase = getServiceSupabase()
 
     // Security Definer RPC でパスコード検証・トークン照合・定員制限・メンバー参加をアトミックに実行
@@ -57,6 +79,7 @@ export async function POST(request: NextRequest) {
       if (error.message === 'ROOM_FULL') {
         return NextResponse.json({ error: '部屋が満席のため参加できません' }, { status: 409 })
       }
+      console.error('[API study/join] RPC Execution Error:', error)
       return NextResponse.json({ error: '部屋への参加処理に失敗しました' }, { status: 500 })
     }
 

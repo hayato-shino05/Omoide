@@ -4,6 +4,7 @@ import { PomodoroRing } from '@/components/study/PomodoroRing'
 import { PomodoroSettingsModal } from '@/components/study/PomodoroSettingsModal'
 import { DeskPresenceList } from '@/components/study/DeskPresenceList'
 import { StudyRoomView } from '@/components/study/StudyRoomView'
+import { SongRequestListModal } from '@/components/study/SongRequestListModal'
 import { LanguageProvider } from '@/lib/i18n/LanguageContext'
 import { MusicPlayerProvider } from '@/lib/hooks/useMusicPlayer'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
@@ -284,5 +285,138 @@ describe('StudyRoomView Music Controls & Sync Tests', () => {
     const playPauseBtn = screen.getByRole('button', { name: /一時停止|Pause|再生|Play/i })
     fireEvent.click(playPauseBtn)
     expect(handleUpdatePlayback).not.toHaveBeenCalled()
+  })
+})
+
+describe('SongRequestListModal Component Tests', () => {
+  it('リクエストが空の場合に空状態のメッセージを表示すること', () => {
+    useStudyRoomStore.setState({
+      isSongRequestModalOpen: true,
+      songRequests: [],
+      isHost: true,
+    })
+
+    render(
+      <LanguageProvider initialLocale="ja">
+        <SongRequestListModal />
+      </LanguageProvider>
+    )
+
+    expect(screen.getByText('楽曲リクエスト')).toBeDefined()
+    expect(screen.getByText('現在、待機中のリクエストはありません')).toBeDefined()
+  })
+
+  it('リクエスト一覧を表示し、ホストが承認・却下できること', () => {
+    const handleRespond = vi.fn()
+
+    useStudyRoomStore.setState({
+      isSongRequestModalOpen: true,
+      songRequests: [
+        {
+          id: 'req_123',
+          track_id: 'omoide:track1',
+          track_name: 'Tokyo Midnight Lofi',
+          artist_name: 'Kenji',
+          album_image: null,
+          requested_by_id: 'user_bob',
+          requested_by_name: 'Bob',
+          created_at: new Date().toISOString(),
+        },
+      ],
+      isHost: true,
+      respondSongRequestAction: handleRespond,
+    })
+
+    render(
+      <LanguageProvider initialLocale="ja">
+        <SongRequestListModal />
+      </LanguageProvider>
+    )
+
+    expect(screen.getByText('Tokyo Midnight Lofi')).toBeDefined()
+    expect(screen.getByText('Kenji')).toBeDefined()
+    expect(screen.getByText('Bob')).toBeDefined()
+
+    // 承認ボタンのクリック
+    const approveBtn = screen.getByLabelText('Tokyo Midnight Lofi を承認')
+    fireEvent.click(approveBtn)
+    expect(handleRespond).toHaveBeenCalledWith('req_123', 'approve')
+
+    // 却下ボタンのクリック
+    const rejectBtn = screen.getByLabelText('Tokyo Midnight Lofi を却下')
+    fireEvent.click(rejectBtn)
+    expect(handleRespond).toHaveBeenCalledWith('req_123', 'reject')
+  })
+})
+
+describe('StudyRoomView Song Request UI Tests', () => {
+  it('ホストはリクエスト一覧ボタンを表示し、メンバーは楽曲リクエストボタンを表示すること', () => {
+    // 1. メンバーの場合
+    useStudyRoomStore.setState({
+      userIdentifier: 'user_member',
+      isHost: false,
+      currentRoom: {
+        id: 'room_1',
+        name: 'Kyoto Study Hall',
+        host_id: 'user_host',
+        current_track_id: 'omoide:1',
+        playback_state: 'playing',
+        is_private: false,
+        max_members: 12,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      songRequests: [],
+    })
+
+    const { unmount } = render(
+      <LanguageProvider initialLocale="ja">
+        <MusicPlayerProvider>
+          <StudyRoomView roomId="room_1" onLeave={vi.fn()} />
+        </MusicPlayerProvider>
+      </LanguageProvider>
+    )
+
+    expect(screen.getByRole('button', { name: /楽曲リクエスト|Request Song/i })).toBeDefined()
+    unmount()
+
+    // 2. ホストの場合
+    useStudyRoomStore.setState({
+      userIdentifier: 'user_host',
+      isHost: true,
+      currentRoom: {
+        id: 'room_1',
+        name: 'Kyoto Study Hall',
+        host_id: 'user_host',
+        current_track_id: 'omoide:1',
+        playback_state: 'playing',
+        is_private: false,
+        max_members: 12,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      songRequests: [
+        {
+          id: 'req_1',
+          track_id: 'omoide:1',
+          track_name: 'Sakura',
+          artist_name: 'Artist',
+          requested_by_id: 'user_bob',
+          requested_by_name: 'Bob',
+          created_at: new Date().toISOString(),
+        },
+      ],
+    })
+
+    render(
+      <LanguageProvider initialLocale="ja">
+        <MusicPlayerProvider>
+          <StudyRoomView roomId="room_1" onLeave={vi.fn()} />
+        </MusicPlayerProvider>
+      </LanguageProvider>
+    )
+
+    expect(screen.getByRole('button', { name: /リクエスト \(1\)|Requests \(1\)/i })).toBeDefined()
+    expect(screen.getByRole('button', { name: /曲を変更|Change Song/i })).toBeDefined()
   })
 })

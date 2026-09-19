@@ -37,13 +37,16 @@ export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   const supabase = getSupabase()
   // 直近2分以内にハートビートがある実際のアクティブメンバーのみを取得
   const activeThresholdMs = Date.now() - 2 * 60 * 1000
+  // 直近24時間以内にアクティブな部屋のみを対象（TTL 24h）
+  const ttlThresholdIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   // パスコード・トークン等の機密情報を除外した安全な公開カラムのみを取得
   const { data, error } = await supabase
     .from('study_rooms')
     .select(
-      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status, last_heartbeat_at)'
+      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, queue, current_track_index, is_shuffle, repeat_mode, song_requests, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status, last_heartbeat_at)'
     )
+    .gte('updated_at', ttlThresholdIso)
     .order('updated_at', { ascending: false })
     .limit(20)
 
@@ -69,7 +72,7 @@ export async function getStudyRoom(roomId: string): Promise<StudyRoom | null> {
   const { data, error } = await supabase
     .from('study_rooms')
     .select(
-      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status)'
+      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, queue, current_track_index, is_shuffle, repeat_mode, song_requests, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status)'
     )
     .eq('id', roomId)
     .maybeSingle()
@@ -268,3 +271,71 @@ export async function fetchRoomMembers(roomId: string): Promise<StudyRoomMember[
   }
   return (data as StudyRoomMember[]) || []
 }
+
+/**
+ * メンバーが楽曲リクエストを送信する
+ */
+export async function requestStudyRoomSong(
+  roomId: string,
+  userIdentifier: string,
+  track: { id: string; name: string; artistName?: string; albumImage?: string }
+): Promise<{ success: boolean; error?: string }> {
+  const memberToken = getStoredMemberToken(roomId)
+  try {
+    const res = await fetch('/api/study/request-song', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roomId,
+        userIdentifier,
+        memberToken,
+        trackId: track.id,
+        trackName: track.name,
+        artistName: track.artistName || 'Unknown Artist',
+        albumImage: track.albumImage,
+      }),
+    })
+    const payload = await res.json()
+    if (!res.ok) {
+      return { success: false, error: payload?.error || 'リクエストに失敗しました' }
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('[StudyRoom] Error requesting song via API:', err)
+    return { success: false, error: '通信エラーが発生しました' }
+  }
+}
+
+/**
+ * ホストが楽曲リクエストを承認または却下する
+ */
+export async function respondStudyRoomSongRequest(
+  roomId: string,
+  hostId: string,
+  requestId: string,
+  action: 'approve' | 'reject'
+): Promise<{ success: boolean; error?: string }> {
+  const hostToken = getStoredHostToken(roomId)
+  try {
+    const res = await fetch('/api/study/respond-song-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        roomId,
+        hostId,
+        hostToken,
+        requestId,
+        action,
+      }),
+    })
+    const payload = await res.json()
+    if (!res.ok) {
+      return { success: false, error: payload?.error || 'リクエスト処理に失敗しました' }
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('[StudyRoom] Error responding to song request via API:', err)
+    return { success: false, error: '通信エラーが発生しました' }
+  }
+}
+

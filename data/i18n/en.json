@@ -560,6 +560,11 @@
     "studyQueueCount": "{count} tracks",
     "studyActiveMembers": "{count} studying",
     "studyEmptyMembers": "Open desks",
-    "studyDesksOccupied": "{current}/{max} desks"
+    "studyDesksOccupied": "{current}/{max} desks",
+    "studyRequestSong": "Request Song",
+    "studySongRequests": "Requests ({count})",
+    "studyRequestSent": "Song request sent (waiting for host approval)",
+    "studyRequestFailed": "Failed to send song request",
+    "studyHostMigrated": "The host left. You are now the new room DJ!"
   }
 }
