@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/supabase/client'
-import { createHash } from 'node:crypto'
+import { getServiceSupabase } from '@/lib/supabase/server'
+import { createHash, createHmac } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         ? createHash('sha256').update(hostToken.trim()).digest('hex')
         : null
 
-    const supabase = getSupabase()
+    const supabase = getServiceSupabase()
 
     // Security Definer RPC でホスト権限およびホストトークンの検証、再生状態の更新を実行
     const { data, error } = await supabase.rpc('update_study_room_playback', {
@@ -37,7 +37,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '再生状態の更新に失敗しました' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data }, { status: 200 })
+    // ブロードキャスト検証用の暗号署名を生成
+    const secretKey = hostTokenHash || 'omoide-study-secret'
+    const signPayload = `${roomId}:${payload.current_track_id || ''}:${payload.playback_state || 'playing'}`
+    const signature = createHmac('sha256', secretKey).update(signPayload).digest('hex')
+
+    return NextResponse.json({ success: true, data, signature }, { status: 200 })
   } catch (err) {
     console.error('[API study/playback] Error:', err)
     return NextResponse.json({ error: 'サーバーエラーが発生しました' }, { status: 500 })

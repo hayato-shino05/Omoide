@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/supabase/client'
+import { getServiceSupabase } from '@/lib/supabase/server'
 import { createHash } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         ? createHash('sha256').update(memberToken.trim()).digest('hex')
         : null
 
-    const supabase = getSupabase()
+    const supabase = getServiceSupabase()
 
     const { data, error } = await supabase.rpc('leave_study_room', {
       p_room_id: roomId,

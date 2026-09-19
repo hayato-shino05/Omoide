@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/supabase/client'
+import { getServiceSupabase } from '@/lib/supabase/server'
 
-// 非公開部屋のパスコードをサーバーサイドで安全に検証するAPIルート
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { roomId, passcode } = body || {}
+    const { roomId, passcode } = await request.json()
 
     if (!roomId || typeof roomId !== 'string' || typeof passcode !== 'string') {
-      return NextResponse.json({ valid: false, error: '無効なリクエストパラメータです' }, { status: 400 })
+      return NextResponse.json({ valid: false, error: '無効なリクエストです' }, { status: 400 })
     }
 
-    const supabase = getSupabase()
+    const supabase = getServiceSupabase()
+
+    // パスコードを含む非公開部屋の検証（サーバーサイドでのみ検証し、クライアントには結果のみ返却）
     const { data: room, error } = await supabase
       .from('study_rooms')
-      .select('id, passcode')
+      .select('id, is_private, passcode')
       .eq('id', roomId)
       .maybeSingle()
 
     if (error || !room) {
-      return NextResponse.json({ valid: false }, { status: 404 })
+      return NextResponse.json({ valid: false, error: '部屋が見つかりません' }, { status: 404 })
     }
 
-    // パスコードの照合（クライアントへはパスコード本文を返却せず、真偽値のみ返却）
-    const expectedPasscode = room.passcode ?? ''
-    const isValid = expectedPasscode === passcode.trim()
+    if (!room.is_private) {
+      return NextResponse.json({ valid: true }, { status: 200 })
+    }
 
-    return NextResponse.json({ valid: isValid })
+    const isMatch = room.passcode === passcode.trim()
+    return NextResponse.json({ valid: isMatch }, { status: 200 })
   } catch (err) {
-    console.error('[StudyRoom] パスコード検証中にエラーが発生しました:', err)
-    return NextResponse.json({ valid: false, error: 'サーバー内部エラーが発生しました' }, { status: 500 })
+    console.error('[API verify-passcode] Error:', err)
+    return NextResponse.json({ valid: false, error: 'サーバーエラーが発生しました' }, { status: 500 })
   }
 }

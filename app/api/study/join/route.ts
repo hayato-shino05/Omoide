@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/supabase/client'
+import { getServiceSupabase } from '@/lib/supabase/server'
 import { randomBytes, createHash } from 'node:crypto'
 
 export async function POST(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const memberTokenHash = createHash('sha256').update(effectiveMemberToken).digest('hex')
 
-    const supabase = getSupabase()
+    const supabase = getServiceSupabase()
 
     // Security Definer RPC でパスコード検証・トークン照合・定員制限・メンバー参加をアトミックに実行
     const { data, error } = await supabase.rpc('join_study_room', {

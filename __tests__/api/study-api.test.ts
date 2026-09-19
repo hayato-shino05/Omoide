@@ -7,10 +7,10 @@ import { POST as joinRoomPost } from '@/app/api/study/join/route'
 import { POST as playbackPost } from '@/app/api/study/playback/route'
 import { POST as memberStatusPost } from '@/app/api/study/member-status/route'
 import { POST as leaveRoomPost } from '@/app/api/study/leave/route'
-import * as supabaseClientModule from '@/lib/supabase/client'
+import * as supabaseServerModule from '@/lib/supabase/server'
 
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabase: vi.fn(),
+vi.mock('@/lib/supabase/server', () => ({
+  getServiceSupabase: vi.fn(),
 }))
 
 describe('Study Room Server-side API Authorization & Security Tests', () => {
@@ -37,7 +37,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
         eq: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       }
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         from: vi.fn().mockReturnValue(mockChain),
       } as any)
 
@@ -59,7 +59,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
           error: null,
         }),
       }
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         from: vi.fn().mockReturnValue(mockChain),
       } as any)
 
@@ -83,7 +83,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
           error: null,
         }),
       }
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         from: vi.fn().mockReturnValue(mockChain),
       } as any)
 
@@ -107,7 +107,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
           error: null,
         }),
       }
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         from: vi.fn().mockReturnValue(mockChain),
       } as any)
 
@@ -125,7 +125,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/create', () => {
     it('正常な入力パラメータで部屋を作成しホストトークンを発行すること', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: {
             id: 'room_123',
@@ -157,7 +157,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/join', () => {
     it('他者メンバー識別子の不正ななりすましリクエストを403で拒絶すること', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'INVALID_MEMBER_TOKEN' },
@@ -180,7 +180,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('非公開部屋への不正なパスコードでの参加を403で拒絶すること', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'INVALID_PASSCODE' },
@@ -203,7 +203,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('満席の部屋への新規参加を409で拒絶すること', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'ROOM_FULL' },
@@ -225,7 +225,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('正常な参加リクエストでメンバー情報を保存しメンバートークンを発行して200を返すこと', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: {
             id: 'mem_1',
@@ -256,7 +256,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/playback', () => {
     it('非ホストによるBGM操作リクエストを403で拒絶すること（権限保護）', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: null,
           error: { message: 'UNAUTHORIZED_HOST' },
@@ -280,7 +280,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
     })
 
     it('正規ホストによるBGM操作リクエストを受け入れ200を返すこと', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: { success: true },
           error: null,
@@ -306,7 +306,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/member-status', () => {
     it('メンバーステータス更新を正常に処理し200を返すこと', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: { success: true },
           error: null,
@@ -333,7 +333,7 @@ describe('Study Room Server-side API Authorization & Security Tests', () => {
 
   describe('POST /api/study/leave', () => {
     it('退室リクエストを正常に処理し200を返すこと', async () => {
-      vi.mocked(supabaseClientModule.getSupabase).mockReturnValue({
+      vi.mocked(supabaseServerModule.getServiceSupabase).mockReturnValue({
         rpc: vi.fn().mockResolvedValue({
           data: { success: true },
           error: null,
