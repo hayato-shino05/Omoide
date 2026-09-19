@@ -50,6 +50,7 @@ export interface RoomPlaybackSyncPayload {
   is_shuffle?: boolean
   repeat_mode?: RoomRepeatMode
   triggered_by?: string
+  signature?: string
 }
 
 export interface SilentCheerPayload {

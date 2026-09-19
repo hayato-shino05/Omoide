@@ -146,10 +146,10 @@ export async function updateStudyRoomPlayback(
     playback_state?: PlaybackState
   },
   hostId?: string
-): Promise<boolean> {
+): Promise<{ success: boolean; signature?: string }> {
   if (!hostId) {
     console.warn('[StudyRoom] Host ID is required to update playback')
-    return false
+    return { success: false }
   }
 
   const hostToken = getStoredHostToken(roomId)
@@ -163,12 +163,12 @@ export async function updateStudyRoomPlayback(
     })
     if (res.ok) {
       const data = await res.json()
-      return Boolean(data?.success)
+      return { success: Boolean(data?.success), signature: data?.signature }
     }
-    return false
+    return { success: false }
   } catch (err) {
     console.error('[StudyRoom] Error updating playback via API:', err)
-    return false
+    return { success: false }
   }
 }
 

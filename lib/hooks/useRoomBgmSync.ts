@@ -255,7 +255,26 @@ export function useRoomBgmSync(roomId: string | null) {
         }
       }
 
-      // 部屋参加者全員へリアルタイムブロードキャスト送信
+      // DB永続化（サーバーサイドAPI経由でホスト権限とトークンを検証して更新）
+      let broadcastSignature: string | undefined = undefined
+      if (trackId) {
+        const hostId = currentRoom?.host_id || userIdentifier
+        const result = await updateStudyRoomPlayback(
+          roomId,
+          {
+            current_track_id: trackId,
+            epoch_started_at: now,
+            playback_state: state,
+          },
+          hostId
+        )
+        if (!result.success) {
+          return
+        }
+        broadcastSignature = result.signature
+      }
+
+      // 部屋参加者全員へ暗号署名付きリアルタイムブロードキャスト送信
       const channel = channelRef.current
       if (channel) {
         channel.send({
@@ -271,22 +290,9 @@ export function useRoomBgmSync(roomId: string | null) {
             is_shuffle: activeShuffle,
             repeat_mode: activeRepeat,
             triggered_by: userIdentifier,
+            signature: broadcastSignature,
           } as RoomPlaybackSyncPayload,
         })
-      }
-
-      // DB永続化（サーバーサイドAPI経由でホスト権限を検証して更新）
-      if (trackId) {
-        const hostId = currentRoom?.host_id || userIdentifier
-        await updateStudyRoomPlayback(
-          roomId,
-          {
-            current_track_id: trackId,
-            epoch_started_at: now,
-            playback_state: state,
-          },
-          hostId
-        )
       }
     },
     [roomId, resolveTrack, syncPlayback, setRoomPlaybackState]
@@ -509,7 +515,30 @@ export function useRoomBgmSync(roomId: string | null) {
       addCheer(payload as SilentCheerPayload)
     })
 
-    // 3. Presence 状態同期
+    // 3. PostgreSQL テーブル更新リアルタイム同期（偽装不可能なサーバー認証DB変更）
+    channel.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'study_rooms', filter: `id=eq.${roomId}` },
+      async (payload) => {
+        const updated = payload.new as {
+          current_track_id?: string | null
+          epoch_started_at?: string
+          playback_state?: PlaybackState
+        }
+        if (updated && updated.current_track_id) {
+          const track = await resolveTrack(updated.current_track_id)
+          if (track && track.url) {
+            syncPlayback(
+              track.url,
+              updated.epoch_started_at || new Date().toISOString(),
+              updated.playback_state || 'playing'
+            )
+          }
+        }
+      }
+    )
+
+    // 4. Presence 状態同期
     channel
       .on('presence', { event: 'sync' }, () => {
         const presenceState = channel.presenceState<StudyRoomMember>()
