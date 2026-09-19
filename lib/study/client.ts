@@ -116,43 +116,27 @@ export async function updateStudyRoomPlayback(
   },
   hostId?: string
 ): Promise<boolean> {
-  // サーバーサイドAPI経由でホスト権限を厳格に検証して更新
-  if (hostId) {
-    try {
-      const res = await fetch('/api/study/playback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId, hostId, payload }),
-      })
-      if (res.ok) {
-        return true
-      }
-    } catch (err) {
-      console.error('[StudyRoom] Error updating playback via API:', err)
-    }
-  }
-
-  const supabase = getSupabase()
-  let query = supabase
-    .from('study_rooms')
-    .update({
-      ...payload,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', roomId)
-
-  // ホストIDが指定されている場合はホスト権限をDB側でも検証
-  if (hostId) {
-    query = query.eq('host_id', hostId)
-  }
-
-  const { error } = await query
-
-  if (error) {
-    console.error('[StudyRoom] Error updating playback:', error)
+  if (!hostId) {
+    console.warn('[StudyRoom] Host ID is required to update playback')
     return false
   }
-  return true
+
+  // サーバーサイドAPI経由でホスト権限を厳格に検証して更新（クライアント直接更新バイパスを排除）
+  try {
+    const res = await fetch('/api/study/playback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, hostId, payload }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      return Boolean(data?.success)
+    }
+    return false
+  } catch (err) {
+    console.error('[StudyRoom] Error updating playback via API:', err)
+    return false
+  }
 }
 
 // 互換性のためのエイリアス
@@ -167,7 +151,7 @@ export async function joinStudyRoom(
   },
   passcode?: string
 ): Promise<StudyRoomMember | null> {
-  // サーバーサイドAPI経由でパスコード検証および人数制限を厳格にチェック
+  // サーバーサイドAPI経由でパスコード検証および最大収容人数をアトミックに検証（クライアント直接挿入バイパスを排除）
   try {
     const res = await fetch('/api/study/join', {
       method: 'POST',
@@ -178,72 +162,11 @@ export async function joinStudyRoom(
       const { data } = await res.json()
       if (data) return data as StudyRoomMember
     }
+    return null
   } catch (err) {
     console.error('[StudyRoom] Error joining room via API:', err)
-  }
-
-  const supabase = getSupabase()
-
-  // 部屋の最大収容人数を取得
-  const { data: roomData, error: roomError } = await supabase
-    .from('study_rooms')
-    .select('max_members')
-    .eq('id', roomId)
-    .maybeSingle()
-
-  if (roomError || !roomData) {
-    console.error('[StudyRoom] Error fetching room capacity:', roomError)
     return null
   }
-
-  const maxMembers = roomData.max_members || 20
-  const activeThreshold = new Date(Date.now() - 2 * 60 * 1000).toISOString()
-
-  // 既存メンバー一覧を取得し、アクティブ人数と既存所属状況を確認
-  const { data: existingMembers, error: membersError } = await supabase
-    .from('study_room_members')
-    .select('user_identifier, last_heartbeat_at')
-    .eq('room_id', roomId)
-
-  if (membersError) {
-    console.error('[StudyRoom] Error checking room members:', membersError)
-    return null
-  }
-
-  const activeMembers = ((existingMembers as StudyRoomMember[]) || []).filter(
-    (m: StudyRoomMember) => m.last_heartbeat_at && m.last_heartbeat_at >= activeThreshold
-  )
-  const isAlreadyMember = ((existingMembers as StudyRoomMember[]) || []).some(
-    (m: StudyRoomMember) => m.user_identifier === member.user_identifier
-  )
-
-  // 満席かつ新規参加の場合は入室不可として処理を中断
-  if (!isAlreadyMember && activeMembers.length >= maxMembers) {
-    console.warn('[StudyRoom] Room is full:', roomId)
-    return null
-  }
-
-  const { data, error } = await supabase
-    .from('study_room_members')
-    .upsert(
-      {
-        room_id: roomId,
-        user_identifier: member.user_identifier,
-        display_name: member.display_name,
-        avatar_url: member.avatar_url || null,
-        focus_status: 'focusing',
-        last_heartbeat_at: new Date().toISOString(),
-      },
-      { onConflict: 'room_id,user_identifier' }
-    )
-    .select()
-    .single()
-
-  if (error || !data) {
-    console.error('[StudyRoom] Error joining room:', error)
-    return null
-  }
-  return data as StudyRoomMember
 }
 
 export async function leaveStudyRoom(roomId: string, user_identifier: string): Promise<boolean> {

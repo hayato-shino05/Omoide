@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
-import { updateMemberStatus, leaveStudyRoom } from '@/lib/study/client'
+import { updateMemberStatus, leaveStudyRoom, updateStudyRoomPlayback } from '@/lib/study/client'
 import type {
   PlaybackState,
   CheerType,
@@ -275,24 +275,18 @@ export function useRoomBgmSync(roomId: string | null) {
         })
       }
 
-      // DB永続化（ホストIDで更新対象を制限）
+      // DB永続化（サーバーサイドAPI経由でホスト権限を検証して更新）
       if (trackId) {
-        const supabase = getSupabase()
         const hostId = currentRoom?.host_id || userIdentifier
-        let updateQuery = supabase
-          .from('study_rooms')
-          .update({
+        await updateStudyRoomPlayback(
+          roomId,
+          {
             current_track_id: trackId,
             epoch_started_at: now,
             playback_state: state,
-            updated_at: now,
-          })
-          .eq('id', roomId)
-
-        if (hostId) {
-          updateQuery = updateQuery.eq('host_id', hostId)
-        }
-        await updateQuery
+          },
+          hostId
+        )
       }
     },
     [roomId, resolveTrack, syncPlayback, setRoomPlaybackState]
