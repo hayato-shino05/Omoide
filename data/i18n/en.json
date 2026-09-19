@@ -552,6 +552,8 @@
     "studyRepeatAll": "Repeat All",
     "studyRepeatOne": "Repeat One",
     "studyRepeatOff": "Repeat OFF",
+    "studyHostOnlyNotice": "Only the room host can control the room BGM. Use Solo Mode to listen to your own music.",
+    "studyHostOnlyTooltip": "Host only",
     "studyNextTrack": "Next Track",
     "studyPreviousTrack": "Previous Track",
     "studyRoomQueue": "Play Queue",

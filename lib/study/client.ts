@@ -6,9 +6,12 @@ export async function fetchStudyRooms(): Promise<StudyRoom[]> {
   // 直近2分以内にハートビートがある実際のアクティブメンバーのみを取得
   const activeThresholdMs = Date.now() - 2 * 60 * 1000
 
+  // パスコード等の機密情報を除外した安全なカラムのみを取得
   const { data, error } = await supabase
     .from('study_rooms')
-    .select('*, study_room_members(id, display_name, avatar_url, focus_status, last_heartbeat_at)')
+    .select(
+      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status, last_heartbeat_at)'
+    )
     .order('updated_at', { ascending: false })
     .limit(20)
 
@@ -30,9 +33,12 @@ export async function fetchStudyRooms(): Promise<StudyRoom[]> {
 
 export async function getStudyRoom(roomId: string): Promise<StudyRoom | null> {
   const supabase = getSupabase()
+  // パスコード等の機密情報を除外した安全なカラムのみを取得
   const { data, error } = await supabase
     .from('study_rooms')
-    .select('*, study_room_members(id, display_name, avatar_url, focus_status)')
+    .select(
+      'id, name, description, host_id, current_track_id, playback_state, theme_override, is_private, max_members, created_at, updated_at, study_room_members(id, display_name, avatar_url, focus_status)'
+    )
     .eq('id', roomId)
     .maybeSingle()
 
@@ -41,6 +47,29 @@ export async function getStudyRoom(roomId: string): Promise<StudyRoom | null> {
     return null
   }
   return data as StudyRoom
+}
+
+/**
+ * 非公開部屋のパスコードをサーバーサイドAPI経由で安全に検証する
+ */
+export async function verifyRoomPasscode(roomId: string, passcode: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/study/verify-passcode', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ roomId, passcode }),
+    })
+    if (!res.ok) {
+      return false
+    }
+    const data = await res.json()
+    return Boolean(data?.valid)
+  } catch (err) {
+    console.error('[StudyRoom] Error verifying passcode:', err)
+    return false
+  }
 }
 
 export interface CreateStudyRoomInput {
@@ -84,10 +113,11 @@ export async function updateStudyRoomPlayback(
     current_track_id?: string | null
     epoch_started_at?: string
     playback_state?: PlaybackState
-  }
+  },
+  hostId?: string
 ): Promise<boolean> {
   const supabase = getSupabase()
-  const { error } = await supabase
+  let query = supabase
     .from('study_rooms')
     .update({
       ...payload,
@@ -95,12 +125,22 @@ export async function updateStudyRoomPlayback(
     })
     .eq('id', roomId)
 
+  // ホストIDが指定されている場合はホスト権限をDB側でも検証
+  if (hostId) {
+    query = query.eq('host_id', hostId)
+  }
+
+  const { error } = await query
+
   if (error) {
     console.error('[StudyRoom] Error updating playback:', error)
     return false
   }
   return true
 }
+
+// 互換性のためのエイリアス
+export const updateRoomPlayback = updateStudyRoomPlayback
 
 export async function joinStudyRoom(
   roomId: string,

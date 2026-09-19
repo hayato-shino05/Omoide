@@ -552,6 +552,8 @@
     "studyRepeatAll": "全曲リピート",
     "studyRepeatOne": "1曲リピート",
     "studyRepeatOff": "リピートOFF",
+    "studyHostOnlyNotice": "部屋のBGM操作はホスト（部屋主）のみ可能です。個別に音楽を聴く場合はソロモードをご利用ください。",
+    "studyHostOnlyTooltip": "ホストのみ操作可能",
     "studyNextTrack": "次の曲",
     "studyPreviousTrack": "前の曲",
     "studyRoomQueue": "再生キュー",

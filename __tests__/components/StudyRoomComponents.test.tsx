@@ -156,6 +156,8 @@ describe('StudyRoomView Music Controls & Sync Tests', () => {
     const handlePrev = vi.fn()
 
     useStudyRoomStore.setState({
+      userIdentifier: 'user_host',
+      isHost: true,
       currentRoom: {
         id: 'room_1',
         name: 'Kyoto Study Hall',

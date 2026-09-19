@@ -214,7 +214,7 @@ export function useRoomBgmSync(roomId: string | null) {
     }
   }, [])
 
-  // 再生状態およびキューの変更を部屋全体にブロードキャスト
+  // 再生状態およびキューの変更を部屋全体にブロードキャスト（ホスト専用）
   const broadcastPlayback = useCallback(
     async (
       trackId: string | null,
@@ -227,10 +227,14 @@ export function useRoomBgmSync(roomId: string | null) {
       }
     ) => {
       if (!roomId) return
+      const storeState = useStudyRoomStore.getState()
+      const { isHost, currentRoom, userIdentifier } = storeState
+      // ホスト権限ガード: ホスト以外による部屋全体の再生状態変更を抑止
+      if (!isHost && currentRoom?.host_id !== userIdentifier) return
+
       const now = new Date().toISOString()
       const state = options?.playbackState || 'playing'
 
-      const storeState = useStudyRoomStore.getState()
       const activeQueue = options?.queue ?? storeState.roomQueue
       const activeIndex = options?.currentTrackIndex ?? storeState.roomTrackIndex
       const activeShuffle = options?.isShuffle ?? storeState.isRoomShuffle
@@ -271,10 +275,11 @@ export function useRoomBgmSync(roomId: string | null) {
         })
       }
 
-      // DB永続化
+      // DB永続化（ホストIDで更新対象を制限）
       if (trackId) {
         const supabase = getSupabase()
-        await supabase
+        const hostId = currentRoom?.host_id || userIdentifier
+        let updateQuery = supabase
           .from('study_rooms')
           .update({
             current_track_id: trackId,
@@ -283,14 +288,21 @@ export function useRoomBgmSync(roomId: string | null) {
             updated_at: now,
           })
           .eq('id', roomId)
+
+        if (hostId) {
+          updateQuery = updateQuery.eq('host_id', hostId)
+        }
+        await updateQuery
       }
     },
-    [roomId, userIdentifier, resolveTrack, syncPlayback, setRoomPlaybackState]
+    [roomId, resolveTrack, syncPlayback, setRoomPlaybackState]
   )
 
-  // キュー・シャッフル・リピート設定に基づく次の曲への自動遷移
+  // キュー・シャッフル・リピート設定に基づく次の曲への自動遷移（ホスト専用）
   const nextRoomTrack = useCallback(async () => {
-    const { roomQueue, roomTrackIndex, isRoomShuffle, roomRepeatMode } = useStudyRoomStore.getState()
+    const { roomQueue, roomTrackIndex, isRoomShuffle, roomRepeatMode, isHost, currentRoom, userIdentifier } =
+      useStudyRoomStore.getState()
+    if (!isHost && currentRoom?.host_id !== userIdentifier) return
     if (roomQueue.length === 0) return
 
     let nextIndex = (roomTrackIndex + 1) % roomQueue.length
@@ -314,8 +326,11 @@ export function useRoomBgmSync(roomId: string | null) {
     })
   }, [broadcastPlayback])
 
-  // 前の曲へスキップ
+  // 前の曲へスキップ（ホスト専用）
   const prevRoomTrack = useCallback(async () => {
+    const { isHost, currentRoom, userIdentifier } = useStudyRoomStore.getState()
+    if (!isHost && currentRoom?.host_id !== userIdentifier) return
+
     const audio = audioRef.current
     if (audio && audio.currentTime > 3) {
       audio.currentTime = 0
@@ -338,9 +353,11 @@ export function useRoomBgmSync(roomId: string | null) {
     })
   }, [broadcastPlayback])
 
-  // シャッフル切り替え
+  // シャッフル切り替え（ホスト専用）
   const toggleRoomShuffle = useCallback(async () => {
-    const { isRoomShuffle, currentTrack, roomQueue, roomTrackIndex, roomRepeatMode } = useStudyRoomStore.getState()
+    const { isRoomShuffle, currentTrack, roomQueue, roomTrackIndex, roomRepeatMode, isHost, currentRoom, userIdentifier } =
+      useStudyRoomStore.getState()
+    if (!isHost && currentRoom?.host_id !== userIdentifier) return
     const newShuffle = !isRoomShuffle
 
     await broadcastPlayback(currentTrack?.id || roomQueue[roomTrackIndex] || null, {
@@ -351,9 +368,11 @@ export function useRoomBgmSync(roomId: string | null) {
     })
   }, [broadcastPlayback])
 
-  // リピートモード切り替え ('off' -> 'all' -> 'one' -> 'off')
+  // リピートモード切り替え ('off' -> 'all' -> 'one' -> 'off')（ホスト専用）
   const cycleRoomRepeatMode = useCallback(async () => {
-    const { roomRepeatMode, currentTrack, roomQueue, roomTrackIndex, isRoomShuffle } = useStudyRoomStore.getState()
+    const { roomRepeatMode, currentTrack, roomQueue, roomTrackIndex, isRoomShuffle, isHost, currentRoom, userIdentifier } =
+      useStudyRoomStore.getState()
+    if (!isHost && currentRoom?.host_id !== userIdentifier) return
     const nextRepeat: RoomRepeatMode =
       roomRepeatMode === 'off' ? 'all' : roomRepeatMode === 'all' ? 'one' : 'off'
 
@@ -365,9 +384,11 @@ export function useRoomBgmSync(roomId: string | null) {
     })
   }, [broadcastPlayback])
 
-  // 部屋全体の再生キュー一括更新
+  // 部屋全体の再生キュー一括更新（ホスト専用）
   const setRoomQueue = useCallback(
     async (newQueue: string[], startIndex = 0) => {
+      const { isHost, currentRoom, userIdentifier } = useStudyRoomStore.getState()
+      if (!isHost && currentRoom?.host_id !== userIdentifier) return
       if (newQueue.length === 0) return
       const targetIndex = Math.max(0, Math.min(newQueue.length - 1, startIndex))
       const targetTrackId = newQueue[targetIndex]
@@ -381,10 +402,12 @@ export function useRoomBgmSync(roomId: string | null) {
     [broadcastPlayback]
   )
 
-  // 楽曲変更処理
+  // 楽曲変更処理（ホスト専用）
   const changeRoomTrack = useCallback(
     async (trackId: string) => {
-      const { roomQueue } = useStudyRoomStore.getState()
+      const { roomQueue, isHost, currentRoom, userIdentifier } = useStudyRoomStore.getState()
+      if (!isHost && currentRoom?.host_id !== userIdentifier) return
+
       let updatedQueue = [...roomQueue]
       let targetIndex = updatedQueue.indexOf(trackId)
 
@@ -398,6 +421,18 @@ export function useRoomBgmSync(roomId: string | null) {
         currentTrackIndex: targetIndex,
         playbackState: 'playing',
       })
+    },
+    [broadcastPlayback]
+  )
+
+  // 再生・一時停止の明示的な切り替え（ホスト専用）
+  const updatePlaybackState = useCallback(
+    async (playbackState: PlaybackState) => {
+      const { currentTrack, roomQueue, roomTrackIndex, isHost, currentRoom, userIdentifier } =
+        useStudyRoomStore.getState()
+      if (!isHost && currentRoom?.host_id !== userIdentifier) return
+      const targetTrackId = currentTrack?.id || roomQueue[roomTrackIndex] || null
+      await broadcastPlayback(targetTrackId, { playbackState })
     },
     [broadcastPlayback]
   )
@@ -625,6 +660,7 @@ export function useRoomBgmSync(roomId: string | null) {
       nextRoomTrack,
       prevRoomTrack,
       setRoomQueue,
+      updatePlaybackState,
     })
 
     return () => {
@@ -639,6 +675,7 @@ export function useRoomBgmSync(roomId: string | null) {
     nextRoomTrack,
     prevRoomTrack,
     setRoomQueue,
+    updatePlaybackState,
     setRealtimeActions,
   ])
 
@@ -652,5 +689,6 @@ export function useRoomBgmSync(roomId: string | null) {
     nextRoomTrack,
     prevRoomTrack,
     setRoomQueue,
+    updatePlaybackState,
   }
 }

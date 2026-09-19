@@ -11,7 +11,7 @@ export interface StudyRoom {
   description?: string | null
   host_id: string
   current_track_id?: string | null
-  epoch_started_at: string
+  epoch_started_at?: string
   playback_state: PlaybackState
   theme_override?: ThemeName | null
   is_private: boolean

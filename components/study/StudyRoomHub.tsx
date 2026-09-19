@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { fetchStudyRooms, createStudyRoom, joinStudyRoom, getStudyRoom } from '@/lib/study/client'
+import { fetchStudyRooms, createStudyRoom, joinStudyRoom, getStudyRoom, verifyRoomPasscode } from '@/lib/study/client'
 import { StudyRoomView } from './StudyRoomView'
 import { ZenFocusModal } from './ZenFocusModal'
 import SongPickerModal from '@/components/community/SongPickerModal'
@@ -149,7 +149,9 @@ export function StudyRoomHub() {
   const handleConfirmPrivateJoin = async () => {
     if (!joiningRoom) return
 
-    if (joiningRoom.passcode && joiningRoom.passcode !== joinPasscode) {
+    // サーバーサイドAPI経由で安全にパスコードを照合
+    const isValid = await verifyRoomPasscode(joiningRoom.id, joinPasscode.trim())
+    if (!isValid) {
       setPasscodeError(true)
       return
     }

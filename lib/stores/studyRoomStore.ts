@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { StudyRoom, StudyRoomMember, SilentCheerPayload, CheerType, FocusStatus, RoomRepeatMode } from '@/types/study'
+import type { StudyRoom, StudyRoomMember, SilentCheerPayload, CheerType, FocusStatus, RoomRepeatMode, PlaybackState } from '@/types/study'
 import type { SavedTrack } from '@/lib/stores/musicStore'
 
 export interface StudyRoomStore {
@@ -35,6 +35,7 @@ export interface StudyRoomStore {
   nextRoomTrackAction: (() => Promise<void>) | null
   prevRoomTrackAction: (() => Promise<void>) | null
   setRoomQueueAction: ((queue: string[], startIndex?: number) => Promise<void>) | null
+  updatePlaybackStateAction: ((playbackState: PlaybackState) => Promise<void>) | null
 
   setRoom: (room: StudyRoom | null) => void
   setMembers: (members: StudyRoomMember[]) => void
@@ -65,6 +66,7 @@ export interface StudyRoomStore {
     nextRoomTrack: () => Promise<void>
     prevRoomTrack: () => Promise<void>
     setRoomQueue: (queue: string[], startIndex?: number) => Promise<void>
+    updatePlaybackState: (playbackState: PlaybackState) => Promise<void>
   } | null) => void
   resetRoom: () => void
 }
@@ -99,6 +101,7 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
       nextRoomTrackAction: null,
       prevRoomTrackAction: null,
       setRoomQueueAction: null,
+      updatePlaybackStateAction: null,
 
       setRoom: (room) => {
         const userId = get().userIdentifier
@@ -191,6 +194,7 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           nextRoomTrackAction: actions?.nextRoomTrack ?? null,
           prevRoomTrackAction: actions?.prevRoomTrack ?? null,
           setRoomQueueAction: actions?.setRoomQueue ?? null,
+          updatePlaybackStateAction: actions?.updatePlaybackState ?? null,
         }),
 
       resetRoom: () =>
@@ -217,6 +221,7 @@ export const useStudyRoomStore = create<StudyRoomStore>()(
           nextRoomTrackAction: null,
           prevRoomTrackAction: null,
           setRoomQueueAction: null,
+          updatePlaybackStateAction: null,
         }),
     }),
     {
