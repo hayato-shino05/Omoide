@@ -26,12 +26,7 @@ export function BirthdayHero({ person }: BirthdayHeroProps) {
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.6 }}
-        className="text-5xl md:text-7xl font-bold text-center"
-        style={{ 
-          color: '#ff1493',
-          textShadow: '0 0 20px rgba(255, 20, 147, 0.8), 0 0 40px rgba(255, 20, 147, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.5)',
-          filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))'
-        }}
+        className="text-5xl md:text-7xl font-extrabold text-center text-[#D95D39] dark:text-[#E76F51] tracking-tight"
       >
         {t('happyBirthday')}
       </motion.h1>

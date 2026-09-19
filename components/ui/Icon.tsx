@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BookOpen,
   Brain,
   Cake,
   Calendar,
@@ -106,6 +107,10 @@ import gameControllerIcon from '@/src/assets/icons/game-controller.png'
 import groupChatIcon from '@/src/assets/icons/group-chat.png'
 import toriiIcon from '@/src/assets/icons/torii.png'
 import archiveIcon from '@/src/assets/icons/archive.png'
+import scrollIcon from '@/src/assets/icons/scroll.png'
+import maximizeIcon from '@/src/assets/icons/maximize.png'
+import sparklesIcon from '@/src/assets/icons/sparkles.png'
+import fortuneTellerIcon from '@/src/assets/icons/fortune-teller.png'
 
 export const Icons = {
   AlertTriangle,
@@ -114,6 +119,7 @@ export const Icons = {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BookOpen,
   Brain,
   Cake,
   Calendar,
@@ -230,8 +236,13 @@ const assetIcons: Partial<Record<keyof typeof Icons, StaticImageData>> = {
   Eye: eyeIcon,
   EyeOff: eyeOffIcon,
   Gamepad: gameControllerIcon,
-  Sparkles: toriiIcon,
+  Sparkles: sparklesIcon,
   Archive: archiveIcon,
+  BookOpen: scrollIcon,
+  Star: toriiIcon,
+  Maximize2: maximizeIcon,
+  Minimize2: minusIcon,
+  Palette: fortuneTellerIcon,
 }
 
 const iconToneClasses: Partial<Record<keyof typeof Icons, string>> = {

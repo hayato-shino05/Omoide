@@ -55,13 +55,39 @@ span.text-white\! {
   
   /* フォント - Windows (Yu Gothic / Meiryo) & Mac/iOS (Hiragino Sans / Meiryo) */
   --font-body: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-heading: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
   --font-accent: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+
+  /* タイポグラフィスケールトークン */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* トランジション・イージングトークン */
+  --transition-fast: 150ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-enter: 250ms cubic-bezier(0.2, 0, 0, 1);
+
+  /* アクセシブルなフォーカスリングトークン */
+  --focus-ring: 0 0 0 3px rgba(133, 77, 39, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --color-primary: #D4B08C;
+    --color-secondary: #854D27;
+    --color-background: #1A120B;
+    --color-surface: #2C1810;
+    --color-text: #F5E6D8;
+    --color-accent: #E76F51;
+    --shadow-vintage: 4px 4px 0 #3D2314;
+    --shadow-vintage-hover: 6px 6px 0 #3D2314;
+
     --music-surface: #102A43;
     --music-surface-elevated: #243B53;
     --music-text: #F0F4F8;
@@ -75,6 +101,15 @@ span.text-white\! {
 }
 
 .dark {
+  --color-primary: #D4B08C;
+  --color-secondary: #854D27;
+  --color-background: #1A120B;
+  --color-surface: #2C1810;
+  --color-text: #F5E6D8;
+  --color-accent: #E76F51;
+  --shadow-vintage: 4px 4px 0 #3D2314;
+  --shadow-vintage-hover: 6px 6px 0 #3D2314;
+
   --music-surface: #102A43;
   --music-surface-elevated: #243B53;
   --music-text: #F0F4F8;
@@ -86,6 +121,14 @@ span.text-white\! {
   --music-success: #86EFAC;
 }
 
+/* ===== テーマ切り替え時のトランジション抑制 ===== */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
 /* ===== ベーススタイル ===== */
 body {
   font-family: var(--font-body);
@@ -95,19 +138,16 @@ body {
   padding: 0;
   overflow-x: hidden;
   min-height: 100vh;
-  transition: color 0.5s ease;
 }
 
 /* ===== タイポグラフィ ===== */
-h1, h2, h3 {
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
 h1 {
-  font-size: 2.5em;
+  font-size: var(--text-3xl);
   color: var(--theme-primary);
-  text-shadow: 2px 2px 0px var(--theme-secondary);
-  animation: pulse 2s infinite;
 }
 
 /* ===== ビンテージ風ボタンスタイル ===== */
@@ -119,22 +159,29 @@ h1 {
   border-radius: 0;
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 1em;
+  font-size: var(--text-base);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
   box-shadow: var(--shadow-vintage);
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), filter var(--transition-base);
 }
 
 .btn-vintage:hover {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-vintage-hover);
+  filter: brightness(1.1);
 }
 
 .btn-vintage:active {
-  transform: translate(0, 0);
+  transform: translate(0, 0) scale(0.96);
   box-shadow: 2px 2px 0 var(--color-secondary);
+  filter: brightness(0.95);
+}
+
+.btn-vintage:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-vintage), var(--focus-ring);
 }
 
 /* ===== ビンテージ風カード／ボックススタイル ===== */
@@ -164,8 +211,6 @@ h1 {
   color: #8B4513;
   font-size: 2em;
   margin-bottom: 30px;
-  text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.2);
-  animation: titleFloat 3s ease-in-out infinite;
 }
 
 .countdown-time {
@@ -197,7 +242,6 @@ h1 {
   font-size: 1.8em;
   font-weight: bold;
   box-shadow: 0 4px 8px rgba(139, 69, 19, 0.3);
-  animation: numberPulse 1s ease-in-out infinite;
 }
 
 /* ===== アニメーション ===== */
@@ -880,33 +924,10 @@ body.theme-bunka {
 
 @keyframes bounce-in {
   0% {
-    transform: scale(0) rotate(-10deg);
+    transform: scale(0.92);
     opacity: 0;
-  }
-  50% {
-    transform: scale(1.2) rotate(5deg);
   }
   100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-@keyframes pulse-scale {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
     transform: scale(1);
     opacity: 1;
   }
@@ -963,15 +984,7 @@ body.theme-bunka {
 }
 
 .animate-bounce-in {
-  animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-.animate-pulse-scale {
-  animation: pulse-scale 1s ease-in-out infinite;
-}
-
-.animate-sparkle {
-  animation: sparkle 0.8s ease-in-out infinite;
+  animation: bounce-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-in {

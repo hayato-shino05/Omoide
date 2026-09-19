@@ -120,7 +120,6 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
                   className="text-[10px] sm:text-xs font-black tracking-widest text-[#522500] uppercase"
                   style={{
                     fontFamily: 'var(--font-heading)',
-                    textShadow: '0 1px 2px rgba(255, 255, 255, 0.9)',
                   }}
                 >
                   OMOIDE BAKO
@@ -144,7 +143,6 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
                 className="text-lg sm:text-2xl md:text-3xl font-black text-[#2C1400] tracking-tight relative mt-0.5"
                 style={{
                   fontFamily: 'var(--font-heading)',
-                  textShadow: '0 1px 2px rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.08)',
                 }}
               >
                 {language === 'ja' ? (
@@ -175,10 +173,9 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
                   background: 'rgba(255, 255, 255, 0.92)',
                   color: '#4A2400',
                   border: '1px solid rgba(215, 195, 181, 0.8)',
-                  textShadow: '0 1px 0 rgba(255, 255, 255, 0.8)',
                 }}
               >
-                <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#10B981] animate-pulse" />
+                <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#10B981]" />
                 {t('daysUntilCelebration', { count: nextBirthday.daysUntil })}
               </div>
             </div>

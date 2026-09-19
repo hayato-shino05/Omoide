@@ -183,7 +183,7 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       accent: '#64B5F6',
     },
     gradient: 'from-indigo-900 via-blue-800 to-indigo-900',
-    videoUrl: '/video/autumn.mp4',
+    videoUrl: '/video/trungthu.mp4',
     effects: [
       { type: 'moonGlow', count: 1 },
       { type: 'fallingLeaves', count: 30 },
