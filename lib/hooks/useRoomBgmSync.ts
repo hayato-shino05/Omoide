@@ -477,7 +477,7 @@ export function useRoomBgmSync(roomId: string | null) {
 
     channelRef.current = channel
 
-    // 1. PLAYBACK_SYNC ブロードキャスト受信
+    // 1. PLAYBACK_SYNC サーバー署名付きブロードキャスト受信
     channel.on('broadcast', { event: 'PLAYBACK_SYNC' }, async ({ payload }) => {
       const {
         track_id,
@@ -487,16 +487,15 @@ export function useRoomBgmSync(roomId: string | null) {
         current_track_index,
         is_shuffle,
         repeat_mode,
-        triggered_by,
+        signature,
       } = payload as RoomPlaybackSyncPayload
 
-      // ホストからのブロードキャストか検証（非ホストからの不正な同期ブロードキャストを拒否）
-      const { currentRoom } = useStudyRoomStore.getState()
-      if (currentRoom?.host_id && triggered_by && triggered_by !== currentRoom.host_id) {
+      // サーバー署名のない不正なクライアントブロードキャストを拒否
+      if (!signature) {
         return
       }
 
-      // ストアの同期
+      // 署名付き正規ブロードキャストによるストアと再生の即時同期
       setRoomPlaybackState({
         queue: queue,
         currentTrackIndex: current_track_index,
