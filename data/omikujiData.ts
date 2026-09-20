@@ -301,3 +301,7 @@ export const OMIKUJI_DATA: OmikujiFortune[] = [
     luckyNumber: 12,
   },
 ]
+
+// デフォルト・フォールバック用のおみくじデータセットエイリアス
+export const OMIKUJI_FORTUNES: OmikujiFortune[] = OMIKUJI_DATA
+

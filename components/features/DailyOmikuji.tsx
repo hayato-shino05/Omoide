@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Icon } from '@/components/ui/Icon'
-import { OMIKUJI_DATA, type OmikujiFortune } from '@/data/omikujiData'
+import { OMIKUJI_DATA, OMIKUJI_FORTUNES, type OmikujiFortune } from '@/data/omikujiData'
+import { useDailyFortunes } from '@/lib/hooks/useDailyFortunes'
 import { LANGUAGE_COOKIE_NAME } from '@/lib/i18n/cookie'
 import { DEFAULT_LOCALE, translate } from '@/lib/i18n/resolveLocale'
 import type { Locale } from '@/lib/i18n/types'
@@ -43,11 +44,18 @@ const OmikujiCylinder3D = dynamic(
   }
 )
 
+export interface DailyOmikujiProps {
+  onClose?: () => void
+  fortunes?: OmikujiFortune[]
+}
+
 // 和風 3D 想い出みくじコンポーネント
-export function DailyOmikuji({}: { onClose?: () => void }) {
+export function DailyOmikuji({ fortunes: propFortunes }: DailyOmikujiProps = {}) {
   const { t, language } = useLanguage()
+  const { fortunes: hookFortunes } = useDailyFortunes()
+  const fortunes = propFortunes ?? hookFortunes ?? OMIKUJI_FORTUNES
   const [isShaking, setIsShaking] = useState(false)
-  const fortuneIds = useMemo(() => new Set(OMIKUJI_DATA.map((fortune) => fortune.id)), [])
+  const fortuneIds = useMemo(() => new Set(fortunes.map((fortune) => fortune.id)), [fortunes])
   const todayDateKey = useMemo(() => getOmikujiDateKey(), [])
   const todayKey = useMemo(() => `omikuji_${todayDateKey.replaceAll('-', '_')}`, [todayDateKey])
   const [history, setHistory] = useState<OmikujiHistoryEntry[]>(() => {
@@ -65,7 +73,11 @@ export function DailyOmikuji({}: { onClose?: () => void }) {
 
     try {
       const legacy = JSON.parse(window.localStorage.getItem(todayKey) || 'null') as { id?: number; rank?: string } | null
-      const legacyFortune = OMIKUJI_DATA.find((fortune) => fortune.id === legacy?.id) || OMIKUJI_DATA.find((fortune) => fortune.rank === legacy?.rank)
+      const legacyFortune =
+        fortunes.find((fortune) => fortune.id === legacy?.id) ||
+        fortunes.find((fortune) => fortune.rank === legacy?.rank) ||
+        OMIKUJI_DATA.find((fortune) => fortune.id === legacy?.id) ||
+        OMIKUJI_DATA.find((fortune) => fortune.rank === legacy?.rank)
       if (!legacyFortune) return
       const migrated = appendOmikujiHistory(history, { date: todayDateKey, fortuneId: legacyFortune.id })
       window.localStorage.setItem(OMIKUJI_HISTORY_STORAGE_KEY, JSON.stringify(migrated))
@@ -76,29 +88,50 @@ export function DailyOmikuji({}: { onClose?: () => void }) {
     } catch {
       queueMicrotask(() => setMigrationError(true))
     }
-  }, [history, todayDateKey, todayKey, migrationAttempt])
-  const [result, setResult] = useState<OmikujiFortune | null>(() => {
+  }, [history, todayDateKey, todayKey, migrationAttempt, fortunes])
+
+  const [drawnFortune, setDrawnFortune] = useState<OmikujiFortune | null>(null)
+
+  const result = useMemo<OmikujiFortune | null>(() => {
+    if (drawnFortune) return drawnFortune
+
     const savedFortune = history.find((entry) => entry.date === todayDateKey)
-    if (savedFortune) return OMIKUJI_DATA.find((fortune) => fortune.id === savedFortune.fortuneId) || null
+    if (savedFortune) {
+      return (
+        fortunes.find((fortune) => fortune.id === savedFortune.fortuneId) ||
+        OMIKUJI_DATA.find((fortune) => fortune.id === savedFortune.fortuneId) ||
+        null
+      )
+    }
+
     if (typeof window === 'undefined') return null
 
     try {
       const legacy = JSON.parse(window.localStorage.getItem(todayKey) || 'null') as { id?: number; rank?: string } | null
-      return OMIKUJI_DATA.find((fortune) => fortune.id === legacy?.id) || OMIKUJI_DATA.find((fortune) => fortune.rank === legacy?.rank) || null
+      return (
+        fortunes.find((fortune) => fortune.id === legacy?.id) ||
+        fortunes.find((fortune) => fortune.rank === legacy?.rank) ||
+        OMIKUJI_DATA.find((fortune) => fortune.id === legacy?.id) ||
+        OMIKUJI_DATA.find((fortune) => fortune.rank === legacy?.rank) ||
+        null
+      )
     } catch {
       return null
     }
-  })
+  }, [drawnFortune, history, todayDateKey, fortunes, todayKey])
+
   const streak = useMemo(() => getOmikujiStreak(history), [history])
+
   // おみくじを引くアニメーション処理
   const handleDraw = () => {
     if (isShaking || result) return
     setIsShaking(true)
 
     setTimeout(() => {
-      const picked = OMIKUJI_DATA[Math.floor(Math.random() * OMIKUJI_DATA.length)]
+      const activeList = fortunes && fortunes.length > 0 ? fortunes : OMIKUJI_DATA
+      const picked = activeList[Math.floor(Math.random() * activeList.length)] ?? activeList[0]
       const nextHistory = appendOmikujiHistory(history, { date: todayDateKey, fortuneId: picked.id })
-      setResult(picked)
+      setDrawnFortune(picked)
       setHistory(nextHistory)
       setIsShaking(false)
       try {
@@ -178,7 +211,10 @@ export function DailyOmikuji({}: { onClose?: () => void }) {
           </div>
           <ol className="mt-2 grid gap-1 text-xs text-[#854D27]/80" aria-label={t('omikujiHistory')}>
             {history.map((entry) => {
-              const fortune = OMIKUJI_DATA.find((item) => item.id === entry.fortuneId)
+              const fortune =
+                fortunes.find((item) => item.id === entry.fortuneId) ||
+                OMIKUJI_FORTUNES.find((item) => item.id === entry.fortuneId) ||
+                OMIKUJI_DATA.find((item) => item.id === entry.fortuneId)
               if (!fortune) return null
               return (
                 <li key={entry.date} className="flex justify-between gap-3">
