@@ -64,7 +64,7 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {fireflies.map(firefly => (
           <motion.div
@@ -85,6 +85,7 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
             style={{
               left: `${firefly.x}%`,
               top: `${firefly.y}%`,
+              willChange: 'transform, opacity',
             }}
           >
             <motion.div
@@ -107,6 +108,7 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
                   0 0 ${firefly.size * 4}px #FFD700,
                   0 0 ${firefly.size * 6}px #FFA500
                 `,
+                willChange: 'transform, opacity',
               }}
             />
           </motion.div>

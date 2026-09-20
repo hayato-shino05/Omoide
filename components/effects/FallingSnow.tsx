@@ -81,7 +81,7 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {snowflakes.map((flake) => (
           <motion.div
@@ -105,6 +105,7 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
               width: flake.size,
               height: flake.size,
               boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+              willChange: 'transform',
             }}
           />
         ))}

@@ -30,6 +30,7 @@ export function Cake2D({ candlesBlown, onCandleBlown }: Cake2DProps) {
           ease: 'easeInOut',
         }}
         className="relative flex flex-col items-center w-full"
+        style={{ willChange: 'transform' }}
       >
         {/* 最上段：ろうそく＆生クリーム苺デコレーション */}
         <div className="relative z-20 flex flex-col items-center">

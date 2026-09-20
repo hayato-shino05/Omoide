@@ -78,24 +78,24 @@ export function Bats({ active, count = 8 }: BatsProps) {
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {bats.map(bat => (
           <motion.div
             key={bat.id}
             initial={{
-              left: `${bat.startX}%`,
-              top: `${bat.startY}%`,
+              x: `${bat.startX}vw`,
+              y: `${bat.startY}vh`,
               opacity: 0,
             }}
             animate={{
-              left: `${bat.endX}%`,
-              top: [
-                `${bat.startY}%`,
-                `${bat.startY - 8}%`,
-                `${bat.startY + 5}%`,
-                `${bat.startY - 5}%`,
-                `${bat.endY}%`,
+              x: `${bat.endX}vw`,
+              y: [
+                `${bat.startY}vh`,
+                `${bat.startY - 8}vh`,
+                `${bat.startY + 5}vh`,
+                `${bat.startY - 5}vh`,
+                `${bat.endY}vh`,
               ],
               opacity: [0, 1, 1, 1, 0],
             }}
@@ -103,14 +103,15 @@ export function Bats({ active, count = 8 }: BatsProps) {
             transition={{
               duration: bat.duration,
               ease: 'linear',
-              top: {
+              y: {
                 duration: bat.duration,
                 times: [0, 0.25, 0.5, 0.75, 1],
               },
             }}
-            className="absolute"
+            className="absolute top-0 left-0"
             style={{
               transform: bat.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+              willChange: 'transform, opacity',
             }}
           >
             <svg

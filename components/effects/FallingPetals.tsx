@@ -112,7 +112,7 @@ export function FallingPetals({ count = 30, active = true }: FallingPetalsProps)
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {petals.map((petal) => (
           <PetalElement key={petal.id} petal={petal} />
@@ -193,6 +193,7 @@ function PetalElement({ petal }: PetalElementProps) {
         height: petal.size,
         transformStyle: 'preserve-3d',
         filter: `drop-shadow(0 2px 3px rgba(255, 182, 193, 0.4))`,
+        willChange: 'transform, opacity',
       }}
     >
       <SakuraPetal size={petal.size} colors={petal.colorVariant} id={id} />

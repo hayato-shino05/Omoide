@@ -26,7 +26,13 @@ export function ThemeEffects({ effects, active = true, className }: ThemeEffects
   if (!active || !effects || effects.length === 0) return null
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{
+        contain: 'layout style paint',
+        pointerEvents: 'none',
+      }}
+    >
       {effects.map((effect, index) => {
         switch (effect.type) {
           case 'fallingPetals':

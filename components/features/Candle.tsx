@@ -58,6 +58,7 @@ export function Candle({ isBlown, delay = 0 }: CandleProps) {
                   ease: 'easeOut',
                 }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-400 rounded-full blur-sm"
+                style={{ willChange: 'transform, opacity' }}
               />
             ))}
           </>
@@ -80,6 +81,7 @@ function Flame() {
         ease: 'easeInOut',
       }}
       className="relative w-3 h-5"
+      style={{ willChange: 'transform' }}
     >
       {/* 外側の炎 */}
       <div
