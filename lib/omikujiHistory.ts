@@ -1,3 +1,5 @@
+import { OMIKUJI_FORTUNES, type OmikujiFortune } from '@/data/omikujiData'
+
 export const OMIKUJI_HISTORY_STORAGE_KEY = 'omikuji_history_v1'
 const HISTORY_LIMIT = 7
 
@@ -68,3 +70,28 @@ export function getOmikujiStreak(history: readonly OmikujiHistoryEntry[], today:
 
   return streak
 }
+
+/**
+ * ユーザーIDと日付に基づいて当日の運勢を決定論的または安全に取得
+ * @param userId - ユーザー識別子（任意）
+ * @param fortunes - 運勢データセット（省略時は OMIKUJI_FORTUNES）
+ * @param date - 基準日付（省略時は当日）
+ */
+export function getTodayFortune(
+  userId?: string | null,
+  fortunes: readonly OmikujiFortune[] = OMIKUJI_FORTUNES,
+  date: Date = new Date()
+): OmikujiFortune {
+  const list = fortunes && fortunes.length > 0 ? fortunes : OMIKUJI_FORTUNES
+  const dateKey = getOmikujiDateKey(date)
+  const seed = userId ? `${userId}:${dateKey}` : dateKey
+
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0
+  }
+
+  const index = Math.abs(hash) % list.length
+  return list[index] ?? list[0] ?? OMIKUJI_FORTUNES[0]
+}
+

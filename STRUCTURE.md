@@ -101,6 +101,10 @@ app/
     │   ├── respond-song-request/route.ts # POST（ホストによるリクエスト承認・却下）
     │   └── verify-passcode/route.ts      # POST（非公開部屋パスコード検証）
     │
+    ├── omikuji/            # おみくじ運勢
+    │   └── fortunes/
+    │       └── route.ts    # GET（daily_fortunes テーブルから全運勢データ一覧を返却）
+    │
     └── internal/
         └── birthday-scheduler/route.ts # POST（誕生日スレッド定期生成。シークレット認証付き）
 ```
