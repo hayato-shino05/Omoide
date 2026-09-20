@@ -8,9 +8,12 @@ import type { MusicAccess, MusicTrackReference, ResolvedTrack, SearchTrack } fro
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hvtioiriavbgpavkkuqx.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+// ponytail: モジュールスコープのシングルトン。サーバー再起動で再生成される。
+let _supabase: ReturnType<typeof createClient<any>> | null = null
 function getSupabase() {
   if (!SUPABASE_ANON_KEY) return null
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  if (!_supabase) _supabase = createClient<any>(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  return _supabase
 }
 
 const ALLOWED_LICENSE_PATTERNS = [

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const { data: birthdays, error } = await supabase
       .from('birthdays')
-      .select('*')
+      .select('id, name, month, day, year, message')
       .eq('month', month)
       .eq('day', day)
 
@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
       date: checkDate.toISOString().split('T')[0],
       birthdays: isBirthday ? birthdays : [],
       count: birthdays?.length || 0,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
     })
   } catch {
     return NextResponse.json(

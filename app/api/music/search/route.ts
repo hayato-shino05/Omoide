@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const data = await searchMusicTracks(query, limit)
-    return NextResponse.json({ data, total: data.length })
+    return NextResponse.json(
+      { data, total: data.length },
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } }
+    )
   } catch {
     return NextResponse.json({ error: '音楽検索に失敗しました' }, { status: 502 })
   }

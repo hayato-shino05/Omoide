@@ -10,7 +10,7 @@ export async function GET() {
 
     const { data: birthdays, error } = await supabase
       .from('birthdays')
-      .select('*')
+      .select('id, name, month, day, year, message')
       .order('month', { ascending: true })
       .order('day', { ascending: true })
 
@@ -52,6 +52,8 @@ export async function GET() {
       nextBirthday,
       todayBirthdays: todayBirthdays.length > 0 ? todayBirthdays : null,
       isBirthdayToday: todayBirthdays.length > 0,
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
     })
   } catch {
     return NextResponse.json(
