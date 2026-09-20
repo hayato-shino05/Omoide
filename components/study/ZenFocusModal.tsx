@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Maximize2,
   Minimize2,
@@ -25,10 +26,11 @@ import { useTheme } from '@/lib/hooks/useTheme'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useAmbientAudio } from '@/lib/hooks/useAmbientAudio'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { AmbientMixerModal } from './AmbientMixerModal'
-import { PomodoroSettingsModal } from './PomodoroSettingsModal'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import type { ThemeName } from '@/types'
+
+const AmbientMixerModal = dynamic(() => import('./AmbientMixerModal').then((mod) => mod.AmbientMixerModal), { ssr: false })
+const PomodoroSettingsModal = dynamic(() => import('./PomodoroSettingsModal').then((mod) => mod.PomodoroSettingsModal), { ssr: false })
+const ConfirmModal = dynamic(() => import('@/components/ui/ConfirmModal').then((mod) => mod.ConfirmModal), { ssr: false })
 
 export interface ZenFocusModalProps {
   isOpen: boolean
@@ -36,9 +38,9 @@ export interface ZenFocusModalProps {
   onCycleComplete?: (mode: string, streakMinutes: number) => void
 }
 
-export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModalProps) {
+export const ZenFocusModal = React.memo(function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModalProps) {
   const { theme: globalTheme, themeConfig: globalThemeConfig } = useTheme()
-  const { volumes } = useAmbientSoundStore()
+  const volumes = useAmbientSoundStore((state) => state.volumes)
   const { t, language } = useLanguage()
   useAmbientAudio()
 
@@ -187,10 +189,14 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, isSettingsOpen, isMixerOpen, showThemePicker, handleGuardedClose, toggleFullscreen])
 
+  const activeAmbientCount = useMemo(
+    () => Object.values(volumes).filter((v) => v > 0).length,
+    [volumes]
+  )
+
   if (!isOpen) return null
 
   const controlsVisible = isControlsVisible || isMixerOpen || isSettingsOpen || showThemePicker
-  const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
   const themeDisplayName =
     language === 'ja'
       ? activeThemeConfig?.displayName?.ja || activeThemeName
@@ -563,4 +569,4 @@ export function ZenFocusModal({ isOpen, onClose, onCycleComplete }: ZenFocusModa
       />
     </div>
   )
-}
+})

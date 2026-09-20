@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useSyncExternalStore } from 'react'
+import React, { useEffect, useSyncExternalStore, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CloudRain, Coffee, Wind, Flame, Volume2, VolumeX, RotateCcw, X, Sliders } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { AMBIENT_SOUNDS, AMBIENT_PRESETS } from '@/lib/audio/ambientSources'
@@ -14,7 +15,7 @@ interface AmbientMixerModalProps {
   onClose: () => void
 }
 
-export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
+export const AmbientMixerModal = React.memo(function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
   const {
     volumes,
     masterVolume,
@@ -24,7 +25,18 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
     togglePlaying,
     applyPreset,
     muteAll,
-  } = useAmbientSoundStore()
+  } = useAmbientSoundStore(
+    useShallow((state) => ({
+      volumes: state.volumes,
+      masterVolume: state.masterVolume,
+      isPlaying: state.isPlaying,
+      setVolume: state.setVolume,
+      setMasterVolume: state.setMasterVolume,
+      togglePlaying: state.togglePlaying,
+      applyPreset: state.applyPreset,
+      muteAll: state.muteAll,
+    }))
+  )
   const { t } = useLanguage()
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -205,5 +217,5 @@ export function AmbientMixerModal({ isOpen, onClose }: AmbientMixerModalProps) {
 
   // 最前面（z-[100000]）のポータルとして body 直下に描画
   return createPortal(modalContent, document.body)
-}
+})
 

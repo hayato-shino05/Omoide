@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Crown, Coffee, Clock, HeartHandshake, Target, CheckCircle2, Circle } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { CheerType, FocusStatus } from '@/types/study'
@@ -10,7 +11,7 @@ interface DeskPresenceListProps {
   onSendCheer: (cheerType: CheerType) => void
 }
 
-export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
+export const DeskPresenceList = React.memo(function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
   const {
     members,
     userIdentifier,
@@ -19,24 +20,36 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
     isGoalCompleted,
     setPersonalGoal,
     toggleGoalCompleted,
-  } = useStudyRoomStore()
+  } = useStudyRoomStore(
+    useShallow((state) => ({
+      members: state.members,
+      userIdentifier: state.userIdentifier,
+      currentRoom: state.currentRoom,
+      personalGoal: state.personalGoal,
+      isGoalCompleted: state.isGoalCompleted,
+      setPersonalGoal: state.setPersonalGoal,
+      toggleGoalCompleted: state.toggleGoalCompleted,
+    }))
+  )
   const { t } = useLanguage()
   const [goalInput, setGoalInput] = useState(personalGoal)
   const [isEditingGoal, setIsEditingGoal] = useState(!personalGoal)
 
-  const handleSaveGoal = (e: React.FormEvent) => {
+  const handleSaveGoal = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (goalInput.trim()) {
       setPersonalGoal(goalInput.trim())
       setIsEditingGoal(false)
     }
-  }
+  }, [goalInput, setPersonalGoal])
 
   // 部屋全体の総集中時間を計算
-  const totalRoomMinutes = members.reduce(
-    (acc, m) => acc + (m.focus_status === 'focusing' ? m.current_streak_minutes || 0 : 0),
-    0
-  )
+  const totalRoomMinutes = useMemo(() => {
+    return members.reduce(
+      (acc, m) => acc + (m.focus_status === 'focusing' ? m.current_streak_minutes || 0 : 0),
+      0
+    )
+  }, [members])
 
   const getStatusRingClass = (status: FocusStatus) => {
     switch (status) {
@@ -265,4 +278,4 @@ export function DeskPresenceList({ onSendCheer }: DeskPresenceListProps) {
       </div>
     </div>
   )
-}
+})

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { getSupabase } from '@/lib/supabase/client'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
@@ -36,7 +37,23 @@ export function useRoomBgmSync(roomId: string | null) {
     setRoomPlaybackState,
     setRealtimeActions,
     setRoom,
-  } = useStudyRoomStore()
+  } = useStudyRoomStore(
+    useShallow((state) => ({
+      isSoloMode: state.isSoloMode,
+      roomVolume: state.roomVolume,
+      userIdentifier: state.userIdentifier,
+      displayName: state.displayName,
+      setMembers: state.setMembers,
+      addMember: state.addMember,
+      removeMember: state.removeMember,
+      addCheer: state.addCheer,
+      setCurrentTrack: state.setCurrentTrack,
+      currentTrack: state.currentTrack,
+      setRoomPlaybackState: state.setRoomPlaybackState,
+      setRealtimeActions: state.setRealtimeActions,
+      setRoom: state.setRoom,
+    }))
+  )
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
@@ -600,6 +617,7 @@ export function useRoomBgmSync(roomId: string | null) {
       if (channel) {
         channel.untrack().catch(() => {})
         channel.unsubscribe().catch(() => {})
+        supabase.removeChannel(channel).catch(() => {})
       }
       channelRef.current = null
       const audio = audioRef.current

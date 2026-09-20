@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getTimeUntilBirthday } from '@/lib/utils/birthday'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -100,7 +100,7 @@ interface PolaroidUnitProps {
   isSeconds?: boolean
 }
 
-function PolaroidUnit({ value, label, tapeStyle, hoverRotate, isSeconds = false }: PolaroidUnitProps) {
+const PolaroidUnit = React.memo(function PolaroidUnit({ value, label, tapeStyle, hoverRotate, isSeconds = false }: PolaroidUnitProps) {
   const formattedValue = String(value).padStart(2, '0')
 
   // 和紙テープのスタイルバリエーション（モバイル対応の比率）
@@ -197,9 +197,9 @@ function PolaroidUnit({ value, label, tapeStyle, hoverRotate, isSeconds = false 
       </div>
     </motion.div>
   )
-}
+})
 
-function PolaroidPlaceholder({ label, tapeStyle }: { label: string; tapeStyle: 'tape-1' | 'tape-2' | 'tape-3' | 'tape-4' }) {
+const PolaroidPlaceholder = React.memo(function PolaroidPlaceholder({ label, tapeStyle }: { label: string; tapeStyle: 'tape-1' | 'tape-2' | 'tape-3' | 'tape-4' }) {
   void tapeStyle
   return (
     <div className="relative w-full max-w-[76px] sm:max-w-[110px] md:max-w-[130px] flex flex-col items-center">
@@ -232,4 +232,4 @@ function PolaroidPlaceholder({ label, tapeStyle }: { label: string; tapeStyle: '
       </div>
     </div>
   )
-}
+})

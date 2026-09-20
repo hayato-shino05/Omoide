@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { Icon } from './Icon'
@@ -8,9 +9,9 @@ interface HeaderButtonsProps {
   position: 'center' | 'right'
 }
 
-export function HeaderButtons({ position }: HeaderButtonsProps) {
+export const HeaderButtons = React.memo(function HeaderButtons({ position }: HeaderButtonsProps) {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
 
   if (position === 'center') {
     return (
@@ -82,4 +83,4 @@ export function HeaderButtons({ position }: HeaderButtonsProps) {
       </button>
     </nav>
   )
-}
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Coffee, Flame, Sparkles, BookOpen } from 'lucide-react'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
@@ -12,7 +12,7 @@ interface ActiveCheerItem extends SilentCheerPayload {
 }
 
 // 応援アイコンの描画（ネオン発光・過度な点滅を排除し、和モダンカードスタイルを採用）
-function CheerIcon({ type }: { type: CheerType }) {
+const CheerIcon = React.memo(function CheerIcon({ type }: { type: CheerType }) {
   switch (type) {
     case 'coffee':
       return (
@@ -45,10 +45,11 @@ function CheerIcon({ type }: { type: CheerType }) {
         </div>
       )
   }
-}
+})
 
-export function SilentCheerOverlay() {
-  const { cheers, removeCheer } = useStudyRoomStore()
+export const SilentCheerOverlay = React.memo(function SilentCheerOverlay() {
+  const cheers = useStudyRoomStore((state) => state.cheers)
+  const removeCheer = useStudyRoomStore((state) => state.removeCheer)
   const [activeItems, setActiveItems] = useState<ActiveCheerItem[]>([])
   const handledIdsRef = useRef<Set<string>>(new Set())
 
@@ -120,4 +121,4 @@ export function SilentCheerOverlay() {
       </AnimatePresence>
     </div>
   )
-}
+})

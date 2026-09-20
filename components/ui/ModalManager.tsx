@@ -1,6 +1,8 @@
 'use client'
 
+import React from 'react'
 import dynamic from 'next/dynamic'
+import { useShallow } from 'zustand/react/shallow'
 import { useUIStore } from '@/lib/stores/uiStore'
 import Modal from './Modal'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
@@ -94,8 +96,16 @@ const ZenFocusModal = dynamic<ZenFocusModalProps>(
   { ssr: false, loading: () => <ModalLoadingSpinner /> }
 )
 
-export function ModalManager() {
-  const { activeModal, isChatOpen, messageModalPayload, closeModal, closeChat } = useUIStore()
+export const ModalManager = React.memo(function ModalManager() {
+  const { activeModal, isChatOpen, messageModalPayload, closeModal, closeChat } = useUIStore(
+    useShallow((state) => ({
+      activeModal: state.activeModal,
+      isChatOpen: state.isChatOpen,
+      messageModalPayload: state.messageModalPayload,
+      closeModal: state.closeModal,
+      closeChat: state.closeChat,
+    }))
+  )
   const { t } = useLanguage()
 
   const modalConfig: Record<string, { title: string; content: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'widescreen' }> = {
@@ -191,4 +201,4 @@ export function ModalManager() {
       {renderActiveModal()}
     </>
   )
-}
+})

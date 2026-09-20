@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { useToast } from '@/components/ui/Toast'
@@ -11,9 +11,9 @@ interface SocialButtonsProps {
   isZenMode?: boolean
 }
 
-export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
+export const SocialButtons = React.memo(function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
   const toast = useToast()
   const [showShareMenu, setShowShareMenu] = useState(false)
   const [prevZenMode, setPrevZenMode] = useState(isZenMode)
@@ -29,7 +29,7 @@ export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
   const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
   const shareText = t('allWishesComeTrue')
 
-  const handleShare = async (platform: string) => {
+  const handleShare = useCallback(async (platform: string) => {
     const urls: Record<string, string> = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
       twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`,
@@ -62,7 +62,7 @@ export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
 
     window.open(urls[platform], '_blank', 'width=600,height=400,noopener,noreferrer')
     setShowShareMenu(false)
-  }
+  }, [shareUrl, shareText, t, toast])
 
   return (
     <div className="flex flex-col gap-2.5 relative">
@@ -155,4 +155,4 @@ export function SocialButtons({ isZenMode = false }: SocialButtonsProps) {
       </button>
     </div>
   )
-}
+})

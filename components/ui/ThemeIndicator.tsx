@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useThemeContext } from '@/lib/providers/ThemeProvider'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { getThemeDisplayName } from '@/lib/utils/theme'
@@ -55,7 +56,7 @@ const themeIconColors: Record<ThemeName, string> = {
   bunka: '#EF6C00', // 文化の日のクリエイティブオレンジ
 }
 
-export function ThemeIndicator() {
+export const ThemeIndicator = React.memo(function ThemeIndicator() {
   const { currentTheme } = useThemeContext()
   const { language, t } = useLanguage()
 
@@ -105,4 +106,4 @@ export function ThemeIndicator() {
       <span style={{ color: '#FFF9F3', fontWeight: 700 }}>{displayName}</span>
     </div>
   )
-}
+})

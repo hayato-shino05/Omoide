@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, type KeyboardEvent } from 'react'
+import React, { useState, useEffect, useCallback, type KeyboardEvent } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Music,
   Disc3,
@@ -18,8 +19,9 @@ import {
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
 import { useToast } from '@/components/ui/Toast'
-import SongPickerModal from '@/components/community/SongPickerModal'
-import LyricsDrawer from '@/components/ui/LyricsDrawer'
+
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
+const LyricsDrawer = dynamic(() => import('@/components/ui/LyricsDrawer'), { ssr: false })
 
 const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
@@ -37,7 +39,7 @@ const isSafeHttpsUrl = (value: unknown): value is string => {
   }
 }
 
-export function MusicPlayer() {
+export const MusicPlayer = React.memo(function MusicPlayer() {
   const { t } = useLanguage()
   const toast = useToast()
   const {
@@ -74,7 +76,7 @@ export function MusicPlayer() {
     }
   }, [playbackError, t, toast])
 
-  const handleConfirmTrack = (reference: string) => {
+  const handleConfirmTrack = useCallback((reference: string) => {
     const existingTrack = tracks.find((track) => track.reference === reference || `jamendo:${track.id}` === reference)
     if (existingTrack) {
       selectTrack(existingTrack.id)
@@ -86,9 +88,9 @@ export function MusicPlayer() {
     void commitReference(reference).then((committed) => {
       if (committed) setIsPickerOpen(false)
     }).finally(() => setIsCommitting(false))
-  }
+  }, [tracks, selectTrack, commitReference])
 
-  const handleMuteToggle = () => {
+  const handleMuteToggle = useCallback(() => {
     if (isMuted || volume === 0) {
       setVolume(lastAudibleVolume > 0 ? lastAudibleVolume : 0.5)
       setIsMuted(false)
@@ -97,7 +99,7 @@ export function MusicPlayer() {
     setLastAudibleVolume(volume)
     setVolume(0)
     setIsMuted(true)
-  }
+  }, [isMuted, volume, lastAudibleVolume, setVolume])
 
   const currentReference = currentTrack?.reference ?? (currentTrack ? `jamendo:${currentTrack.id}` : '')
   const progressMax = duration > 0 ? duration : currentTrack?.duration ?? 0
@@ -111,7 +113,7 @@ export function MusicPlayer() {
   const trackTitle = currentTrack?.name || t('birthdaySong') || t('chooseSong')
   const trackArtist = currentTrack?.artistName || currentTrack?.category || t('music')
 
-  const handleSeekKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleSeekKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault()
       const direction = event.key === 'ArrowLeft' ? -1 : 1
@@ -127,7 +129,7 @@ export function MusicPlayer() {
       event.preventDefault()
       toggle()
     }
-  }
+  }, [progressMax, currentTime, seekTo, toggle])
 
   return (
     <div className="relative w-full max-w-6xl">
@@ -358,4 +360,4 @@ export function MusicPlayer() {
       </section>
     </div>
   )
-}
+})

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus,
@@ -14,13 +15,15 @@ import {
   X,
   Radio,
 } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { fetchStudyRooms, createStudyRoom, joinStudyRoom, getStudyRoom, verifyRoomPasscode } from '@/lib/study/client'
-import { StudyRoomView } from './StudyRoomView'
-import { ZenFocusModal } from './ZenFocusModal'
-import SongPickerModal from '@/components/community/SongPickerModal'
 import type { StudyRoom } from '@/types/study'
+
+const StudyRoomView = dynamic(() => import('./StudyRoomView').then((mod) => mod.StudyRoomView), { ssr: false })
+const ZenFocusModal = dynamic(() => import('./ZenFocusModal').then((mod) => mod.ZenFocusModal), { ssr: false })
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
 
 // 匿名ユーザーIDおよび表示名のフォールバック解決ヘルパー
 function resolveUserCredentials(userIdentifier: string, displayName: string) {
@@ -38,9 +41,17 @@ function resolveUserCredentials(userIdentifier: string, displayName: string) {
   }
 }
 
-export function StudyRoomHub() {
+export const StudyRoomHub = React.memo(function StudyRoomHub() {
   const { currentRoom, userIdentifier, displayName, setRoom, setUserProfile } =
-    useStudyRoomStore()
+    useStudyRoomStore(
+      useShallow((state) => ({
+        currentRoom: state.currentRoom,
+        userIdentifier: state.userIdentifier,
+        displayName: state.displayName,
+        setRoom: state.setRoom,
+        setUserProfile: state.setUserProfile,
+      }))
+    )
   const { t } = useLanguage()
 
   const [rooms, setRooms] = useState<StudyRoom[]>([])
@@ -128,7 +139,7 @@ export function StudyRoomHub() {
   }, [currentRoom, userIdentifier, displayName, setRoom])
 
   // 部屋への入室処理
-  const handleJoinRoom = async (room: StudyRoom) => {
+  const handleJoinRoom = useCallback(async (room: StudyRoom) => {
     if (room.is_private) {
       setJoiningRoom(room)
       setJoinPasscode('')
@@ -144,10 +155,10 @@ export function StudyRoomHub() {
     if (joined) {
       setRoom(room)
     }
-  }
+  }, [userIdentifier, displayName, setRoom])
 
   // 非公開部屋のパスコード確認および入室
-  const handleConfirmPrivateJoin = async () => {
+  const handleConfirmPrivateJoin = useCallback(async () => {
     if (!joiningRoom) return
 
     // サーバーサイドAPI経由で安全にパスコードを照合
@@ -171,10 +182,10 @@ export function StudyRoomHub() {
       setRoom(targetRoom)
       setJoiningRoom(null)
     }
-  }
+  }, [joiningRoom, joinPasscode, userIdentifier, displayName, setRoom])
 
   // 新規部屋作成処理
-  const handleCreateRoom = async (e: React.FormEvent) => {
+  const handleCreateRoom = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newRoomName.trim()) return
 
@@ -204,18 +215,21 @@ export function StudyRoomHub() {
       setSelectedTrackId(null)
     }
     setIsSubmitting(false)
-  }
+  }, [newRoomName, newRoomDesc, userIdentifier, displayName, isPrivate, passcode, selectedTrackId, setRoom])
+
+  const filteredRooms = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return rooms.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        (r.description && r.description.toLowerCase().includes(q))
+    )
+  }, [rooms, searchQuery])
 
   // 部屋に入室中の場合は StudyRoomView を表示
   if (currentRoom) {
     return <StudyRoomView roomId={currentRoom.id} onLeave={() => loadRooms()} />
   }
-
-  const filteredRooms = rooms.filter(
-    (r) =>
-      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
 
   return (
     <div className="w-full max-w-5xl mx-auto p-2 sm:p-4 text-[#3D2314]">
@@ -617,4 +631,4 @@ export function StudyRoomHub() {
       />
     </div>
   )
-}
+})

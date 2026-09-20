@@ -18,8 +18,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { activeModal } = useUIStore()
-  const isZenActive = activeModal === 'zenFocus'
+  const isZenActive = useUIStore((state) => state.activeModal === 'zenFocus')
 
   return (
     <MusicPlayerProvider>
