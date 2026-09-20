@@ -146,7 +146,7 @@ export function FallingLeaves({ count = 40, active = true }: FallingLeavesProps)
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {leaves.map((leaf) => (
           <LeafElement key={leaf.id} leaf={leaf} />
@@ -226,6 +226,7 @@ function LeafElement({ leaf }: LeafElementProps) {
         height: leaf.size,
         transformStyle: 'preserve-3d',
         filter: `drop-shadow(2px 3px 3px rgba(0, 0, 0, 0.25))`,
+        willChange: 'transform, opacity',
       }}
     >
       {leaf.leafType === 'maple' && (

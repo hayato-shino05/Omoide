@@ -67,7 +67,7 @@ export function Sparkles({ active, count = 30, colors = ['#FFD700', '#FFFFFF', '
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {sparkles.map((sparkle, i) => (
           <motion.div
@@ -89,6 +89,7 @@ export function Sparkles({ active, count = 30, colors = ['#FFD700', '#FFFFFF', '
             style={{
               left: `${sparkle.x}%`,
               top: `${sparkle.y}%`,
+              willChange: 'transform, opacity',
             }}
           >
             <svg width={sparkle.size} height={sparkle.size} viewBox="0 0 24 24" fill={sparkle.color}>

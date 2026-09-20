@@ -212,7 +212,7 @@ export default function ParticleSystem({
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-40"
-      style={{ mixBlendMode: type === 'magic' ? 'screen' : 'normal' }}
+      style={{ mixBlendMode: type === 'magic' ? 'screen' : 'normal', contain: 'layout style paint' }}
     />
   )
 }

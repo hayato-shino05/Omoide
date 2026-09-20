@@ -65,7 +65,7 @@ export function Ghosts({ active, count = 5 }: GhostsProps) {
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {ghosts.map(ghost => (
           <motion.div
@@ -87,6 +87,7 @@ export function Ghosts({ active, count = 5 }: GhostsProps) {
             style={{
               left: `${ghost.x}%`,
               top: `${ghost.y}%`,
+              willChange: 'transform, opacity',
             }}
           >
             <svg

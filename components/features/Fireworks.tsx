@@ -55,7 +55,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
   }, [active, count])
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {fireworks.map((firework) => (
           <div
@@ -95,6 +95,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
                   style={{
                     backgroundColor: firework.color,
                     boxShadow: `0 0 10px ${firework.color}`,
+                    willChange: 'transform, opacity',
                   }}
                 />
               )
@@ -117,6 +118,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
                 backgroundColor: firework.color,
                 boxShadow: `0 0 30px ${firework.color}`,
                 filter: 'blur(4px)',
+                willChange: 'transform, opacity',
               }}
             />
           </div>

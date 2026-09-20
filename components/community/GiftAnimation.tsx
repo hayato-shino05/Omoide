@@ -10,18 +10,6 @@ interface GiftAnimationProps {
   onComplete?: () => void
 }
 
-// きらめきの表示位置（決定論的：レンダー毎の乱数呼び出しを避けるため固定値）
-const SPARKLE_POSITIONS = [
-  { top: '24%', left: '30%' },
-  { top: '30%', left: '72%' },
-  { top: '38%', left: '22%' },
-  { top: '45%', left: '55%' },
-  { top: '52%', left: '35%' },
-  { top: '60%', left: '76%' },
-  { top: '66%', left: '25%' },
-  { top: '74%', left: '64%' },
-]
-
 // 浮遊パーティクル（決定論的配置：x は均等分散、delay は 0〜0.45 秒）
 const GIFT_PARTICLES = Array.from({ length: 20 }, (_, i) => ({
   id: i,
@@ -46,7 +34,10 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+      style={{ contain: 'layout style paint' }}
+    >
       {/* 背景オーバーレイ */}
       <div className="absolute inset-0 bg-black/30 animate-fade-in" />
 
@@ -85,27 +76,30 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
+
         @keyframes bounce-in {
-          0% { transform: scale(0.6); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
+          0% { transform: scale3d(0.6, 0.6, 1); opacity: 0; }
+          100% { transform: scale3d(1, 1, 1); opacity: 1; }
         }
-        
+
         @keyframes float-up {
-          0% { transform: translateY(0); opacity: 1; }
-          100% { transform: translateY(-200px); opacity: 0; }
+          0% { transform: translate3d(0, 0, 0); opacity: 1; }
+          100% { transform: translate3d(0, -200px, 0); opacity: 0; }
         }
-        
+
         .animate-fade-in {
           animation: fade-in 0.3s ease-out forwards;
+          will-change: opacity;
         }
-        
+
         .animate-bounce-in {
           animation: bounce-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          will-change: transform, opacity;
         }
-        
+
         .animate-float-up {
           animation: float-up 2s ease-out forwards;
+          will-change: transform, opacity;
         }
       `}</style>
     </div>

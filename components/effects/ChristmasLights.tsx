@@ -20,7 +20,7 @@ export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
   }))
 
   return (
-    <div className="fixed top-0 left-0 right-0 pointer-events-none z-40">
+    <div className="fixed top-0 left-0 right-0 pointer-events-none z-40" style={{ contain: 'layout style paint' }}>
       <svg className="w-full h-16" viewBox="0 0 1000 60" preserveAspectRatio="none">
         <path
           d="M0,10 Q250,40 500,10 Q750,40 1000,10"
@@ -60,6 +60,7 @@ export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
                 }}
                 style={{
                   filter: `drop-shadow(0 0 8px ${light.color})`,
+                  willChange: 'filter, opacity',
                 }}
               />
             </motion.g>
@@ -106,6 +107,7 @@ export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
                 }}
                 style={{
                   filter: `drop-shadow(0 0 8px ${color})`,
+                  willChange: 'opacity',
                 }}
               />
             </motion.g>

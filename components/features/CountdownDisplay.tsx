@@ -50,7 +50,7 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
 
   return (
     <div className={`countdown-card-wrapper theme-${currentTheme} w-full flex justify-center items-center px-3 sm:px-4 min-h-[42vh]`}>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {isHidden ? (
           /* 非表示時の再表示トリガーボタン */
           <motion.button
@@ -72,7 +72,7 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
           /* メインのスクラップブック風カウントダウンカード */
           <motion.div
             key="countdown-card"
-            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            initial={false}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}

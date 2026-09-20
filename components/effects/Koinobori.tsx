@@ -26,7 +26,7 @@ export function Koinobori({ active, count = 3 }: KoinoboriProps) {
   }))
 
   return (
-    <div className="fixed top-0 left-0 right-0 pointer-events-none z-35 h-64">
+    <div className="fixed top-0 left-0 right-0 pointer-events-none z-35 h-64" style={{ contain: 'layout style paint' }}>
       <div
         className="absolute left-1/2 top-0 w-2 bg-gradient-to-b from-amber-700 to-amber-900"
         style={{ height: '100%', transform: 'translateX(-50%)' }}
@@ -39,7 +39,7 @@ export function Koinobori({ active, count = 3 }: KoinoboriProps) {
 
       <motion.div
         className="absolute left-1/2 top-10"
-        style={{ transform: 'translateX(-50%)' }}
+        style={{ transform: 'translateX(-50%)', willChange: 'transform' }}
         animate={{ rotateZ: [-5, 5, -5] }}
         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
       >
@@ -52,6 +52,7 @@ export function Koinobori({ active, count = 3 }: KoinoboriProps) {
               backgroundColor: color,
               left: i * 6 - 12,
               transformOrigin: 'top',
+              willChange: 'transform',
             }}
             animate={{
               rotateZ: [-10 + i * 2, 10 - i * 2, -10 + i * 2],
@@ -74,6 +75,7 @@ export function Koinobori({ active, count = 3 }: KoinoboriProps) {
             left: `${koi.x}%`,
             top: 60 + index * 35,
             transform: `scale(${koi.size})`,
+            willChange: 'transform',
           }}
           animate={{
             x: [-10, 15, -10],

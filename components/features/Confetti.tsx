@@ -63,7 +63,7 @@ export function Confetti({ active, count = 50 }: ConfettiProps) {
   }, [active, count])
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {pieces.map((piece) => (
           <motion.div
@@ -91,6 +91,7 @@ export function Confetti({ active, count = 50 }: ConfettiProps) {
               height: piece.size,
               backgroundColor: piece.color,
               borderRadius: piece.id % 2 === 0 ? '50%' : '0',
+              willChange: 'transform, opacity',
             }}
           />
         ))}

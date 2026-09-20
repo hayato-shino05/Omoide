@@ -58,7 +58,7 @@ export function Balloons({ active, count = 15 }: BalloonsProps) {
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {balloons.map((balloon) => (
           <motion.div
@@ -80,6 +80,7 @@ export function Balloons({ active, count = 15 }: BalloonsProps) {
               ease: 'easeOut',
             }}
             className="absolute"
+            style={{ willChange: 'transform' }}
           >
             <div
               className="relative rounded-full"

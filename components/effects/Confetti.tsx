@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { usePrefersReducedMotion } from '@/lib/hooks/useMediaQuery'
 
 interface ConfettiPiece {
@@ -30,122 +30,54 @@ const defaultColors = [
   '#BB8FCE', '#85C1E9', '#F8B500', '#FF69B4',
 ]
 
-interface ConfettiAnimationConfig {
-  isActive: boolean
-  duration: number
-  onComplete?: () => void
-  createInitialPieces: () => ConfettiPiece[]
-  updatePieces: (pieces: ConfettiPiece[], deltaTime: number) => ConfettiPiece[]
-}
-
-function useConfettiAnimation({
-  isActive,
-  duration,
-  onComplete,
-  createInitialPieces,
-  updatePieces,
-}: ConfettiAnimationConfig) {
-  const [pieces, setPieces] = useState<ConfettiPiece[]>([])
-  const prefersReducedMotion = usePrefersReducedMotion()
-  const completedRef = useRef(false)
-  const onCompleteRef = useRef(onComplete)
-  const createInitialPiecesRef = useRef(createInitialPieces)
-  const updatePiecesRef = useRef(updatePieces)
-  const durationRef = useRef(duration)
-
-  useEffect(() => {
-    onCompleteRef.current = onComplete
-  }, [onComplete])
-
-  useEffect(() => {
-    createInitialPiecesRef.current = createInitialPieces
-  }, [createInitialPieces])
-
-  useEffect(() => {
-    updatePiecesRef.current = updatePieces
-  }, [updatePieces])
-
-  useEffect(() => {
-    durationRef.current = duration
-  }, [duration])
-
-  useEffect(() => {
-    if (!isActive) {
-      completedRef.current = false
+function drawShape(ctx: CanvasRenderingContext2D, shape: ConfettiPiece['shape'], size: number) {
+  switch (shape) {
+    case 'circle': {
+      ctx.beginPath()
+      ctx.arc(0, 0, size / 2, 0, Math.PI * 2)
+      ctx.fill()
+      break
     }
-  }, [isActive])
-
-  useEffect(() => {
-    if (!isActive) {
-      const raf = requestAnimationFrame(() => setPieces([]))
-      return () => cancelAnimationFrame(raf)
+    case 'triangle': {
+      ctx.beginPath()
+      ctx.moveTo(0, -size / 2)
+      ctx.lineTo(size / 2, size / 2)
+      ctx.lineTo(-size / 2, size / 2)
+      ctx.closePath()
+      ctx.fill()
+      break
     }
+    case 'star': {
+      ctx.beginPath()
+      const spikes = 5
+      const outerRadius = size / 2
+      const innerRadius = size / 4
+      let rot = (Math.PI / 2) * 3
+      const step = Math.PI / spikes
 
-    if (prefersReducedMotion) {
-      const raf = requestAnimationFrame(() => setPieces([]))
-      if (!completedRef.current) {
-        completedRef.current = true
-        onCompleteRef.current?.()
+      ctx.moveTo(0, -outerRadius)
+      for (let i = 0; i < spikes; i++) {
+        let sx = Math.cos(rot) * outerRadius
+        let sy = Math.sin(rot) * outerRadius
+        ctx.lineTo(sx, sy)
+        rot += step
+
+        sx = Math.cos(rot) * innerRadius
+        sy = Math.sin(rot) * innerRadius
+        ctx.lineTo(sx, sy)
+        rot += step
       }
-      return () => cancelAnimationFrame(raf)
+      ctx.lineTo(0, -outerRadius)
+      ctx.closePath()
+      ctx.fill()
+      break
     }
-
-    if (completedRef.current) {
-      return
+    case 'square':
+    default: {
+      ctx.fillRect(-size / 2, -size / 2, size, size)
+      break
     }
-
-    let initialRaf: number | null = null
-    let animationId: number | null = null
-    let currentPieces: ConfettiPiece[] = []
-    let lastTime = performance.now()
-    let isRunning = true
-
-    initialRaf = requestAnimationFrame(() => {
-      if (!isRunning) return
-      currentPieces = createInitialPiecesRef.current()
-      setPieces(currentPieces)
-
-      const step = (currentTime: number) => {
-        if (!isRunning) return
-        if (currentPieces.length === 0) return
-
-        const deltaTime = (currentTime - lastTime) / 16.67
-        lastTime = currentTime
-
-        currentPieces = updatePiecesRef.current(currentPieces, deltaTime)
-        setPieces(currentPieces)
-
-        if (isRunning && currentPieces.length > 0) {
-          animationId = requestAnimationFrame(step)
-        }
-      }
-
-      lastTime = performance.now()
-      if (isRunning && currentPieces.length > 0) {
-        animationId = requestAnimationFrame(step)
-      }
-    })
-
-    const timeout = setTimeout(() => {
-      isRunning = false
-      if (initialRaf !== null) cancelAnimationFrame(initialRaf)
-      if (animationId !== null) cancelAnimationFrame(animationId)
-      setPieces([])
-      if (!completedRef.current) {
-        completedRef.current = true
-        onCompleteRef.current?.()
-      }
-    }, durationRef.current)
-
-    return () => {
-      isRunning = false
-      if (initialRaf !== null) cancelAnimationFrame(initialRaf)
-      if (animationId !== null) cancelAnimationFrame(animationId)
-      clearTimeout(timeout)
-    }
-  }, [isActive, prefersReducedMotion])
-
-  return { pieces, prefersReducedMotion }
+  }
 }
 
 export default function Confetti({
@@ -155,12 +87,39 @@ export default function Confetti({
   colors = defaultColors,
   onComplete,
 }: ConfettiProps) {
-  const createPiece = useCallback((id: number): ConfettiPiece => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const onCompleteRef = useRef(onComplete)
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
+    if (!isActive) return
+
+    if (prefersReducedMotion) {
+      onCompleteRef.current?.()
+      return
+    }
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+
     const shapes: ConfettiPiece['shape'][] = ['square', 'circle', 'triangle', 'star']
-    return {
-      id,
-      x: Math.random() * 100,
-      y: -10,
+    const pieces: ConfettiPiece[] = Array.from({ length: particleCount }, (_, i) => ({
+      id: i,
+      x: (Math.random() * 100 * canvas.width) / 100,
+      y: -Math.random() * 50 - 10,
       rotation: Math.random() * 360,
       color: colors[Math.floor(Math.random() * colors.length)],
       size: 8 + Math.random() * 8,
@@ -168,99 +127,91 @@ export default function Confetti({
       velocityY: 2 + Math.random() * 3,
       rotationSpeed: (Math.random() - 0.5) * 10,
       shape: shapes[Math.floor(Math.random() * shapes.length)],
+    }))
+
+    let animationId: number | null = null
+    let lastTime = performance.now()
+    let isRunning = true
+
+    const step = (currentTime: number) => {
+      if (!isRunning) return
+      const deltaTime = Math.min((currentTime - lastTime) / 16.67, 3)
+      lastTime = currentTime
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      let hasActiveParticles = false
+      for (const piece of pieces) {
+        piece.x += piece.velocityX * deltaTime * 0.5 * (canvas.width / 100)
+        piece.y += piece.velocityY * deltaTime * 0.5 * (canvas.height / 100)
+        piece.rotation += piece.rotationSpeed * deltaTime
+        piece.velocityY += 0.1 * deltaTime
+
+        if (piece.y < canvas.height + 50) {
+          hasActiveParticles = true
+          const opacity = Math.max(0, 1 - piece.y / canvas.height)
+
+          ctx.save()
+          ctx.translate(piece.x, piece.y)
+          ctx.rotate((piece.rotation * Math.PI) / 180)
+          ctx.globalAlpha = opacity
+          ctx.fillStyle = piece.color
+          drawShape(ctx, piece.shape, piece.size)
+          ctx.restore()
+        }
+      }
+
+      if (isRunning && hasActiveParticles) {
+        animationId = requestAnimationFrame(step)
+      }
     }
-  }, [colors])
 
-  const createInitialPieces = useCallback(() => {
-    return Array.from({ length: particleCount }, (_, i) => createPiece(i))
-  }, [particleCount, createPiece])
+    animationId = requestAnimationFrame((time) => {
+      lastTime = time
+      step(time)
+    })
 
-  const updatePieces = useCallback((current: ConfettiPiece[], deltaTime: number) => {
-    return current
-      .map((piece) => ({
-        ...piece,
-        x: piece.x + piece.velocityX * deltaTime * 0.5,
-        y: piece.y + piece.velocityY * deltaTime * 0.5,
-        rotation: piece.rotation + piece.rotationSpeed * deltaTime,
-        velocityY: piece.velocityY + 0.1 * deltaTime,
-      }))
-      .filter((piece) => piece.y < 120)
-  }, [])
+    const timeout = setTimeout(() => {
+      isRunning = false
+      if (animationId !== null) cancelAnimationFrame(animationId)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      onCompleteRef.current?.()
+    }, duration)
 
-  const { pieces, prefersReducedMotion } = useConfettiAnimation({
-    isActive,
-    duration,
-    onComplete,
-    createInitialPieces,
-    updatePieces,
-  })
-
-  // reduced-motion 時は描画もループも停止
-  if (prefersReducedMotion) return null
-
-  if (!isActive && pieces.length === 0) return null
-
-  const renderShape = (piece: ConfettiPiece) => {
-    switch (piece.shape) {
-      case 'circle':
-        return (
-          <div
-            className="rounded-full"
-            style={{
-              width: piece.size,
-              height: piece.size,
-              backgroundColor: piece.color,
-            }}
-          />
-        )
-      case 'triangle':
-        return (
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderLeft: `${piece.size / 2}px solid transparent`,
-              borderRight: `${piece.size / 2}px solid transparent`,
-              borderBottom: `${piece.size}px solid ${piece.color}`,
-            }}
-          />
-        )
-      case 'star':
-        return (
-          <svg width={piece.size} height={piece.size} viewBox="0 0 24 24" fill={piece.color}>
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-        )
-      default:
-        return (
-          <div
-            style={{
-              width: piece.size,
-              height: piece.size,
-              backgroundColor: piece.color,
-            }}
-          />
-        )
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false
+        if (animationId !== null) {
+          cancelAnimationFrame(animationId)
+          animationId = null
+        }
+      } else {
+        if (!isRunning) {
+          isRunning = true
+          lastTime = performance.now()
+          animationId = requestAnimationFrame(step)
+        }
+      }
     }
-  }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      isRunning = false
+      if (animationId !== null) cancelAnimationFrame(animationId)
+      clearTimeout(timeout)
+      window.removeEventListener('resize', resizeCanvas)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [isActive, duration, particleCount, colors, prefersReducedMotion])
+
+  if (prefersReducedMotion || !isActive) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      {pieces.map((piece) => (
-        <div
-          key={piece.id}
-          className="absolute"
-          style={{
-            left: `${piece.x}%`,
-            top: `${piece.y}%`,
-            transform: `rotate(${piece.rotation}deg)`,
-            opacity: Math.max(0, 1 - piece.y / 100),
-          }}
-        >
-          {renderShape(piece)}
-        </div>
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-50 overflow-hidden"
+      style={{ contain: 'layout style paint' }}
+    />
   )
 }
 
@@ -273,8 +224,35 @@ interface ConfettiBurstProps {
 }
 
 export function ConfettiBurst({ x, y, isActive, onComplete }: ConfettiBurstProps) {
-  const createInitialPieces = useCallback(() => {
-    return Array.from({ length: 50 }, (_, i) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const onCompleteRef = useRef(onComplete)
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
+
+  useEffect(() => {
+    if (!isActive) return
+
+    if (prefersReducedMotion) {
+      onCompleteRef.current?.()
+      return
+    }
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+
+    const pieces: ConfettiPiece[] = Array.from({ length: 50 }, (_, i) => {
       const angle = (i / 50) * Math.PI * 2
       const velocity = 5 + Math.random() * 10
       return {
@@ -290,49 +268,91 @@ export function ConfettiBurst({ x, y, isActive, onComplete }: ConfettiBurstProps
         shape: 'square' as const,
       }
     })
-  }, [x, y])
 
-  const updatePieces = useCallback((current: ConfettiPiece[], deltaTime: number) => {
-    const drag = Math.pow(0.98, deltaTime)
-    return current
-      .map((piece) => ({
-        ...piece,
-        x: piece.x + piece.velocityX * deltaTime,
-        y: piece.y + piece.velocityY * deltaTime,
-        rotation: piece.rotation + piece.rotationSpeed * deltaTime,
-        velocityY: piece.velocityY + 0.5 * deltaTime,
-        velocityX: piece.velocityX * drag,
-      }))
-      .filter((piece) => piece.y < window.innerHeight + 50)
-  }, [])
+    let animationId: number | null = null
+    let lastTime = performance.now()
+    let isRunning = true
 
-  const { pieces, prefersReducedMotion } = useConfettiAnimation({
-    isActive,
-    duration: 3000,
-    onComplete,
-    createInitialPieces,
-    updatePieces,
-  })
+    const step = (currentTime: number) => {
+      if (!isRunning) return
+      const deltaTime = Math.min((currentTime - lastTime) / 16.67, 3)
+      lastTime = currentTime
+      const drag = Math.pow(0.98, deltaTime)
 
-  if (prefersReducedMotion || pieces.length === 0) return null
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      let hasActiveParticles = false
+      for (const piece of pieces) {
+        piece.x += piece.velocityX * deltaTime
+        piece.y += piece.velocityY * deltaTime
+        piece.rotation += piece.rotationSpeed * deltaTime
+        piece.velocityY += 0.5 * deltaTime
+        piece.velocityX *= drag
+
+        if (piece.y < canvas.height + 50) {
+          hasActiveParticles = true
+          const opacity = Math.max(0, 1 - piece.y / canvas.height)
+
+          ctx.save()
+          ctx.translate(piece.x, piece.y)
+          ctx.rotate((piece.rotation * Math.PI) / 180)
+          ctx.globalAlpha = opacity
+          ctx.fillStyle = piece.color
+          ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size)
+          ctx.restore()
+        }
+      }
+
+      if (isRunning && hasActiveParticles) {
+        animationId = requestAnimationFrame(step)
+      }
+    }
+
+    animationId = requestAnimationFrame((time) => {
+      lastTime = time
+      step(time)
+    })
+
+    const timeout = setTimeout(() => {
+      isRunning = false
+      if (animationId !== null) cancelAnimationFrame(animationId)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      onCompleteRef.current?.()
+    }, 3000)
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false
+        if (animationId !== null) {
+          cancelAnimationFrame(animationId)
+          animationId = null
+        }
+      } else {
+        if (!isRunning) {
+          isRunning = true
+          lastTime = performance.now()
+          animationId = requestAnimationFrame(step)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      isRunning = false
+      if (animationId !== null) cancelAnimationFrame(animationId)
+      clearTimeout(timeout)
+      window.removeEventListener('resize', resizeCanvas)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [isActive, x, y, prefersReducedMotion])
+
+  if (prefersReducedMotion || !isActive) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      {pieces.map((piece) => (
-        <div
-          key={piece.id}
-          className="absolute"
-          style={{
-            left: piece.x,
-            top: piece.y,
-            width: piece.size,
-            height: piece.size,
-            backgroundColor: piece.color,
-            transform: `rotate(${piece.rotation}deg)`,
-            opacity: Math.max(0, 1 - piece.y / window.innerHeight),
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-50 overflow-hidden"
+      style={{ contain: 'layout style paint' }}
+    />
   )
 }
