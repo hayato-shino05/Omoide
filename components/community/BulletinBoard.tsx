@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { usePosts, Post } from '@/lib/hooks/usePosts'
 import { Icon } from '@/components/ui/Icon'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import BulletinPost from './BulletinPost'
-import PostDetail from './PostDetail'
+
+const PostDetail = dynamic(() => import('./PostDetail'), { ssr: false })
 
 interface BirthdayThread {
   id: string
@@ -37,7 +39,7 @@ function toPost(thread: BirthdayThread): Post {
 
 export default function BulletinBoard() {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
   const { posts, loading, error, refetch, likePost } = usePosts()
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [birthdayThreads, setBirthdayThreads] = useState<BirthdayThread[]>([])

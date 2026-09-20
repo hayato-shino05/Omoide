@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { parseMusicTrackReference } from './reference'
 import { JAPAN_PRESET_TRACKS, getJamendoStreamUrl } from './presets'
 import type { MusicAccess, MusicTrackReference, ResolvedTrack, SearchTrack } from './types'
@@ -9,10 +9,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://hvtioiriav
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // ponytail: モジュールスコープのシングルトン。サーバー再起動で再生成される。
-let _supabase: ReturnType<typeof createClient<any>> | null = null
-function getSupabase() {
+let _supabase: SupabaseClient | null = null
+function getSupabase(): SupabaseClient | null {
   if (!SUPABASE_ANON_KEY) return null
-  if (!_supabase) _supabase = createClient<any>(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  if (!_supabase) _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
   return _supabase
 }
 
@@ -330,11 +330,22 @@ export async function resolveMusicTrack(value: string): Promise<ResolvedTrack | 
       const supabase = getSupabase()
       if (!supabase) return null
 
-      const { data: track } = await supabase
+      const { data: trackData } = await supabase
         .from('music_tracks')
         .select('id, name, title, artist, duration, url, cover_url, lyrics_url, lyrics_lrc')
         .eq('id', reference.trackId)
         .single()
+      const track = trackData as {
+        id?: string | number
+        name?: string
+        title?: string
+        artist?: string
+        duration?: number
+        url?: string
+        cover_url?: string
+        lyrics_url?: string
+        lyrics_lrc?: string
+      } | null
 
       if (track && track.url) {
         return {
@@ -342,7 +353,7 @@ export async function resolveMusicTrack(value: string): Promise<ResolvedTrack | 
           trackId: String(track.id),
           reference: `omoide:${track.id}`,
           access: 'playable',
-          name: track.title || track.name,
+          name: track.title || track.name || 'Unknown Track',
           artistName: track.artist || 'Unknown Artist',
           duration: track.duration || 0,
           streamUrl: track.url,

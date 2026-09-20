@@ -53,8 +53,10 @@ export function Bats({ active, count = 8 }: BatsProps) {
       })
     }
 
+    const initialTimers: NodeJS.Timeout[] = []
     for (let i = 0; i < Math.min(3, count); i++) {
-      setTimeout(() => spawnBat(), i * 800)
+      const timer = setTimeout(() => spawnBat(), i * 800)
+      initialTimers.push(timer)
     }
 
     const interval = setInterval(spawnBat, 2000 + Math.random() * 2000)
@@ -64,6 +66,7 @@ export function Bats({ active, count = 8 }: BatsProps) {
     }, 3000)
 
     return () => {
+      initialTimers.forEach((t) => clearTimeout(t))
       clearInterval(interval)
       clearInterval(cleanup)
     }

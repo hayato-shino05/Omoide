@@ -76,6 +76,10 @@ export function usePomodoro(onCycleComplete?: (mode: PomodoroMode, streakMinutes
       osc.connect(gain)
       gain.connect(audioCtx.destination)
 
+      osc.onended = () => {
+        audioCtx.close().catch(() => {})
+      }
+
       osc.start()
       osc.stop(audioCtx.currentTime + 2.5)
     } catch (e) {
