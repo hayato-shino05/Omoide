@@ -1,33 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Volume2, Sliders, Headphones, Disc3 } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useAmbientSoundStore } from '@/lib/stores/ambientSoundStore'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { AmbientMixerModal } from './AmbientMixerModal'
-import SongPickerModal from '@/components/community/SongPickerModal'
+
+const AmbientMixerModal = dynamic(() => import('./AmbientMixerModal').then((mod) => mod.AmbientMixerModal), { ssr: false })
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
 
 interface DualAudioControlsProps {
   onHostChangeTrack?: (trackId: string) => void
 }
 
-export function DualAudioControls({ onHostChangeTrack }: DualAudioControlsProps) {
+export const DualAudioControls = React.memo(function DualAudioControls({ onHostChangeTrack }: DualAudioControlsProps) {
   const { currentTrack, isSoloMode, roomVolume, isHost, setIsSoloMode, setRoomVolume } =
-    useStudyRoomStore()
+    useStudyRoomStore(
+      useShallow((state) => ({
+        currentTrack: state.currentTrack,
+        isSoloMode: state.isSoloMode,
+        roomVolume: state.roomVolume,
+        isHost: state.isHost,
+        setIsSoloMode: state.setIsSoloMode,
+        setRoomVolume: state.setRoomVolume,
+      }))
+    )
 
-  const { volumes, isPlaying: isAmbientPlaying } = useAmbientSoundStore()
+  const { volumes, isPlaying: isAmbientPlaying } = useAmbientSoundStore(
+    useShallow((state) => ({
+      volumes: state.volumes,
+      isPlaying: state.isPlaying,
+    }))
+  )
   const { t } = useLanguage()
 
   const [isMixerOpen, setIsMixerOpen] = useState(false)
   const [isSongPickerOpen, setIsSongPickerOpen] = useState(false)
 
-  const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
+  const activeAmbientCount = useMemo(
+    () => Object.values(volumes).filter((v) => v > 0).length,
+    [volumes]
+  )
 
-  const handleSongConfirm = (reference: string) => {
+  const handleSongConfirm = useCallback((reference: string) => {
     onHostChangeTrack?.(reference)
     setIsSongPickerOpen(false)
-  }
+  }, [onHostChangeTrack])
+
+  const handleCloseMixer = useCallback(() => {
+    setIsMixerOpen(false)
+  }, [])
+
+  const handleCloseSongPicker = useCallback(() => {
+    setIsSongPickerOpen(false)
+  }, [])
 
   return (
     <>
@@ -128,16 +156,16 @@ export function DualAudioControls({ onHostChangeTrack }: DualAudioControlsProps)
       </div>
 
       {/* Modals */}
-      <AmbientMixerModal isOpen={isMixerOpen} onClose={() => setIsMixerOpen(false)} />
+      <AmbientMixerModal isOpen={isMixerOpen} onClose={handleCloseMixer} />
 
       {isHost && (
         <SongPickerModal
           isOpen={isSongPickerOpen}
-          onClose={() => setIsSongPickerOpen(false)}
+          onClose={handleCloseSongPicker}
           onConfirm={handleSongConfirm}
           initialValue={currentTrack?.id}
         />
       )}
     </>
   )
-}
+})

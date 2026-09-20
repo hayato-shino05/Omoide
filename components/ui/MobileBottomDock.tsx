@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useId } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
@@ -8,8 +9,9 @@ import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
 import { useToast } from '@/components/ui/Toast'
 import { buildLineShareUrl } from '@/lib/share'
 import { Icon } from './Icon'
-import SongPickerModal from '@/components/community/SongPickerModal'
-import LyricsDrawer from '@/components/ui/LyricsDrawer'
+
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
+const LyricsDrawer = dynamic(() => import('@/components/ui/LyricsDrawer'), { ssr: false })
 
 const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00'

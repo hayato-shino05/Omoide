@@ -1,17 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { CameraCapture } from './CameraCapture'
 import { ContributorPromptButtons } from './ContributorPromptButtons'
 import { SelectedMusicTrackRow } from './SelectedMusicTrackRow'
-import SongPickerModal from './SongPickerModal'
 import { SelectedPostRow } from './SelectedPostRow'
-import PostPickerModal, { type TargetPostItem } from './PostPickerModal'
+import type { TargetPostItem } from './PostPickerModal'
 import { normalizeMediaFile, validateCommunityMediaFile } from '@/lib/validations/upload'
 import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
+
+const CameraCapture = dynamic(() => import('./CameraCapture').then((mod) => mod.CameraCapture), { ssr: false })
+const SongPickerModal = dynamic(() => import('./SongPickerModal'), { ssr: false })
+const PostPickerModal = dynamic(() => import('./PostPickerModal'), { ssr: false })
 
 /** 投稿モーダルの選択モード（新規投稿 vs 既存投稿へ返信） */
 export type MessageFormMode = 'new' | 'reply'

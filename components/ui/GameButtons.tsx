@@ -1,22 +1,26 @@
 'use client'
 
+import React, { useMemo } from 'react'
 import { Icon } from './Icon'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { MobileGameMenu } from './MobileGameMenu'
 
-export function GameButtons() {
+export const GameButtons = React.memo(function GameButtons() {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
 
-  const games = [
-    { id: 'omikuji' as const, icon: 'Sparkles' as const, label: t('omikujiTitle') },
-    { id: 'flashback' as const, icon: 'Calendar' as const, label: t('flashbackTitle') },
-    { id: 'memoryGame' as const, icon: 'Brain' as const, label: t('memoryGame') },
-    { id: 'puzzleGame' as const, icon: 'Puzzle' as const, label: t('puzzleGame') },
-    { id: 'calendar' as const, icon: 'Calendar' as const, label: t('birthdayCalendar') },
-    { id: 'quiz' as const, icon: 'HelpCircle' as const, label: t('birthdayQuiz') },
-  ]
+  const games = useMemo(
+    () => [
+      { id: 'omikuji' as const, icon: 'Sparkles' as const, label: t('omikujiTitle') },
+      { id: 'flashback' as const, icon: 'Calendar' as const, label: t('flashbackTitle') },
+      { id: 'memoryGame' as const, icon: 'Brain' as const, label: t('memoryGame') },
+      { id: 'puzzleGame' as const, icon: 'Puzzle' as const, label: t('puzzleGame') },
+      { id: 'calendar' as const, icon: 'Calendar' as const, label: t('birthdayCalendar') },
+      { id: 'quiz' as const, icon: 'HelpCircle' as const, label: t('birthdayQuiz') },
+    ],
+    [t]
+  )
 
   return (
     <>
@@ -41,4 +45,4 @@ export function GameButtons() {
       </nav>
     </>
   )
-}
+})

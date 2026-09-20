@@ -20,7 +20,7 @@ interface FlashbackMemory {
 // 過去の同日に投稿された写真やメッセージを振り返るコンポーネント
 export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
   const { t, language } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
   const [memories, setMemories] = useState<FlashbackMemory[]>([])
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)

@@ -1,18 +1,27 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useShallow } from 'zustand/react/shallow'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { X, Check, Music2, Clock, User } from 'lucide-react'
 
-export function SongRequestListModal() {
+export const SongRequestListModal = React.memo(function SongRequestListModal() {
   const {
     songRequests,
     isSongRequestModalOpen,
     setSongRequestModalOpen,
     respondSongRequestAction,
     isHost,
-  } = useStudyRoomStore()
+  } = useStudyRoomStore(
+    useShallow((state) => ({
+      songRequests: state.songRequests,
+      isSongRequestModalOpen: state.isSongRequestModalOpen,
+      setSongRequestModalOpen: state.setSongRequestModalOpen,
+      respondSongRequestAction: state.respondSongRequestAction,
+      isHost: state.isHost,
+    }))
+  )
 
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -27,19 +36,23 @@ export function SongRequestListModal() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isSongRequestModalOpen, setSongRequestModalOpen])
 
-  if (!isSongRequestModalOpen) return null
-
-  const handleApprove = async (requestId: string) => {
+  const handleApprove = useCallback(async (requestId: string) => {
     if (respondSongRequestAction) {
       await respondSongRequestAction(requestId, 'approve')
     }
-  }
+  }, [respondSongRequestAction])
 
-  const handleReject = async (requestId: string) => {
+  const handleReject = useCallback(async (requestId: string) => {
     if (respondSongRequestAction) {
       await respondSongRequestAction(requestId, 'reject')
     }
-  }
+  }, [respondSongRequestAction])
+
+  const handleClose = useCallback(() => {
+    setSongRequestModalOpen(false)
+  }, [setSongRequestModalOpen])
+
+  if (!isSongRequestModalOpen) return null
 
   return (
     <AnimatePresence>
@@ -74,7 +87,7 @@ export function SongRequestListModal() {
             </div>
 
             <button
-              onClick={() => setSongRequestModalOpen(false)}
+              onClick={handleClose}
               className="flex h-11 w-11 items-center justify-center rounded-xl text-stone-400 hover:bg-stone-800/60 hover:text-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 active:scale-[0.96] transition-all motion-safe:duration-150"
               aria-label="閉じる"
             >
@@ -152,7 +165,7 @@ export function SongRequestListModal() {
           <div className="mt-5 border-t border-stone-800/80 pt-4 flex justify-between items-center text-xs text-stone-500">
             <span>リクエスト数: {songRequests.length} / 10</span>
             <button
-              onClick={() => setSongRequestModalOpen(false)}
+              onClick={handleClose}
               className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 active:scale-[0.96] transition-all font-medium motion-safe:duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               閉じる
@@ -162,4 +175,4 @@ export function SongRequestListModal() {
       </div>
     </AnimatePresence>
   )
-}
+})

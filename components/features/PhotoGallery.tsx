@@ -1,14 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PhotoCard } from './PhotoCard'
-import { MediaViewer } from './MediaViewer'
-import { MediaUploader } from './MediaUploader'
 import { useMediaFiles } from '@/lib/hooks/useMediaFiles'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { MediaFile } from '@/types'
 import { Icon } from '@/components/ui/Icon'
+
+const MediaViewer = dynamic(() => import('./MediaViewer').then((mod) => mod.MediaViewer), { ssr: false })
+const MediaUploader = dynamic(() => import('./MediaUploader').then((mod) => mod.MediaUploader), { ssr: false })
 
 interface PhotoGalleryProps {
   filterTag?: string

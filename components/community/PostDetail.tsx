@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Post } from '@/lib/hooks/usePosts'
 import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { MusicComment } from './MusicComment'
 import { SelectedMusicTrackRow } from './SelectedMusicTrackRow'
-import SongPickerModal from './SongPickerModal'
+
+const SongPickerModal = dynamic(() => import('./SongPickerModal'), { ssr: false })
 
 interface Reply {
   id: string

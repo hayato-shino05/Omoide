@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useId } from 'react'
+import React, { useState, useRef, useEffect, useId, useMemo, useCallback } from 'react'
 import { Icon } from './Icon'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
@@ -47,19 +47,23 @@ const menuItemStyle: React.CSSProperties = {
   transition: 'background 0.2s',
 }
 
-export function MobileGameMenu() {
+export const MobileGameMenu = React.memo(function MobileGameMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
 
-  const games = GAME_MENU_ITEMS.map((g) => ({
-    id: g.id,
-    icon: g.icon,
-    label: t(g.i18nKey),
-  }))
+  const games = useMemo(
+    () =>
+      GAME_MENU_ITEMS.map((g) => ({
+        id: g.id,
+        icon: g.icon,
+        label: t(g.i18nKey),
+      })),
+    [t]
+  )
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
@@ -134,4 +138,4 @@ export function MobileGameMenu() {
       )}
     </div>
   )
-}
+})

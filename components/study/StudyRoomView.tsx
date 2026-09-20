@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Radio,
   LogOut,
@@ -26,6 +27,7 @@ import {
   Repeat1,
   ListMusic,
 } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useStudyRoomStore } from '@/lib/stores/studyRoomStore'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { usePomodoro } from '@/lib/hooks/usePomodoro'
@@ -35,12 +37,13 @@ import { useToast } from '@/components/ui/Toast'
 import { JAPAN_PRESET_TRACKS } from '@/lib/music/presets'
 import { DeskPresenceList } from './DeskPresenceList'
 import { SilentCheerOverlay } from './SilentCheerOverlay'
-import { ZenFocusModal } from './ZenFocusModal'
-import { PomodoroSettingsModal } from './PomodoroSettingsModal'
-import { SongRequestListModal } from './SongRequestListModal'
-import { ConfirmModal } from '@/components/ui/ConfirmModal'
-import SongPickerModal from '@/components/community/SongPickerModal'
 import { leaveStudyRoom, updateMemberStatus } from '@/lib/study/client'
+
+const ZenFocusModal = dynamic(() => import('./ZenFocusModal').then((mod) => mod.ZenFocusModal), { ssr: false })
+const PomodoroSettingsModal = dynamic(() => import('./PomodoroSettingsModal').then((mod) => mod.PomodoroSettingsModal), { ssr: false })
+const SongRequestListModal = dynamic(() => import('./SongRequestListModal').then((mod) => mod.SongRequestListModal), { ssr: false })
+const ConfirmModal = dynamic(() => import('@/components/ui/ConfirmModal').then((mod) => mod.ConfirmModal), { ssr: false })
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
 
 interface StudyRoomViewProps {
   roomId: string
@@ -61,7 +64,7 @@ function formatDuration(seconds: number): string {
   return `${pad(m)}:${pad(s)}`
 }
 
-export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
+export const StudyRoomView = React.memo(function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   const {
     currentRoom,
     isHost: storeIsHost,
@@ -89,10 +92,44 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     setAmbientMixerOpen,
     setSongRequestModalOpen,
     resetRoom,
-  } = useStudyRoomStore()
+  } = useStudyRoomStore(
+    useShallow((state) => ({
+      currentRoom: state.currentRoom,
+      isHost: state.isHost,
+      currentTrack: state.currentTrack,
+      isSoloMode: state.isSoloMode,
+      roomVolume: state.roomVolume,
+      roomSessionStartedAt: state.roomSessionStartedAt,
+      userIdentifier: state.userIdentifier,
+      roomQueue: state.roomQueue,
+      roomTrackIndex: state.roomTrackIndex,
+      isRoomShuffle: state.isRoomShuffle,
+      roomRepeatMode: state.roomRepeatMode,
+      songRequests: state.songRequests,
+      changeRoomTrackAction: state.changeRoomTrackAction,
+      sendSilentCheerAction: state.sendSilentCheerAction,
+      updatePresenceStatusAction: state.updatePresenceStatusAction,
+      toggleRoomShuffleAction: state.toggleRoomShuffleAction,
+      cycleRoomRepeatModeAction: state.cycleRoomRepeatModeAction,
+      nextRoomTrackAction: state.nextRoomTrackAction,
+      prevRoomTrackAction: state.prevRoomTrackAction,
+      updatePlaybackStateAction: state.updatePlaybackStateAction,
+      requestSongAction: state.requestSongAction,
+      setIsSoloMode: state.setIsSoloMode,
+      setRoomVolume: state.setRoomVolume,
+      setAmbientMixerOpen: state.setAmbientMixerOpen,
+      setSongRequestModalOpen: state.setSongRequestModalOpen,
+      resetRoom: state.resetRoom,
+    }))
+  )
 
-  const { closeModal } = useUIStore()
-  const { volumes, isPlaying: isAmbientPlaying } = useAmbientSoundStore()
+  const closeModal = useUIStore((state) => state.closeModal)
+  const { volumes, isPlaying: isAmbientPlaying } = useAmbientSoundStore(
+    useShallow((state) => ({
+      volumes: state.volumes,
+      isPlaying: state.isPlaying,
+    }))
+  )
   const { t } = useLanguage()
   const toast = useToast()
 
@@ -122,23 +159,23 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
   const updatePlaybackState = updatePlaybackStateAction || (async () => {})
 
   // ホスト限定アクションの実行ラッパー（非ホスト時はトーストで案内）
-  const handleHostAction = (action: () => void | Promise<void>) => {
+  const handleHostAction = useCallback((action: () => void | Promise<void>) => {
     if (!isHost) {
       toast.info(t('studyHostOnlyNotice'))
       return
     }
     action()
-  }
+  }, [isHost, toast, t])
 
   const isRoomPlaying =
     currentRoom?.playback_state !== 'paused' && currentRoom?.playback_state !== 'stopped'
 
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     handleHostAction(async () => {
       const nextState = isRoomPlaying ? 'paused' : 'playing'
       await updatePlaybackState(nextState)
     })
-  }
+  }, [handleHostAction, isRoomPlaying, updatePlaybackState])
 
   const [isZenOpen, setIsZenOpen] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -163,11 +200,11 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     : 0
 
   // ポモドーロタイマーの連携
-  const handleCycleComplete = async (mode: string, streakMinutes: number) => {
+  const handleCycleComplete = useCallback(async (mode: string, streakMinutes: number) => {
     const status = mode === 'focus' ? 'focusing' : mode === 'long_break' ? 'long_break' : 'short_break'
     await updateMemberStatus(roomId, userIdentifier, status, streakMinutes)
     await updatePresenceStatus(status, streakMinutes)
-  }
+  }, [roomId, userIdentifier, updatePresenceStatus])
 
   const {
     mode,
@@ -184,21 +221,24 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     resetToDefaults,
   } = usePomodoro(handleCycleComplete)
 
-  const activeAmbientCount = Object.values(volumes).filter((v) => v > 0).length
+  const activeAmbientCount = useMemo(
+    () => Object.values(volumes).filter((v) => v > 0).length,
+    [volumes]
+  )
 
-  const handleLeave = () => {
+  const handleLeave = useCallback(() => {
     setIsLeaveConfirmOpen(true)
-  }
+  }, [])
 
-  const executeLeave = async () => {
+  const executeLeave = useCallback(async () => {
     await leaveStudyRoom(roomId, userIdentifier)
     resetRoom()
     useAmbientSoundStore.getState().setIsPlaying(false)
     setIsLeaveConfirmOpen(false)
     onLeave()
-  }
+  }, [roomId, userIdentifier, resetRoom, onLeave])
 
-  const handleCopyLink = () => {
+  const handleCopyLink = useCallback(() => {
     if (typeof window === 'undefined') return
     try {
       const url = new URL(window.location.href)
@@ -217,9 +257,9 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
     } catch (e) {
       console.warn('[StudyRoomView] Failed to build or copy share URL:', e)
     }
-  }
+  }, [roomId])
 
-  const handleSongConfirm = async (reference: string) => {
+  const handleSongConfirm = useCallback(async (reference: string) => {
     if (songPickerMode === 'change') {
       if (!isHost) {
         toast.info(t('studyHostOnlyNotice'))
@@ -253,7 +293,7 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
       }
       setIsSongPickerOpen(false)
     }
-  }
+  }, [songPickerMode, isHost, changeRoomTrack, requestSongAction, t, toast])
 
   return (
     <div className="relative w-full max-w-5xl mx-auto flex flex-col gap-4 p-2 sm:p-4 text-[#3D2314]">
@@ -792,4 +832,4 @@ export function StudyRoomView({ roomId, onLeave }: StudyRoomViewProps) {
       />
     </div>
   )
-}
+})

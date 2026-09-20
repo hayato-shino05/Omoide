@@ -89,18 +89,22 @@ export function useMicrophone({ onBlowDetected, threshold = 0.3, debounceMs = 60
   const stopListening = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
     }
 
     if (microphoneRef.current) {
       microphoneRef.current.disconnect()
+      microphoneRef.current = null
     }
 
     if (audioContextRef.current) {
-      audioContextRef.current.close()
+      audioContextRef.current.close().catch(() => {})
+      audioContextRef.current = null
     }
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
     }
 
     setIsListening(false)

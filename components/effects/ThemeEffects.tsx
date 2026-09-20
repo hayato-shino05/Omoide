@@ -1,18 +1,20 @@
 'use client'
 
-import { FallingPetals } from './FallingPetals'
-import { FallingLeaves } from './FallingLeaves'
-import { FallingSnow } from './FallingSnow'
-import { FloatingLanterns } from './FloatingLanterns'
-import { Fireworks } from '../features/Fireworks'
-import { Sparkles } from './Sparkles'
-import { ChristmasLights } from './ChristmasLights'
-import { Bats } from './Bats'
-import { Ghosts } from './Ghosts'
-import { Fireflies } from './Fireflies'
-import { Koinobori } from './Koinobori'
-import { MoonGlow } from './MoonGlow'
+import dynamic from 'next/dynamic'
 import type { ThemeEffect } from '@/config/themes'
+
+const FallingPetals = dynamic(() => import('./FallingPetals').then((mod) => mod.FallingPetals), { ssr: false })
+const FallingLeaves = dynamic(() => import('./FallingLeaves').then((mod) => mod.FallingLeaves), { ssr: false })
+const FallingSnow = dynamic(() => import('./FallingSnow').then((mod) => mod.FallingSnow), { ssr: false })
+const FloatingLanterns = dynamic(() => import('./FloatingLanterns').then((mod) => mod.FloatingLanterns), { ssr: false })
+const Fireworks = dynamic(() => import('../features/Fireworks').then((mod) => mod.Fireworks), { ssr: false })
+const Sparkles = dynamic(() => import('./Sparkles').then((mod) => mod.Sparkles), { ssr: false })
+const ChristmasLights = dynamic(() => import('./ChristmasLights').then((mod) => mod.ChristmasLights), { ssr: false })
+const Bats = dynamic(() => import('./Bats').then((mod) => mod.Bats), { ssr: false })
+const Ghosts = dynamic(() => import('./Ghosts').then((mod) => mod.Ghosts), { ssr: false })
+const Fireflies = dynamic(() => import('./Fireflies').then((mod) => mod.Fireflies), { ssr: false })
+const Koinobori = dynamic(() => import('./Koinobori').then((mod) => mod.Koinobori), { ssr: false })
+const MoonGlow = dynamic(() => import('./MoonGlow').then((mod) => mod.MoonGlow), { ssr: false })
 
 interface ThemeEffectsProps {
   effects: ThemeEffect[]
