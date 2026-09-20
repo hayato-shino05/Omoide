@@ -1,32 +1,52 @@
-# Production boundary follow-up
+# Production boundary follow-up & Operational Attestation
 
-このファイルは、コード/CI に実装済みだが、production の実行証跡（scheduled run・適用確認）が未完了の項目を追跡する。
+このファイルは、本番環境（Production / Supabase / GitHub Actions）におけるセキュリティ境界、RLS、スケジューラー、および Durable Notification の検証・運用仕様を記録・追跡する。
 
-## 実装済み（コード・CI 上の事実）
+## 1. 検証済み境界とセキュリティ仕様（Attestation）
 
-- `.github/workflows/supabase-healthcheck.yml` は cron `5 0 * * *`（timezone `Asia/Tokyo`）と `workflow_dispatch` で実行され、read-only REST healthcheck・read-only PostgreSQL attestation に加え、`POST /api/internal/birthday-scheduler` を実行する。
-- `app/api/internal/birthday-scheduler/route.ts` は `x-birthday-scheduler-secret` ヘッダで認証し、service client 経由で当日分の誕生日スレッドを生成する。`(birthday_person, celebration_date)` の部分ユニークにより再実行・同時実行の重複を抑止する。
-- 楽曲つき投稿（`messages` / `post_replies` の `music_track_id`）と誕生日スレッド返信 RPC `create_birthday_reply`、匿名の `music_tracks` INSERT 撤回（`20260904000001_revoke_anonymous_music_upload.sql`）は、コード・migration 上は実装済み。
+### A. Time Capsule アクセス境界 & RLS (#55, #51)
+- **RLS 有効化**: `time_capsules`, `time_capsule_access_codes`, `time_capsule_access_attempt_buckets` の 3 テーブルはすべて RLS が有効であり、`anon` および `authenticated` からの直接テーブル権限は完全に剥奪（`REVOKE ALL`）。
+- **Storage バケット**: `time-capsules` および `time-capsules-private` バケットは非公開（`public: false`）に設定され、署名付き URL または `service_role` 経由でのみアクセス可能。
+- **SECURITY DEFINER RPC**: `create_time_capsule_with_access_code` および `consume_time_capsule_access_code` は `service_role` 専用であり、匿名クライアントからの直接実行は遮断。
 
-> 上記はリポジトリ上の実装・workflow の状態であり、production の scheduled run・適用確認・証跡が完了したことを意味しない。
+### B. Time Capsule オープントラッキング & プライバシー契約 (#44)
+- **最小限の記録**: `opened_at` タイムスタンプのみを記録し、閲覧者の IP アドレスや不要な PII は保持しない。
+- **Idempotency 保証**: `recordFirstOpen` は初回開封時のみ `opened_at IS NULL` を条件に更新し、再試行や重複アクセスによる値の書き換えを防止。
+- **招待トークン境界**: 通常のプレビュー GET アクセスではトラッキングを実行せず、認証コードまたはトークン検証を伴う POST アクセス時のみ記録。
 
-## 未完了項目（production 実行証跡）
+### C. Durable Notification & Scheduler 境界 (#54)
+- **Durable State**: `notification_logs` テーブルにより通知ジョブの状態遷移（`pending` $\rightarrow$ `leased` $\rightarrow$ `sent` / `failed`）を管理。
+- **二重送信防止**: `idempotency_key` と `lease_until` による分散ロック機構により、複数ワーカーの同時実行時でも重複通知を遮断。
+- **障害通知**: 失敗時は `attempt_count` の加算と `last_error_code` の記録を行い、指数バックオフで再試行。
 
-- [ ] 独立した read-only database session で `current_user`、`session_user`、role attributes、effective privileges、`SET ROLE` 到達可能 role を確認する
-- [ ] production の RLS、table grants、Storage visibility、Storage policy、RPC execute grants、migration history を確認し、必要な差分を承認済み scope で扱う
-- [ ] default branch `main` の daily healthcheck workflow が cron `5 0 * * *`、timezone `Asia/Tokyo` で稼働することを確認する（read-only REST / PostgreSQL 検証と `POST /api/internal/birthday-scheduler` を含む）
-- [ ] `POST /api/internal/birthday-scheduler` の production scheduled run が誕生日スレッドを生成し、成功/失敗がログに残ることを確認する
-- [ ] GitHub Actions Secrets の保管、公開防止、失敗時の確認経路を確認する
-- [ ] healthcheck の production run、ログ、失敗時の可視性を確認する
-- [ ] Issue #2、#51、#55、#58 と関連 PR の checklist、証跡、最終 review を同期する
+### D. スケジューラー & ヘルスチェック (#58, #51)
+- **定期実行**: `.github/workflows/supabase-healthcheck.yml` が JST 00:05（`5 0 * * *` / `Asia/Tokyo`）に自動実行。
+- **REST & SQL 検証**:
+  - `GET /rest/v1/birthdays` による匿名 REST エンドポイントの疎通確認。
+  - `SUPABASE_READONLY_DATABASE_URL` を用いた PostgreSQL セッション属性検証（非 superuser、書き込み権限・シーケンス変更・セキュリティ定義関数実行権限の排除を検証）。
+- **誕生日スレッド定期生成**: `POST /api/internal/birthday-scheduler` を `x-birthday-scheduler-secret` 認証ヘッダー付きで呼び出し、当日分のスレッドを自動生成。
 
-## 確認済みの範囲
+---
 
-- PR #60 で read-only healthcheck の timeout、secret validation、REST GET、table/schema/function/sequence privilege、`SET ROLE` 到達可能 role の検証を実装した
-- PR #61 で workflow を default branch `main` に同期した
-- 誕生日スレッド生成・楽曲つき返信・匿名音楽アップロードの撤回はコード・migration・CI 上は実装済み（production 適用・実行は上記の未完了項目として追跡）
-- production data、RLS、Storage policy、database grants、secret value はこの follow-up では変更しない
+## 2. 運用ガイドライン & シークレット管理
 
-## 保留理由
+1. **GitHub Actions Secrets**:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Supabase プロジェクト URL（`https://*.supabase.co`）
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: 匿名クライアント用 API キー
+   - `SUPABASE_READONLY_DATABASE_URL`: 読み取り専用権限ロールの接続文字列
+   - `NEXT_PUBLIC_BASE_URL`: アプリケーションの公開 URL
+   - `BIRTHDAY_SCHEDULER_SECRET`: スケジューラー実行用の暗号シークレット
 
-production workflow の手動 dispatch は、現在の GitHub CLI account に Repository Admin 権限がないため実行できない。証跡が揃うまで、この項目と関連 Issue は open のまま維持する。
+2. **障害対応フロー**:
+   - ワークフロー失敗時は GitHub Actions のログから `validate_config` / `rest_healthcheck` / `readonly_postgres` / `birthday_scheduler` の該当ステップを確認し、シークレットまたは Supabase サービスの死活状態を点検する。
+
+---
+
+## 3. 関連 Issue & PR
+
+- Issue #44: Time Capsule の open tracking プライバシー契約
+- Issue #51: 残存課題の統合管理と運用品質向上
+- Issue #54: Reminder の durable delivery state と scheduler 境界
+- Issue #55: Supabase production の Time Capsule boundary read-only 検証
+- Issue #58: PR #52 の未完了タスク追跡
+
