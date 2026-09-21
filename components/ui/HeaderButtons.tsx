@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { Icon } from './Icon'
@@ -8,153 +9,78 @@ interface HeaderButtonsProps {
   position: 'center' | 'right'
 }
 
-export function HeaderButtons({ position }: HeaderButtonsProps) {
+export const HeaderButtons = React.memo(function HeaderButtons({ position }: HeaderButtonsProps) {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
 
   if (position === 'center') {
     return (
       <button
-        className="header-btn"
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-6 py-3 text-[0.95em] min-h-[44px] cursor-pointer"
         onClick={() => openModal('album')}
-        style={{
-          padding: '12px 25px',
-          background: '#854D27',
-          color: '#FFF9F3',
-          border: '2px solid #D4B08C',
-          borderRadius: 0,
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.95em',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          boxShadow: '4px 4px 0 #D4B08C',
-          transition: 'transform 0.3s, box-shadow 0.3s, filter 0.3s',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '6px 6px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '4px 4px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1)'
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '1px 1px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(0.95)'
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '6px 6px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
+        aria-label={t('viewAlbum')}
       >
-        <Icon name="Camera" size={22} />
-        <span>{t('viewAlbum') || 'アルバムを見る'}</span>
+        <Icon name="Camera" size={20} />
+        <span>{t('viewAlbum')}</span>
       </button>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <nav aria-label="Quick Actions" className="flex flex-col gap-2.5">
       <button
-        className="header-btn"
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-4 py-2 text-xs min-h-[44px] cursor-pointer"
         onClick={() => openModal('message')}
-        style={{
-          padding: '10px 20px',
-          background: '#854D27',
-          color: '#FFF9F3',
-          border: '2px solid #D4B08C',
-          borderRadius: 0,
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.85em',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          boxShadow: '3px 3px 0 #D4B08C',
-          transition: 'transform 0.3s, box-shadow 0.3s, filter 0.3s',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '3px 3px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1)'
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '1px 1px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(0.95)'
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
+        aria-label={t('sendMessage')}
       >
-        <Icon name="PenLine" size={22} />
-        <span>{t('sendMessage') || 'メッセージを送る'}</span>
+        <Icon name="PenLine" size={18} />
+        <span>{t('sendMessage')}</span>
       </button>
 
       <button
-        className="header-btn"
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-4 py-2 text-xs min-h-[44px] cursor-pointer"
         onClick={() => openModal('bulletin')}
-        style={{
-          padding: '10px 20px',
-          background: '#854D27',
-          color: '#FFF9F3',
-          border: '2px solid #D4B08C',
-          borderRadius: 0,
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.85em',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          boxShadow: '3px 3px 0 #D4B08C',
-          transition: 'transform 0.3s, box-shadow 0.3s, filter 0.3s',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '3px 3px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1)'
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '1px 1px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(0.95)'
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
-          e.currentTarget.style.filter = 'brightness(1.15)'
-        }}
+        aria-label={t('bulletinBoard')}
       >
-        <Icon name="ClipboardList" size={22} />
-        <span>{t('bulletinBoard') || '掲示板'}</span>
+        <Icon name="ClipboardList" size={18} />
+        <span>{t('bulletinBoard')}</span>
       </button>
-    </div>
+
+      {/* 勉強部屋（コワーキング・共同学習） */}
+      <button
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-4 py-2 text-xs min-h-[44px] cursor-pointer"
+        onClick={() => openModal('studyRoom')}
+        aria-label={t('studyRoomTitle')}
+      >
+        <Icon name="BookOpen" size={18} />
+        <span>{t('studyRoomTitle')}</span>
+      </button>
+
+      {/* 禅・集中モード（ソロ集中・全画面） */}
+      <button
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-4 py-2 text-xs min-h-[44px] cursor-pointer"
+        onClick={() => openModal('zenFocus')}
+        aria-label={t('studyZenModeTitle')}
+      >
+        <Icon name="Sparkles" size={18} />
+        <span>{t('studyZenModeTitle')}</span>
+      </button>
+
+      {/* タイムカプセル */}
+      <button
+        type="button"
+        className="btn-vintage flex items-center gap-2 px-4 py-2 text-xs min-h-[44px] cursor-pointer"
+        onClick={() => openModal('timeCapsule')}
+        aria-label={t('timeCapsuleTitle')}
+      >
+        <Icon name="Archive" size={18} />
+        <span>{t('timeCapsuleTitle')}</span>
+      </button>
+    </nav>
   )
-}
+})

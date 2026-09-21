@@ -326,4 +326,12 @@ function main() {
   ])
 }
 
-if (process.argv[1]?.replaceAll('\\', '/').endsWith('/collect-festival-snapshot.mjs')) main()
+if (process.argv[1]?.replaceAll('\\', '/').endsWith('/collect-festival-snapshot.mjs')) {
+  try {
+    main()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    process.stderr.write(`${message}\n`)
+    process.exit(1)
+  }
+}

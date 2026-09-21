@@ -48,12 +48,12 @@ export default function Loading({
 
       case 'dots':
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className={`${size === 'xs' ? 'w-1.5 h-1.5' : size === 'sm' ? 'w-2 h-2' : 'w-3 h-3'} rounded-full bg-gradient-to-r from-pink-500 to-purple-500 animate-bounce`}
-                style={{ animationDelay: `${i * 0.15}s` }}
+                className={`${size === 'xs' ? 'w-1.5 h-1.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-full bg-[#D95D39] animate-pulse`}
+                style={{ animationDelay: `${i * 0.2}s`, animationDuration: '1s' }}
               />
             ))}
           </div>
@@ -62,8 +62,8 @@ export default function Loading({
       case 'pulse':
         return (
           <div className={`${sizeStyle.container} relative`}>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 animate-ping opacity-75" />
-            <div className="relative rounded-full bg-gradient-to-r from-pink-500 to-purple-500 w-full h-full" />
+            <div className="absolute inset-0 rounded-full bg-[#D95D39] animate-ping opacity-50" />
+            <div className="relative rounded-full bg-[#D95D39] w-full h-full" />
           </div>
         )
 
@@ -73,11 +73,9 @@ export default function Loading({
             {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="w-1.5 bg-gradient-to-t from-pink-500 to-purple-500 rounded-full animate-pulse"
+                className="w-1.5 bg-[#D95D39] rounded-full"
                 style={{
                   height: `${40 + Math.sin(i) * 30}%`,
-                  animationDelay: `${i * 0.1}s`,
-                  animationDuration: '0.8s',
                 }}
               />
             ))}
@@ -89,7 +87,7 @@ export default function Loading({
           <div className={`${sizeStyle.container} relative`}>
             <svg className="animate-spin" viewBox="0 0 50 50">
               <circle
-                className="stroke-white/20"
+                className="stroke-amber-950/20 dark:stroke-white/20"
                 cx="25"
                 cy="25"
                 r="20"
@@ -97,7 +95,7 @@ export default function Loading({
                 strokeWidth="4"
               />
               <circle
-                className="stroke-pink-500"
+                className="stroke-[#D95D39]"
                 cx="25"
                 cy="25"
                 r="20"
@@ -117,10 +115,17 @@ export default function Loading({
   }
 
   const content = (
-    <div className="flex flex-col items-center gap-4">
+    <div
+      className="flex flex-col items-center gap-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       {renderLoader()}
-      {text && (
-        <p className={`text-white/70 ${sizeStyle.text} animate-pulse`}>{text}</p>
+      {text ? (
+        <p className={`text-[#854D27] dark:text-amber-100 font-medium ${sizeStyle.text}`}>{text}</p>
+      ) : (
+        <span className="sr-only">読み込み中...</span>
       )}
     </div>
   )

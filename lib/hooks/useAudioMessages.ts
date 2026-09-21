@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export interface AudioMessage {
   id: number
@@ -22,6 +23,11 @@ interface AudioSubmission {
 }
 
 export function useAudioMessages(birthdayPerson?: string) {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [messages, setMessages] = useState<AudioMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +58,7 @@ export function useAudioMessages(birthdayPerson?: string) {
         created_at: message.created_at,
       })))
     } catch {
-      setError('音声メッセージを読み込めません')
+      setError(tRef.current('audioMessagesLoadError'))
     } finally {
       setLoading(false)
     }

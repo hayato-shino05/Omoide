@@ -75,6 +75,10 @@ function stableJson(value) {
   return JSON.stringify(value)
 }
 
+function normalizeLineEndings(value) {
+  return value.replaceAll('\r\n', '\n')
+}
+
 function validateMonthDay(month, day, path, year = 2024) {
   if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > 31) {
     fail(`${path} が不正です`)
@@ -377,7 +381,7 @@ async function main() {
     for (const [relativePath, expected] of contents) {
       const target = join(root, relativePath)
       const actual = await readFile(target, 'utf8').catch(() => null)
-      if (actual !== expected) fail(`生成済み manifest が古いです: ${relativePath}`)
+      if (actual === null || normalizeLineEndings(actual) !== normalizeLineEndings(expected)) fail(`生成済み manifest が古いです: ${relativePath}`)
     }
     return
   }

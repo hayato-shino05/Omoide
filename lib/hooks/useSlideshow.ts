@@ -64,7 +64,8 @@ export function useSlideshow(
   // メディアが変更されたらインデックスをリセット
   useEffect(() => {
     if (currentIndex >= media.length) {
-      setCurrentIndex(0)
+      const raf = requestAnimationFrame(() => setCurrentIndex(0))
+      return () => cancelAnimationFrame(raf)
     }
   }, [media.length, currentIndex])
 

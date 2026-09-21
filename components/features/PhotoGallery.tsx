@@ -1,24 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
+import { RotateCcw } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { PhotoCard } from './PhotoCard'
-import { MediaViewer } from './MediaViewer'
 import { useMediaFiles } from '@/lib/hooks/useMediaFiles'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import type { MediaFile } from '@/types'
 import { Icon } from '@/components/ui/Icon'
+
+const MediaViewer = dynamic(() => import('./MediaViewer').then((mod) => mod.MediaViewer), { ssr: false })
+const MediaUploader = dynamic(() => import('./MediaUploader').then((mod) => mod.MediaUploader), { ssr: false })
 
 interface PhotoGalleryProps {
   filterTag?: string
 }
 
 export function PhotoGallery({ filterTag }: PhotoGalleryProps) {
-  const { files, isLoading, error } = useMediaFiles()
+  const { files, isLoading, error, refetch } = useMediaFiles()
   const { t } = useLanguage()
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null)
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all')
   const [slideshowMode, setSlideshowMode] = useState(false)
+  const [showUploader, setShowUploader] = useState(false)
 
   // ファイルをフィルタリング
   const filteredFiles = files.filter((file) => {
@@ -32,123 +37,116 @@ export function PhotoGallery({ filterTag }: PhotoGalleryProps) {
     new Set(files.flatMap((f) => f.tags || []))
   )
 
-  if (isLoading) {
+  if (isLoading && files.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <div
-          className="animate-spin"
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid #D4B08C',
-            borderTopColor: '#854D27',
-            borderRadius: '50%',
-            margin: '0 auto',
-          }}
-        />
-        <p style={{ marginTop: '16px', color: '#854D27' }}>{t('loading')}</p>
+      <div className="w-full py-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-square bg-[#FFF9F3] border-2 border-[#D4B08C]/30 rounded-md animate-pulse relative overflow-hidden"
+              role="status"
+              aria-label={t('loading')}
+            >
+              <div className="w-full h-full bg-[#D4B08C]/15" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error && files.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px', color: '#dc3545' }}>
-        <p>{error}</p>
+      <div className="text-center py-12 px-4 bg-[#FFF9F3] border-2 border-[#D4B08C]/40 rounded-xl my-4" role="alert">
+        <p className="text-sm font-bold text-red-600 mb-4">{error}</p>
+        <button
+          onClick={() => refetch()}
+          className="min-h-11 px-6 py-2.5 bg-[#854D27] text-[#FFF9F3] text-sm font-bold rounded-lg border border-[#D4B08C] shadow-md hover:bg-[#6D3D1E] active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+        >
+          <RotateCcw size={16} />
+          {t('retry')}
+        </button>
       </div>
     )
   }
 
   return (
     <div>
-      {/* フィルタボタン＋スライドショー起動ボタン */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '10px',
-          marginBottom: '20px',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      {/* ツールバー：フィルタ ＋ アップロード ＋ スライドショー */}
+      <div className="flex gap-2.5 mb-5 flex-wrap items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
           {(['all', 'image', 'video'] as const).map((type) => (
             <button
               key={type}
               onClick={() => setFilter(type)}
-              style={{
-                padding: '8px 16px',
-                background: filter === type ? '#854D27' : '#FFF9F3',
-                color: filter === type ? '#FFF9F3' : '#854D27',
-                border: '2px solid #D4B08C',
-                borderRadius: 0,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.85em',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                boxShadow: '2px 2px 0 #D4B08C',
-                transition: 'all 0.3s',
-              }}
+              className={`min-h-11 px-4 py-2 font-bold text-xs sm:text-sm tracking-wide rounded-md border-2 transition-all cursor-pointer shadow-xs ${
+                filter === type
+                  ? 'bg-[#854D27] text-[#FFF9F3] border-[#854D27] shadow-sm'
+                  : 'bg-[#FFF9F3] text-[#854D27] border-[#D4B08C] hover:bg-white'
+              }`}
             >
-              {type === 'all' ? 'すべて' : type === 'image' ? '写真' : '動画'}
+              {type === 'all'
+                ? t('allMedia')
+                : type === 'image'
+                ? t('photos')
+                : t('videos')}
             </button>
           ))}
         </div>
-        
-        {/* スライドショーボタン */}
-        {filteredFiles.length > 0 && (
+
+        <div className="flex gap-2 flex-wrap">
+          {/* 写真・動画アップロードトグルボタン */}
           <button
-            onClick={() => {
-              setSelectedMedia(filteredFiles[0])
-              setSlideshowMode(true)
-            }}
-            style={{
-              padding: '8px 16px',
-              background: '#854D27',
-              color: '#FFF9F3',
-              border: '2px solid #D4B08C',
-              borderRadius: 0,
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.85em',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              boxShadow: '2px 2px 0 #D4B08C',
-              transition: 'all 0.3s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            onClick={() => setShowUploader(!showUploader)}
+            className="min-h-11 px-4 py-2 bg-[#854D27] text-[#FFF9F3] font-bold text-xs sm:text-sm rounded-md border-2 border-[#D4B08C] shadow-xs hover:bg-[#6D3D1E] active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Icon name="Play" size={16} />
-            <span>スライドショー</span>
+            <Icon name="Upload" size={16} />
+            <span>{t('uploadMedia')}</span>
           </button>
-        )}
+
+          {/* スライドショーボタン */}
+          {filteredFiles.length > 0 && (
+            <button
+              onClick={() => {
+                setSelectedMedia(filteredFiles[0])
+                setSlideshowMode(true)
+              }}
+              className="min-h-11 px-4 py-2 bg-[#854D27] text-[#FFF9F3] font-bold text-xs sm:text-sm rounded-md border-2 border-[#D4B08C] shadow-xs hover:bg-[#6D3D1E] active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Icon name="Play" size={16} />
+              <span>{t('slideshow')}</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* メディアアップローダーエリア */}
+      <AnimatePresence>
+        {showUploader && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden mb-6"
+          >
+            <MediaUploader
+              onUploadComplete={() => {
+                refetch()
+                setShowUploader(false)
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* タグフィルター */}
       {allTags.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '20px',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="flex gap-2 mb-5 flex-wrap items-center">
           {allTags.map((tag) => (
             <span
               key={tag}
-              style={{
-                padding: '4px 10px',
-                background: 'rgba(212, 176, 140, 0.3)',
-                color: '#854D27',
-                borderRadius: '12px',
-                fontSize: '0.8em',
-                cursor: 'pointer',
-              }}
+              className="inline-flex items-center px-3 py-1.5 bg-[#D4B08C]/30 text-[#854D27] rounded-full text-xs font-bold border border-[#D4B08C]/50 hover:bg-[#D4B08C]/50 transition-colors cursor-pointer"
             >
               #{tag}
             </span>
@@ -158,18 +156,31 @@ export function PhotoGallery({ filterTag }: PhotoGalleryProps) {
 
       {/* ギャラリーグリッド */}
       {filteredFiles.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#854D27' }}>
-          <p>{t('noData')}</p>
+        <div className="text-center py-12 px-4 text-[#854D27] bg-[#D4B08C]/10 border-2 border-dashed border-[#D4B08C] rounded-xl mb-5">
+          <div className="mb-3 text-[#854D27]/80 flex justify-center">
+            <Icon name="Camera" size={36} />
+          </div>
+          <p className="font-bold text-base mb-2">
+            {t('noPhotosInAlbum')}
+          </p>
+          <p className="text-xs sm:text-sm opacity-80 mb-5 max-w-md mx-auto">
+            {t('uploadFirstPhoto')}
+          </p>
+          {!showUploader && (
+            <button
+              onClick={() => setShowUploader(true)}
+              className="min-h-11 px-6 py-2.5 bg-[#854D27] text-[#FFF9F3] text-sm font-bold rounded-lg border-2 border-[#D4B08C] shadow-sm hover:bg-[#6D3D1E] active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Icon name="Upload" size={16} />
+              {t('uploadPhotosNow')}
+            </button>
+          )}
         </div>
       ) : (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="photo-gallery-grid"
-          style={{
-            display: 'grid',
-            gap: '12px',
-          }}
+          className="photo-gallery-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
         >
           {filteredFiles.map((file) => (
             <PhotoCard

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface TagInputProps {
   tags: string[]
@@ -8,7 +9,9 @@ interface TagInputProps {
   placeholder?: string
 }
 
-export function TagInput({ tags, onChange, placeholder = 'タグを追加...' }: TagInputProps) {
+export function TagInput({ tags, onChange, placeholder }: TagInputProps) {
+  const { t } = useLanguage()
+  const effectivePlaceholder = placeholder ?? t('addTag')
   const [inputValue, setInputValue] = useState('')
 
   const handleKeyDown = useCallback(
@@ -35,45 +38,18 @@ export function TagInput({ tags, onChange, placeholder = 'タグを追加...' }:
   )
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '8px',
-        padding: '10px',
-        border: '2px solid #D4B08C',
-        borderRadius: 0,
-        background: '#FFF9F3',
-        minHeight: '50px',
-        alignItems: 'center',
-      }}
-    >
+    <div className="flex flex-wrap gap-2 p-2.5 border-2 border-[#D4B08C] rounded-lg bg-[#FFF9F3] min-h-[50px] items-center focus-within:border-[#854D27] transition-colors">
       {tags.map((tag) => (
         <span
           key={tag}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            background: '#854D27',
-            color: '#FFF9F3',
-            borderRadius: '4px',
-            fontSize: '0.85rem',
-          }}
+          className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 bg-[#854D27] text-[#FFF9F3] rounded-md text-xs font-bold"
         >
           #{tag}
           <button
+            type="button"
             onClick={() => removeTag(tag)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#FFF9F3',
-              cursor: 'pointer',
-              padding: 0,
-              fontSize: '1rem',
-              lineHeight: 1,
-            }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[#FFF9F3] hover:bg-white/20 active:scale-95 transition-all cursor-pointer text-sm font-bold"
+            aria-label={`${t('reset')} ${tag}`}
           >
             ×
           </button>
@@ -84,17 +60,8 @@ export function TagInput({ tags, onChange, placeholder = 'タグを追加...' }:
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={tags.length === 0 ? placeholder : ''}
-        style={{
-          flex: 1,
-          minWidth: '100px',
-          border: 'none',
-          outline: 'none',
-          background: 'transparent',
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.9rem',
-          color: '#2C1810',
-        }}
+        placeholder={tags.length === 0 ? effectivePlaceholder : ''}
+        className="flex-1 min-w-[120px] min-h-[36px] px-2 border-none outline-hidden bg-transparent font-[var(--font-body)] text-sm text-[#2C1810]"
       />
     </div>
   )

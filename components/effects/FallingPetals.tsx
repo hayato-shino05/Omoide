@@ -29,17 +29,17 @@ interface PetalColor {
   dark: string
 }
 
-// Các màu hoa anh đào thực tế
+// 実際の桜の花びらのカラーバリエーション
 const PETAL_COLORS: PetalColor[] = [
-  // Hồng nhạt (Somei Yoshino - phổ biến nhất)
+  // 薄ピンク（ソメイヨシノ・定番）
   { main: '#FFB7C5', light: '#FFC8D3', dark: '#FF9EB5' },
-  // Hồng đậm hơn
+  // 濃いめのピンク
   { main: '#FFA0B4', light: '#FFB8C8', dark: '#FF87A0' },
-  // Trắng hồng
+  // 白みがかったピンク
   { main: '#FFE4E9', light: '#FFF0F3', dark: '#FFD4DC' },
-  // Hồng đào
+  // ピーチピンク
   { main: '#FFCCD5', light: '#FFDDE3', dark: '#FFBAC5' },
-  // Hồng tím nhẹ (Yaezakura)
+  // 薄紫がかったピンク（ヤエザクラ）
   { main: '#F8BBD9', light: '#FACCE3', dark: '#F5A3CB' },
 ]
 
@@ -50,12 +50,12 @@ export function FallingPetals({ count = 30, active = true }: FallingPetalsProps)
   useEffect(() => {
     if (!active || prefersReducedMotion) return
 
-    // Tạo petal mới liên tục thay vì tạo hàng loạt
+    // 一括生成ではなく花びらを継続的に生成
     const createSinglePetal = (): Petal => ({
       id: Date.now() + Math.random() * 10000,
       x: Math.random() * 100,
       size: 12 + Math.random() * 16,
-      delay: 0, // Không delay vì đã được spawn theo thời gian
+      delay: 0, // 時間差スポーン前提のため遅延なし
       duration: 10 + Math.random() * 8,
       rotateX: Math.random() * 360,
       rotateY: Math.random() * 360,
@@ -65,29 +65,36 @@ export function FallingPetals({ count = 30, active = true }: FallingPetalsProps)
       flipSpeed: 2 + Math.random() * 3,
     })
 
-    // Tạo một số petals ban đầu với vị trí y ngẫu nhiên (đang rơi giữa chừng)
+    // 初期花びらは画面中ほどにランダム配置
     const initialPetals: Petal[] = Array.from({ length: Math.floor(count * 0.6) }, () => ({
       ...createSinglePetal(),
-      delay: Math.random() * 3, // Delay nhỏ để không xuất hiện cùng lúc
+      delay: Math.random() * 3, // 同時出現を避ける小さな遅延
     }))
     const initialTimeout = setTimeout(() => setPetals(initialPetals), 0)
 
-    // Spawn petals mới liên tục
+    // バックグラウンドタブ時に生成を一時停止してCPU負荷を軽減
+    let isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true
+    const handleVisibilityChange = () => {
+      isVisible = document.visibilityState === 'visible'
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // 花びらを継続的にスポーン
     const spawnInterval = setInterval(() => {
+      if (!isVisible) return
       setPetals(prev => {
-        // Giới hạn số lượng tối đa
         if (prev.length >= count * 1.5) {
           return prev
         }
-        // Thêm 1-2 petals mới
         const newCount = Math.random() > 0.5 ? 2 : 1
         const newPetals = Array.from({ length: newCount }, () => createSinglePetal())
         return [...prev, ...newPetals]
       })
-    }, 800 + Math.random() * 600) // Spawn mỗi 0.8-1.4 giây
+    }, 800 + Math.random() * 600)
 
-    // Cleanup petals đã rơi xong
+    // 寿命が尽きた花びらを一括除去
     const cleanupInterval = setInterval(() => {
+      if (!isVisible) return
       setPetals(prev => {
         const now = Date.now()
         return prev.filter(p => now - p.id < (p.duration + p.delay) * 1000 + 2000)
@@ -98,13 +105,14 @@ export function FallingPetals({ count = 30, active = true }: FallingPetalsProps)
       clearTimeout(initialTimeout)
       clearInterval(spawnInterval)
       clearInterval(cleanupInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [active, count, prefersReducedMotion])
 
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {petals.map((petal) => (
           <PetalElement key={petal.id} petal={petal} />
@@ -121,7 +129,7 @@ interface PetalElementProps {
 function PetalElement({ petal }: PetalElementProps) {
   const id = useId().replaceAll(':', '')
 
-  // Tạo các keyframes cho chuyển động lắc lư tự nhiên
+  // 自然な揺れのキーフレームを生成
   const swayKeyframes = useMemo(() => {
     const baseX = petal.x
     return [
@@ -185,6 +193,7 @@ function PetalElement({ petal }: PetalElementProps) {
         height: petal.size,
         transformStyle: 'preserve-3d',
         filter: `drop-shadow(0 2px 3px rgba(255, 182, 193, 0.4))`,
+        willChange: 'transform, opacity',
       }}
     >
       <SakuraPetal size={petal.size} colors={petal.colorVariant} id={id} />
@@ -198,7 +207,7 @@ interface SakuraPetalProps {
   id: string
 }
 
-// SVG hoa anh đào 5 cánh thực tế
+// リアルな5弁桜のSVG
 function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
   return (
     <svg
@@ -210,13 +219,13 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
       style={{ transform: 'rotateX(60deg)' }}
     >
       <defs>
-        {/* Gradient cho cánh hoa */}
+        {/* 花びら用グラデーション */}
         <radialGradient id={`petal-gradient-${id}`} cx="30%" cy="30%" r="70%">
           <stop offset="0%" stopColor={colors.light} />
           <stop offset="50%" stopColor={colors.main} />
           <stop offset="100%" stopColor={colors.dark} />
         </radialGradient>
-        {/* Gradient cho nhụy */}
+        {/* 花芯用グラデーション */}
         <radialGradient id={`center-gradient-${id}`} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#FFFACD" />
           <stop offset="70%" stopColor="#FFE4B5" />
@@ -224,9 +233,9 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
         </radialGradient>
       </defs>
 
-      {/* 5 cánh hoa anh đào với hình dạng đặc trưng (có khuyết ở đầu) */}
+      {/* 先端に欠けがある特徴的な5枚の桜花びら */}
       <g>
-        {/* Cánh 1 - trên */}
+        {/* 花びら1（上） */}
         <path
           d="M25 5
              Q28 8 30 12
@@ -238,7 +247,7 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
              M25 5 Q24 3 25 2 Q26 3 25 5"
           fill={`url(#petal-gradient-${id})`}
         />
-        {/* Cánh 2 - phải trên */}
+        {/* 花びら2（右上） */}
         <path
           d="M38 12
              Q42 14 44 18
@@ -250,7 +259,7 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
              M38 12 Q40 10 42 11 Q40 12 38 12"
           fill={`url(#petal-gradient-${id})`}
         />
-        {/* Cánh 3 - phải dưới */}
+        {/* 花びら3（右下） */}
         <path
           d="M42 32
              Q44 36 43 40
@@ -262,7 +271,7 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
              M42 32 Q44 31 45 33 Q43 33 42 32"
           fill={`url(#petal-gradient-${id})`}
         />
-        {/* Cánh 4 - trái dưới */}
+        {/* 花びら4（左下） */}
         <path
           d="M8 32
              Q11 29 15 30
@@ -274,7 +283,7 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
              M8 32 Q6 31 5 33 Q7 33 8 32"
           fill={`url(#petal-gradient-${id})`}
         />
-        {/* Cánh 5 - trái trên */}
+        {/* 花びら5（左上） */}
         <path
           d="M12 12
              Q15 12 18 15
@@ -288,17 +297,17 @@ function SakuraPetal({ size, colors, id }: SakuraPetalProps) {
         />
       </g>
 
-      {/* Nhụy hoa ở giữa */}
+      {/* 中央の花芯 */}
       <circle cx="25" cy="25" r="5" fill={`url(#center-gradient-${id})`} />
 
-      {/* Các chấm nhụy nhỏ */}
+      {/* 花芯の小さな点 */}
       <circle cx="23" cy="23" r="1" fill="#FFB347" />
       <circle cx="27" cy="23" r="1" fill="#FFB347" />
       <circle cx="25" cy="27" r="1" fill="#FFB347" />
       <circle cx="23" cy="26" r="0.8" fill="#FFA500" />
       <circle cx="27" cy="26" r="0.8" fill="#FFA500" />
 
-      {/* Highlight nhẹ trên cánh */}
+      {/* 花びらのハイライト */}
       <ellipse cx="24" cy="12" rx="3" ry="4" fill="white" opacity="0.25" />
       <ellipse cx="38" cy="20" rx="3" ry="2" fill="white" opacity="0.2" />
     </svg>

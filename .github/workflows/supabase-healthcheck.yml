@@ -1,0 +1,213 @@
+name: Supabase healthcheck
+
+on:
+  schedule:
+    - cron: '5 0 * * *'
+      timezone: 'Asia/Tokyo'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-healthcheck
+  cancel-in-progress: true
+
+jobs:
+  readonly-healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate Supabase configuration
+        id: validate_config
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_READONLY_DATABASE_URL: ${{ secrets.SUPABASE_READONLY_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_URL" || { echo "NEXT_PUBLIC_SUPABASE_URL secret is not configured" >&2; exit 1; }
+          test -n "$SUPABASE_ANON_KEY" || { echo "NEXT_PUBLIC_SUPABASE_ANON_KEY secret is not configured" >&2; exit 1; }
+          test -n "$SUPABASE_READONLY_DATABASE_URL" || { echo "SUPABASE_READONLY_DATABASE_URL secret is not configured" >&2; exit 1; }
+          case "$SUPABASE_URL" in
+            https://*.supabase.co) ;;
+            *) echo "NEXT_PUBLIC_SUPABASE_URL must use an https://*.supabase.co URL" >&2; exit 1 ;;
+          esac
+
+      - name: Run read-only REST healthcheck
+        id: rest_healthcheck
+        if: ${{ steps.validate_config.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          curl --silent --show-error --fail --connect-timeout 5 --max-time 15 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/birthdays?select=id&limit=1" \
+            --output /dev/null \
+            --write-out '%{http_code}\n'
+
+      - name: Attest read-only PostgreSQL access
+        id: readonly_postgres
+        if: ${{ steps.validate_config.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          SUPABASE_READONLY_DATABASE_URL: ${{ secrets.SUPABASE_READONLY_DATABASE_URL }}
+          PGCONNECT_TIMEOUT: '10'
+          PGOPTIONS: '-c statement_timeout=10000'
+        run: |
+          set -euo pipefail
+          result="$(timeout --signal=TERM 20s psql \
+            --no-psqlrc \
+            --set=ON_ERROR_STOP=1 \
+            --tuples-only \
+            --command="WITH role_attrs AS ( \
+              SELECT r.rolname = current_user AS role_name_matches, \
+                     current_user = session_user AS identity_matches, \
+                     r.rolcanlogin, NOT r.rolsuper AS no_superuser, \
+                     NOT r.rolcreaterole AS no_createrole, NOT r.rolcreatedb AS no_createdb, \
+                     NOT r.rolreplication AS no_replication, NOT r.rolbypassrls AS no_bypassrls \
+              FROM pg_roles AS r \
+              WHERE r.rolname = current_user \
+            ), assumable_roles AS ( \
+              SELECT r.rolname, r.rolsuper, r.rolcreaterole, r.rolcreatedb, \
+                     r.rolreplication, r.rolbypassrls \
+              FROM pg_roles AS r \
+              WHERE pg_has_role(current_user, r.oid, 'SET') \
+            ), schemas AS ( \
+              SELECT n.oid \
+              FROM pg_namespace AS n \
+              WHERE n.nspname IN ('public', 'storage') \
+            ), objects AS ( \
+              SELECT c.oid \
+              FROM pg_class AS c \
+              JOIN pg_namespace AS n ON n.oid = c.relnamespace \
+              WHERE n.nspname IN ('public', 'storage') \
+                AND c.relkind IN ('r', 'p', 'v', 'f', 'm') \
+            ), sequences AS ( \
+              SELECT c.oid \
+              FROM pg_class AS c \
+              JOIN pg_namespace AS n ON n.oid = c.relnamespace \
+              WHERE n.nspname IN ('public', 'storage') \
+                AND c.relkind = 'S' \
+            ), effective_privileges AS ( \
+              SELECT NOT EXISTS ( \
+                       SELECT 1 FROM objects AS o \
+                       WHERE has_table_privilege(current_user, o.oid, 'INSERT') \
+                          OR has_table_privilege(current_user, o.oid, 'UPDATE') \
+                          OR has_table_privilege(current_user, o.oid, 'DELETE') \
+                          OR has_table_privilege(current_user, o.oid, 'TRUNCATE') \
+                     ) AS no_write_privileges, \
+                     NOT EXISTS ( \
+                       SELECT 1 FROM sequences AS s \
+                       WHERE has_sequence_privilege(current_user, s.oid, 'USAGE') \
+                          OR has_sequence_privilege(current_user, s.oid, 'UPDATE') \
+                     ) AS no_sequence_write_privileges, \
+                     NOT EXISTS ( \
+                       SELECT 1 FROM schemas AS s \
+                       WHERE has_schema_privilege(current_user, s.oid, 'CREATE') \
+                     ) AS no_create_privileges, \
+                     NOT EXISTS ( \
+                       SELECT 1 \
+                       FROM pg_proc AS p \
+                       JOIN pg_namespace AS n ON n.oid = p.pronamespace \
+                       WHERE n.nspname IN ('public', 'storage') \
+                         AND p.prosecdef \
+                         AND has_function_privilege(current_user, p.oid, 'EXECUTE') \
+                     ) AS no_security_definer_execute, \
+                     NOT EXISTS ( \
+                       SELECT 1 \
+                       FROM assumable_roles AS ar \
+                       WHERE ar.rolsuper \
+                          OR ar.rolcreaterole \
+                          OR ar.rolcreatedb \
+                          OR ar.rolreplication \
+                          OR ar.rolbypassrls \
+                          OR EXISTS ( \
+                               SELECT 1 FROM objects AS o \
+                               WHERE has_table_privilege(ar.rolname, o.oid, 'INSERT') \
+                                  OR has_table_privilege(ar.rolname, o.oid, 'UPDATE') \
+                                  OR has_table_privilege(ar.rolname, o.oid, 'DELETE') \
+                                  OR has_table_privilege(ar.rolname, o.oid, 'TRUNCATE') \
+                             ) \
+                          OR EXISTS ( \
+                               SELECT 1 FROM sequences AS s \
+                               WHERE has_sequence_privilege(ar.rolname, s.oid, 'USAGE') \
+                                  OR has_sequence_privilege(ar.rolname, s.oid, 'UPDATE') \
+                             ) \
+                          OR EXISTS ( \
+                               SELECT 1 FROM schemas AS s \
+                               WHERE has_schema_privilege(ar.rolname, s.oid, 'CREATE') \
+                             ) \
+                          OR EXISTS ( \
+                               SELECT 1 \
+                               FROM pg_proc AS p \
+                               JOIN pg_namespace AS n ON n.oid = p.pronamespace \
+                               WHERE n.nspname IN ('public', 'storage') \
+                                 AND p.prosecdef \
+                                 AND has_function_privilege(ar.rolname, p.oid, 'EXECUTE') \
+                             ) \
+                     ) AS no_assumable_write_privileges \
+            ) \
+            SELECT bool_and( \
+              role_name_matches AND identity_matches AND rolcanlogin \
+              AND no_superuser AND no_createrole AND no_createdb AND no_replication \
+              AND no_bypassrls AND no_write_privileges AND no_sequence_write_privileges \
+              AND no_create_privileges AND no_security_definer_execute \
+              AND no_assumable_write_privileges \
+            ) \
+            FROM role_attrs CROSS JOIN effective_privileges;" \
+            "$SUPABASE_READONLY_DATABASE_URL")"
+          test "$(printf '%s' "$result" | tr -d '[:space:]')" = 't' || {
+            echo "PostgreSQL read-only identity attestation failed" >&2
+            exit 1
+          }
+
+      - name: Generate birthday threads
+        id: birthday_scheduler
+        if: ${{ always() }}
+        continue-on-error: true
+        env:
+          APP_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+          BIRTHDAY_SCHEDULER_SECRET: ${{ secrets.BIRTHDAY_SCHEDULER_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_URL" || { echo "NEXT_PUBLIC_BASE_URL secret is not configured" >&2; exit 1; }
+          test -n "$BIRTHDAY_SCHEDULER_SECRET" || { echo "BIRTHDAY_SCHEDULER_SECRET secret is not configured" >&2; exit 1; }
+          case "$APP_URL" in
+            https://*) ;;
+            *) echo "NEXT_PUBLIC_BASE_URL must use an https:// URL" >&2; exit 1 ;;
+          esac
+          echo "::add-mask::$BIRTHDAY_SCHEDULER_SECRET"
+          curl --silent --show-error --fail --connect-timeout 5 --max-time 15 \
+            -X POST \
+            -H "x-birthday-scheduler-secret: $BIRTHDAY_SCHEDULER_SECRET" \
+            "$APP_URL/api/internal/birthday-scheduler" \
+            --output /dev/null
+
+      - name: Enforce healthcheck result
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          failed=0
+          if [[ "${{ steps.validate_config.outcome }}" != "success" ]]; then
+            echo "Supabase configuration validation failed" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.rest_healthcheck.outcome }}" != "success" ]]; then
+            echo "REST healthcheck failed" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.readonly_postgres.outcome }}" != "success" ]]; then
+            echo "PostgreSQL read-only identity attestation failed" >&2
+            failed=1
+          fi
+          if [[ "${{ steps.birthday_scheduler.outcome }}" != "success" ]]; then
+            echo "Birthday scheduler failed" >&2
+            failed=1
+          fi
+          exit "$failed"

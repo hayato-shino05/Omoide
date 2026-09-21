@@ -26,5 +26,10 @@ The requested semantic names use the nearest verified Fluency slug where the exa
 - `volume` -> `speaker`
 - `heart` -> `like`
 - `party` -> `champagne`
+- `sparkles` -> `sparkling`
+- `torii` -> `torii`
+- `archive` -> `archive`
+- `scroll` -> `scroll`
+- `fortune-teller` -> `fortune-teller`
 
 All other filenames retain their requested slug. The PNGs are bundled locally; the runtime does not hotlink Icons8.

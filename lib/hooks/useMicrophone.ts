@@ -5,10 +5,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 interface UseMicrophoneOptions {
   onBlowDetected?: () => void
   threshold?: number
+  debounceMs?: number
 }
 
-// マイク入力を処理するカスタムフック
-export function useMicrophone({ onBlowDetected, threshold = 0.3 }: UseMicrophoneOptions = {}) {
+// マイク入力を処理するカスタムフック（吹き検知デバウンス制御付き）
+export function useMicrophone({ onBlowDetected, threshold = 0.3, debounceMs = 600 }: UseMicrophoneOptions = {}) {
   const [isListening, setIsListening] = useState(false)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [audioLevel, setAudioLevel] = useState(0)
@@ -18,6 +19,7 @@ export function useMicrophone({ onBlowDetected, threshold = 0.3 }: UseMicrophone
   const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const lastBlowTimeRef = useRef<number>(0)
 
   // マイク権限をリクエスト
   const requestPermission = useCallback(async () => {
@@ -66,8 +68,10 @@ export function useMicrophone({ onBlowDetected, threshold = 0.3 }: UseMicrophone
 
         setAudioLevel(normalizedLevel)
 
-        // しきい値を超えたら吹き検出
-        if (normalizedLevel > threshold && onBlowDetected) {
+        // しきい値を超え、かつデバウンス時間を経過していれば吹き検出を実行
+        const now = Date.now()
+        if (normalizedLevel > threshold && onBlowDetected && now - lastBlowTimeRef.current >= debounceMs) {
+          lastBlowTimeRef.current = now
           onBlowDetected()
         }
 
@@ -79,24 +83,28 @@ export function useMicrophone({ onBlowDetected, threshold = 0.3 }: UseMicrophone
       console.error('リスニング開始エラー:', error)
       setIsListening(false)
     }
-  }, [onBlowDetected, requestPermission, threshold])
+  }, [onBlowDetected, requestPermission, threshold, debounceMs])
 
   // リスニング停止
   const stopListening = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
     }
 
     if (microphoneRef.current) {
       microphoneRef.current.disconnect()
+      microphoneRef.current = null
     }
 
     if (audioContextRef.current) {
-      audioContextRef.current.close()
+      audioContextRef.current.close().catch(() => {})
+      audioContextRef.current = null
     }
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
     }
 
     setIsListening(false)

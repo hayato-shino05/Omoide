@@ -222,9 +222,12 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
     }
   }, [isJoined, loadMessages])
 
-  // 最新メッセージへ自動スクロールする
+  // 最新メッセージへ自動スクロールする（描画フレームに合わせてスムーズに実行）
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const frameId = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(frameId)
   }, [messages])
 
   const handleJoin = () => {
@@ -307,11 +310,17 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
   // 参加画面
   if (!isJoined) {
     return (
-      <div className="chat-modal show">
+      <div className="chat-modal show" role="dialog" aria-modal="true" aria-label={t('groupChat')}>
         <div className="chat-header">
           <h3 className="chat-title">{t('groupChat')}</h3>
           <div className="chat-controls">
-            <button type="button" className="chat-btn" onClick={onClose} aria-label="Close chat">
+            <button
+              type="button"
+              className="chat-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={onClose}
+              aria-label={t('close')}
+            >
               <Icon name="X" size={18} />
             </button>
           </div>
@@ -326,15 +335,21 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
               placeholder={`${t('yourName')}...`}
-              onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-              className="chat-message-input"
-              style={{ marginBottom: '15px', width: '100%' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleJoin()
+                }
+              }}
+              className="chat-message-input focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ marginBottom: '15px', width: '100%', minHeight: '44px' }}
             />
             <button
+              type="button"
               onClick={handleJoin}
               disabled={!userName.trim()}
-              className="chat-send-btn"
-              style={{ width: '100%', opacity: userName.trim() ? 1 : 0.5 }}
+              className="chat-send-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ width: '100%', minHeight: '44px', opacity: userName.trim() ? 1 : 0.5 }}
             >
               {t('joinChat')}
             </button>
@@ -345,30 +360,35 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
   }
 
   return (
-    <div className={`chat-modal show ${isMinimized ? '' : 'chat-modal-expanded'}`}>
-
+    <div className={`chat-modal show ${isMinimized ? '' : 'chat-modal-expanded'}`} role="region" aria-label={t('groupChat')}>
       <div className="chat-header">
         <h3 className="chat-title">{t('groupChat')}</h3>
         <div className="chat-controls">
           <button
             type="button"
-            className="chat-btn chat-minimize"
+            className="chat-btn chat-minimize focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+            style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setIsMinimized(!isMinimized)}
-            aria-label={isMinimized ? 'チャットを展開' : 'チャットを最小化'}
+            aria-label={isMinimized ? t('expandChat') : t('minimizeChat')}
             aria-expanded={!isMinimized}
           >
             <Icon name="Minus" size={18} />
           </button>
-          <button type="button" className="chat-btn" onClick={onClose} aria-label="Close chat">
+          <button
+            type="button"
+            className="chat-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+            style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={onClose}
+            aria-label={t('close')}
+          >
             <Icon name="X" size={18} />
           </button>
         </div>
       </div>
 
-
       {!isMinimized && (
         <>
-          <div className="chat-content">
+          <div className="chat-content" tabIndex={0} aria-label={t('groupChat')}>
             {messages.length === 0 ? (
               <p style={{ textAlign: 'center', opacity: 0.6 }}>
                 {t('startConversation')}
@@ -391,22 +411,28 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
             <div ref={messagesEndRef} />
           </div>
 
-
           <div className="chat-input-area">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
               placeholder={t('typeMessage')}
-              className="chat-message-input"
+              className="chat-message-input focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minHeight: '44px' }}
             />
             <button
               type="button"
               onClick={handleSend}
               disabled={!newMessage.trim() || loading}
-              className="chat-send-btn"
-              aria-label="メッセージを送信"
+              className="chat-send-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label={t('sendMessage')}
             >
               <Icon name="Send" size={16} />
             </button>

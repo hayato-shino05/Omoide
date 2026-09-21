@@ -16,6 +16,8 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
 
   const isVideo = media.file_type === 'video'
 
+  const handleClick = () => onClick?.()
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -24,7 +26,18 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={onClick}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      aria-label={media.file_name}
+      onFocus={() => setIsHovered(true)}
+      onBlur={() => setIsHovered(false)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleClick()
+        }
+      }}
       className="photo-card"
       style={{
         position: 'relative',
@@ -41,6 +54,7 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
         <video
           src={media.file_path}
           poster={media.thumbnail_url}
+          preload="none"
           style={{
             width: '100%',
             height: '100%',
@@ -49,10 +63,14 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
           muted
         />
       ) : (
+        // Media paths are dynamic and may be private; next/image cannot safely resolve them here.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageError ? '/placeholder-image.png' : media.file_path}
           alt={media.file_name}
           onError={() => setImageError(true)}
+          loading="lazy"
+          decoding="async"
           style={{
             width: '100%',
             height: '100%',
@@ -101,12 +119,11 @@ export function PhotoCard({ media, onClick }: PhotoCardProps) {
             style={{
               color: '#fff',
               fontSize: '0.85rem',
-              fontWeight: 500,
+              fontWeight: 600,
               margin: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
             }}
           >
             {media.file_name}

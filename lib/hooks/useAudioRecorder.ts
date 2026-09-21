@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface AudioRecorderState {
   isRecording: boolean
@@ -12,6 +13,11 @@ interface AudioRecorderState {
 }
 
 export function useAudioRecorder() {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [state, setState] = useState<AudioRecorderState>({
     isRecording: false,
     isPaused: false,
@@ -59,13 +65,19 @@ export function useAudioRecorder() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType })
         const url = URL.createObjectURL(blob)
-        setState(prev => ({
-          ...prev,
-          audioBlob: blob,
-          audioUrl: url,
-          isRecording: false,
-          isPaused: false,
-        }))
+        setState(prev => {
+          // 古い ObjectURL を解放してメモリリークを防止
+          if (prev.audioUrl) {
+            URL.revokeObjectURL(prev.audioUrl)
+          }
+          return {
+            ...prev,
+            audioBlob: blob,
+            audioUrl: url,
+            isRecording: false,
+            isPaused: false,
+          }
+        })
       }
 
       mediaRecorder.start(100) // 100ms ごとにデータを収集
@@ -76,10 +88,10 @@ export function useAudioRecorder() {
       }, 1000)
 
       setState(prev => ({ ...prev, isRecording: true, isPaused: false }))
-    } catch (err) {
+    } catch {
       setState(prev => ({
         ...prev,
-        error: 'マイクにアクセスできません。権限を許可してください。',
+        error: tRef.current('microphonePermissionError'),
       }))
     }
   }, [])
@@ -88,12 +100,12 @@ export function useAudioRecorder() {
     if (mediaRecorderRef.current && state.isRecording) {
       mediaRecorderRef.current.stop()
       
-      // Stop all tracks
+      // すべてのトラックを停止する
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
 
-      // Clear timer
+      // タイマーを解除する
       if (timerRef.current) {
         clearInterval(timerRef.current)
         timerRef.current = null
@@ -142,6 +154,23 @@ export function useAudioRecorder() {
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }, [])
+
+  // アンマウント時のリソース解放（マイクストリームの停止・タイマー解除・ObjectURL破棄）
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      if (state.audioUrl) {
+        URL.revokeObjectURL(state.audioUrl)
+      }
+    }
+  }, [state.audioUrl])
 
   return {
     ...state,

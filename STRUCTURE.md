@@ -1,6 +1,6 @@
-# 📁 プロジェクト構成
+# 📁 プロジェクト構成（Omoide）
 
-> 誕生日お祝いサイトのディレクトリ構成とアーキテクチャをまとめたドキュメントです。
+> 想い出箱（Omoide Bako）のディレクトリ構成とアーキテクチャをまとめたドキュメントです。
 >
 > Next.js 16 の App Router を前提に、UI コンポーネント / ビジネスロジック / 状態管理 / 設定ファイルを明確に分離しています。
 
@@ -20,9 +20,10 @@
 ## ディレクトリツリー（トップレベル）
 
 ```text
-happy-birthday-website/
+omoide/
 ├── app/                     # Next.js App Router エントリ & API ルート
 ├── components/              # 再利用可能な React コンポーネント
+├── data/                    # i18n および祝祭日テーマ（13 種）のデータ
 ├── lib/                     # コアロジック（hooks, stores, i18n など）
 ├── config/                  # テーマ・音楽などの設定
 ├── types/                   # TypeScript 型定義
@@ -45,28 +46,77 @@ app/
 │
 └── api/                    # REST 形式の API ルート
     ├── birthdays/
-    │   ├── route.ts        # GET (一覧), POST (作成)
-    │   ├── [id]/route.ts   # GET, PUT, DELETE by ID
-    │   ├── check/route.ts  # 今日が誕生日かチェック
-    │   └── next/route.ts   # 次の誕生日を取得
+    │   ├── route.ts        # GET（一覧・月 / limit 絞り込み）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   ├── check/route.ts  # GET（指定日 or 今日が誕生日か）
+    │   └── next/route.ts   # GET（次に来る誕生日を計算）
     │
     ├── messages/
-    │   ├── route.ts        # GET, POST メッセージ
-    │   ├── [id]/route.ts   # GET, PUT, DELETE by ID
-    │   └── latest/route.ts # 最新メッセージを取得
+    │   ├── route.ts        # GET（一覧）, POST（テキスト投稿）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   └── latest/route.ts # GET（最新メッセージ）
+    │
+    ├── community/          # コミュニティ投稿（service_role 経由で DB に書き込む）
+    │   ├── route.ts        # POST（メッセージ / 掲示板投稿。メディア・楽曲付きに対応）
+    │   ├── birthday-threads/route.ts  # GET（今日の誕生日スレッド一覧）
+    │   ├── reply/route.ts  # POST（誕生日スレッドへの返信。テキスト or 楽曲）
+    │   └── media/
+    │       ├── route.ts          # POST（multipart 直接アップロード + metadata 登録）
+    │       ├── sign/route.ts     # POST（署名付き直接アップロード用トークン発行）
+    │       └── finalize/route.ts # POST（アップロード実体の検証 + media_submissions 確定）
     │
     ├── media/
-    │   ├── route.ts        # メディア一覧取得
-    │   ├── [id]/route.ts   # 単一メディア取得 / 削除
-    │   └── tags/route.ts   # メディアタグの取得
+    │   ├── route.ts        # GET（一覧・検索・集計）
+    │   ├── [id]/route.ts   # GET（単件取得）
+    │   └── tags/route.ts   # GET（タグ一覧。現在は常に空を返す）
     │
     ├── gifts/
-    │   ├── route.ts        # GET, POST バーチャルギフト
-    │   └── [id]/route.ts   # 単一ギフト取得 / 削除
+    │   ├── route.ts        # GET, POST（バーチャルギフト）
+    │   └── [id]/route.ts   # GET（単件取得）
     │
-    ├── audio/route.ts      # 音声メッセージ API
-    ├── video/route.ts      # 動画メッセージ API
-    └── upload/route.ts     # ファイルアップロード処理
+    ├── music/              # 厳選楽曲（Cloudflare R2 + Supabase / Jamendo / SoundCloud）
+    │   ├── curated/route.ts # GET（Supabase + R2 キュレーション楽曲一覧・歌詞・並び順取得）
+    │   ├── search/route.ts  # GET（キーワード検索）
+    │   └── resolve/route.ts # GET（provider:trackId → 再生 URL を解決）
+    │
+    ├── audio/route.ts      # GET（音声メッセージ一覧）
+    ├── video/route.ts      # GET（動画メッセージ一覧）
+    ├── upload/route.ts     # POST（常に 405。ブラウザから直接アップロードへ誘導）
+    │
+    ├── time-capsules/      # 認証ユーザー所有のタイムカプセル
+    │   ├── route.ts        # GET（自分の一覧）, POST（作成）
+    │   ├── [id]/route.ts   # GET（単件。所有者 or 招待トークン）
+    │   ├── [id]/access/route.ts  # POST（招待トークンで開封）
+    │   ├── [id]/revoke/route.ts  # POST（招待トークン無効化）
+    │   ├── access/route.ts # POST（アクセスコードで開封）
+    │   └── uploads/route.ts # POST（写真の署名付きアップロード準備）, DELETE（取消）
+    │
+    ├── study/              # 勉強部屋（Study Room）リアルタイム同期 & 集中 API
+    │   ├── create/route.ts # POST（部屋作成・ホスト認証トークン発行）
+    │   ├── join/route.ts   # POST（部屋参加・メンバー認証トークン発行）
+    │   ├── leave/route.ts  # POST（部屋退出・ホスト自動マイグレーション）
+    │   ├── member-status/route.ts # POST（集中状態・Streak・ハートビート更新）
+    │   ├── playback/route.ts      # POST（ホスト楽曲再生タイムライン同期）
+    │   ├── request-song/route.ts  # POST（メンバーからの楽曲リクエスト送信）
+    │   ├── respond-song-request/route.ts # POST（ホストによるリクエスト承認・却下）
+    │   └── verify-passcode/route.ts      # POST（非公開部屋パスコード検証）
+    │
+    ├── omikuji/            # おみくじ運勢
+    │   └── fortunes/
+    │       └── route.ts    # GET（daily_fortunes テーブルから全運勢データ一覧を返却）
+    │
+    ├── quizzes/            # バースデークイズ
+    │   └── route.ts        # GET（birthday_quizzes & quiz_questions 一覧を返却）
+    │
+    ├── games/              # ミニゲーム
+    │   └── memory-decks/
+    │       └── route.ts    # GET（memory_card_decks テーブルから神経衰弱デッキ一覧を返却）
+    │
+    ├── festivals/          # 祝祭日・四季テーマパック
+    │   └── route.ts        # GET（festival_packs テーブルから13祝祭日パック一覧を返却）
+    │
+    └── internal/
+        └── birthday-scheduler/route.ts # POST（誕生日スレッド定期生成。シークレット認証付き）
 ```
 
 ---
@@ -86,6 +136,7 @@ app/
 | `Select.tsx` | セレクトボックス |
 | `Card.tsx` | 汎用カードコンテナ |
 | `Modal.tsx` | モーダルダイアログ（sm, md, lg, xl, widescreen） |
+| `ConfirmModal.tsx` | 操作確認用カスタムモーダル（ブラウザ alert/confirm 代替） |
 | `ModalManager.tsx` | 全体のモーダル状態管理 |
 | `Toast.tsx` | トースト通知コンポーネント |
 | `Loading.tsx` | ローディングスピナー |
@@ -95,11 +146,10 @@ app/
 
 | Component | 説明 |
 |-----------|------|
-| `MusicPlayer.tsx` | メインの音楽プレーヤー |
-| `MusicControls.tsx` | 再生 / 一時停止 / スキップ操作 |
-| `MusicLibrary.tsx` | 楽曲ライブラリブラウザ |
-| `MusicUploader.tsx` | カスタム音源のアップロード UI |
-| `TrackSelector.tsx` | トラック選択 UI |
+| `MusicPlayer.tsx` | デスクトップ向け常駐プレーヤー。再生 / 一時停止・音量・シーク（進行度フィル付き）・曲送り・シャッフル・リピートに加え、歌詞トグルと楽曲選択に対応 |
+| `LyricsDrawer.tsx` | リアルタイム同期歌詞ドロワー。LRC 形式のタイムスタンプ解析と再生時間に合わせた自動スクロール表示 |
+
+> 楽曲の選択 UI（`SongPickerModal.tsx`）、選択済み楽曲の表示（`SelectedMusicTrackRow.tsx`）、楽曲付き投稿のサウンドカード（`MusicComment.tsx`）は `/components/community/` に配置しています。モバイル向けのプレーヤー操作は `/components/ui/MobileBottomDock.tsx` に統合されています。
 
 **ナビゲーションコンポーネント**
 
@@ -108,10 +158,22 @@ app/
 | `LanguageSelector.tsx` | UI 言語の切り替え（英語 / 日本語） |
 | `ThemeIndicator.tsx` | 現在のテーマ表示 |
 | `HeaderButtons.tsx` | ヘッダーアクションボタン群 |
-| `GameButtons.tsx` | ゲーム画面へのナビゲーション |
+| `GameButtons.tsx` | デスクトップ向けミニゲームナビゲーションボタン群 |
+| `MobileBottomDock.tsx` | モバイル向けボトムナビゲーション & 和風の抽斗（Drawer）メニュー |
+| `MobileGameMenu.tsx` | モバイル専用ミニゲームセレクター |
 | `SocialButtons.tsx` | SNS 共有ボタン |
 | `ShareButton.tsx` | 単体の共有ボタン |
 | `FeatureButton.tsx` | 特定機能の ON/OFF トグル |
+
+---
+
+### 3D コンポーネント（`/components/3d/`）
+
+Three.js WebGL を活用したリッチな 3D インタラクティブ体験を提供するコンポーネントです。
+
+| Component | 説明 |
+|-----------|------|
+| `OmikujiCylinder3D.tsx` | 360 度回転・ドラッグ＆クリック物理シェイク対応の 3D おみくじ筒。RoomEnvironment 反射、PBR 真鍮金箔、手彫り木目テクスチャ、接地シャドウ、竹製みくじ棒のせり出し演出を実装 |
 
 ---
 
@@ -128,8 +190,12 @@ app/
 | `CountdownTimer.tsx` | 誕生日までのカウントダウンロジック |
 | `CountdownDisplay.tsx` | カウントダウン表示 |
 | `BirthdayChecker.tsx` | 今日が誕生日かどうかのチェック |
+| `BirthdayHub.tsx` | 誕生日イベントのハブ画面（今日 / これから / 過去の誕生日を整理） |
 | `BirthdayHero.tsx` | ヒーローセクション |
 | `BirthdayMessage.tsx` | お祝いメッセージ表示 |
+| `DailyOmikuji.tsx` | 3D おみくじと連動した運勢表示（和歌・4大運勢・ラッキーアイテム・localStorage 永続化） |
+| `OnThisDayFlashback.tsx` | 過去の同じ月日の思い出を振り返るフラッシュバック機能 |
+| `PhotoFrame.tsx` | 和風・季節フレーム付きフォト撮影機能 |
 
 **メディア関連コンポーネント**
 
@@ -166,6 +232,9 @@ app/
 | `BulletinPost.tsx` | 単一投稿表示 |
 | `PostForm.tsx` | 投稿作成フォーム |
 | `PostDetail.tsx` | 返信を含む投稿詳細 |
+| `ContributorPromptButtons.tsx` | 投稿内容の提案ボタン群（メッセージ / 投稿フォーム用） |
+| `TimeCapsule.tsx` | 未来の指定日に届くタイムカプセル（手紙・写真・音声封入） |
+| `KeepsakeExportModal.tsx` | 想い出ポラロイド・記念メッセージカードの Retina 2x 高解像度 PNG エクスポートモーダル |
 
 **メディアメッセージ**
 
@@ -183,6 +252,14 @@ app/
 |-----------|------|
 | `GiftSelector.tsx` | ギフト選択 UI |
 | `GiftAnimation.tsx` | ギフト演出アニメーション |
+
+**楽曲付きメッセージ・返信**
+
+| Component | 説明 |
+|-----------|------|
+| `SongPickerModal.tsx` | 楽曲を検索 / プリセットから選ぶモーダル（プレビュー再生付き） |
+| `SelectedMusicTrackRow.tsx` | 選択済み楽曲の表示行（プレビュー / 変更 / 解除） |
+| `MusicComment.tsx` | 楽曲付きメッセージ・返信のサウンドカード表示（`provider:trackId` を解決して再生） |
 
 ---
 
@@ -202,18 +279,43 @@ app/
 
 ### エフェクトコンポーネント（`/components/effects/`）
 
-装飾用のビジュアルエフェクトをまとめたレイヤーです。
-
 | Component | 説明 |
 |-----------|------|
-| `ParticleSystem.tsx` | 汎用パーティクルシステム |
-| `Confetti.tsx` | 紙吹雪エフェクト |
-| `FallingPetals.tsx` | 桜の花びらが舞うエフェクト |
-| `FallingLeaves.tsx` | 紅葉が舞うエフェクト |
-| `FallingSnow.tsx` | 雪のエフェクト |
-| `FloatingLanterns.tsx` | 提灯が浮かぶエフェクト |
-| `VideoBackground.tsx` | 動画背景コンポーネント |
-| `ThemeEffects.tsx` | テーマに応じたエフェクト切り替え |
+| `ThemeEffects.tsx` | テーマに応じたエフェクト切り替えディスパッチャー |
+| `Bats.tsx` | コウモリが羽ばたき横断するハロウィン用エフェクト |
+| `ChristmasLights.tsx` | 画面上部に吊るされた多色イルミネーション電飾エフェクト |
+| `Confetti.tsx` | 4種形状・物理演算対応の汎用高機能紙吹雪エフェクト |
+| `FallingLeaves.tsx` | モミジ・イチョウが3D回転しながら舞い落ちる秋エフェクト |
+| `FallingPetals.tsx` | 桜の花びらが3Dフリップ回転で舞い散る春エフェクト |
+| `FallingSnow.tsx` | 遠近感のある複数レイヤーで舞い散る雪結晶エフェクト |
+| `Fireflies.tsx` | 夏・七夕の夜間に浮遊する有機的ホタル光エフェクト |
+| `FloatingLanterns.tsx` | 温かな光を放ちながら上昇する日本の伝統提灯エフェクト |
+| `Ghosts.tsx` | 半透明の愛らしいお化けが揺らめくハロウィン用エフェクト |
+| `Koinobori.tsx` | 空を泳ぐ真鯉・緋鯉・子鯉のこどもの日エフェクト |
+| `MoonGlow.tsx` | お月見用の満月神秘円形光背（コロナ）エフェクト |
+| `ParticleSystem.tsx` | HTML5 Canvas 高性能パーティクル（5種プリセット・マウス追従） |
+| `Sparkles.tsx` | 四芒星のゴールドキラキラパーティクルエフェクト |
+| `VideoBackground.tsx` | サーバー時間同期再生対応の動画背景コンポーネント |
+
+---
+
+### 勉強部屋・Zen集中コンポーネント（`/components/study/`）
+
+作業や学習に集中するためのリアルタイム同期型バーチャル空間コンポーネント群です。
+
+| Component | 説明 |
+|---|---|
+| `StudyRoomHub.tsx` | 勉強部屋のロビー一覧・部屋作成・非公開パスコード入力モーダル |
+| `StudyRoomView.tsx` | 勉強部屋ビュー。ホストBGM同期・DJ操作・机グリッド・楽曲リクエスト管理 |
+| `ZenFocusModal.tsx` | 全画面 Zen 集中モード。ポモドーロタイマー・環境音ミキサー・季節背景演出 |
+| `PomodoroRing.tsx` | SVG 円形プログレスリングタイマー（集中/小休憩/大休憩 & Solfeggio 528Hz チャイム） |
+| `PomodoroSettingsModal.tsx` | ポモドーロ時間設定モーダル（25分/5分/15分等のカスタマイズ） |
+| `AmbientMixerModal.tsx` | 4系統個人環境音（雨音/喫茶店/風鈴/暖炉）ミキサーモーダル |
+| `DeskPresenceList.tsx` | 参加者の勉強机グリッド（アバター・集中状態・Streak・非言語応援） |
+| `DualAudioControls.tsx` | 部屋BGMと個人環境音の2系統独立音量コントロールバー |
+| `SongRequestListModal.tsx` | ホスト向け楽曲リクエスト一覧・承認（キュー追加）/ 却下モーダル |
+| `SilentCheerOverlay.tsx` | 参加者から送られた非言語応援アイコンが浮遊する静音アニメーション |
+| `GlobalStudyRoomSession.tsx` | 部屋退室時やアプリ全体のセッション維持・ハートビートハンドラ |
 
 ---
 
@@ -227,6 +329,7 @@ app/
 | `Header.tsx` | ヘッダー |
 | `Footer.tsx` | フッター |
 | `FloatingNav.tsx` | 浮遊型ナビゲーション |
+| `ServiceWorkerRegister.tsx` | PWA サービスワーカー（`/sw.js`）の安全な登録・オフラインアセットキャッシュ初期化 |
 
 ---
 
@@ -249,12 +352,16 @@ app/
 | `useGifts.ts` | バーチャルギフトの取得・送信 |
 | `useMediaFiles.ts` | メディアファイル管理 |
 | `useUserName.ts` | ローカルストレージに保存したユーザー名の管理 |
+| `useDailyFortunes.ts` | Postgres おみくじ運勢データの取得とオフライン静的フォールバック |
+| `useBirthdayQuiz.ts` | Postgres クイズデータ（`birthday_quizzes` & `quiz_questions`）の動的取得とフォールバック |
+| `useMemoryDecks.ts` | Postgres 神経衰弱デッキ（`memory_card_decks`）の取得とフォールバック |
+| `useFestivalPacks.ts` | 13 祝祭日・季節テーマパック（`festival_packs`）の動的フェッチとフォールバック |
 
 **メディア系 Hooks**
 
 | Hook | 説明 |
 |------|------|
-| `useMusicPlayer.ts` | 音楽プレーヤーの制御 |
+| `useMusicPlayer.tsx` | 音楽プレーヤーの状態管理（Context Provider）。再生制御に加え `/api/music/resolve` 経由の楽曲プレビューに対応 |
 | `useSlideshow.ts` | スライドショー制御 |
 | `useVideoMessages.ts` | 動画メッセージ管理 |
 | `useAudioMessages.ts` | 音声メッセージ管理 |
@@ -269,6 +376,14 @@ app/
 | `useMemoryGame.ts` | 神経衰弱ゲームのロジック |
 | `usePuzzleGame.ts` | パズルゲームのロジック |
 | `useQuiz.ts` | クイズロジック |
+
+**勉強部屋・集中・オーディオ系 Hooks**
+
+| Hook | 説明 |
+|------|------|
+| `useRoomBgmSync.ts` | 勉強部屋のホスト楽曲再生タイムライン同期、NTP ドリフト補正、キュー・シャッフル・リピート状態管理 |
+| `usePomodoro.ts` | ポモドーロタイマーのインターバル制御、Solfeggio 528Hz チャイム発音、集中 Streak の記録 |
+| `useAmbientAudio.ts` | 4系統環境音（雨・カフェ・風鈴・暖炉）の Web Audio API による合成再生と音量適用 |
 
 **ユーティリティ Hooks**
 
@@ -290,11 +405,14 @@ Zustand を使ったグローバル状態管理レイヤーです。必要に応
 |-------|------|
 | `birthdayStore.ts` | 誕生日データの状態（CRUD / 次の誕生日など） |
 | `themeStore.ts` | テーマ選択（季節・日本 / 国際イベントから自動判定） |
-| `musicStore.ts` | 音楽プレーヤーの状態（プレイリスト / ボリューム / リピート / シャッフル） |
+| `musicStore.ts` | 音楽プレーヤー設定の永続化（音量 / リピート / シャッフル）。再生状態そのものは `useMusicPlayer` が管理 |
+| `studyRoomStore.ts` | 勉強部屋のルーム情報、メンバー一覧、楽曲キュー、リクエスト一覧、ホスト状態 |
+| `ambientSoundStore.ts` | 個人環境音ミキサーのチャンネル音量（雨・カフェ・風鈴・暖炉）およびマスター音量 |
 | `gameStore.ts` | ゲームスコアやハイスコア管理 |
-| `languageStore.ts` | UI 言語（英語 / 日本語）の管理 |
 | `uiStore.ts` | モーダル / トーストなど UI 状態 |
 | `index.ts` | 各ストアのエクスポート集約 |
+
+> 言語状態は Zustand ストアではなく `/lib/i18n/LanguageContext.tsx` の React Context で管理しています。
 
 ---
 
@@ -306,7 +424,57 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 |----------|------|
 | `ThemeProvider.tsx` | テーマコンテキスト（季節・イベントに応じた自動検出） |
 | `QueryProvider.tsx` | TanStack Query クライアントのプロバイダ |
+
+> 言語コンテキストは `/lib/i18n/LanguageContext.tsx` に配置しています。
+
+---
+
+### i18n（`/lib/i18n/`）
+
+クライアント側の言語コンテキストと翻訳データです。
+
+| File | 説明 |
+|------|------|
 | `LanguageContext.tsx` | 言語コンテキスト（英語 / 日本語） |
+| `translations.ts` | 翻訳テーブル（型付き） |
+| `types.ts` | 翻訳キーの型定義 |
+| `resolveLocale.ts` | Cookie / 環境からロケールを解決 |
+| `cookie.ts` | 言語 Cookie の読み書き |
+
+---
+
+### Festivals（`/lib/festivals/`）
+
+祝祭日パックの評価・検証レイヤーです。
+
+| File | 説明 |
+|------|------|
+| `types.ts` | 祝祭日パック・ルール関連の型定義 |
+| `validation.ts` | 祝祭日パック JSON スキーマ検証 |
+| `evaluator.ts` | 祝祭日の発生判定ロジック |
+| `parity.ts` | ロケール間のパリティ（有効性 / 内容）チェック |
+| `legacyAdapter.ts` | 旧フォーマットの祝祭日データを変換するアダプタ |
+
+---
+
+### Reminders（`/lib/reminders/`）
+
+リマインダー配信ロジックです。
+
+| File | 説明 |
+|------|------|
+| `engine.ts` | リマインダー判定エンジン |
+| `durable.ts` | 永続化対応のリマインダースケジューラ |
+
+---
+
+### Time Capsule（`/lib/time-capsule/`）
+
+サーバーサイドのタイムカプセル処理です。
+
+| File | 説明 |
+|------|------|
+| `server.ts` | タイムカプセル API のサーバー側ヘルパー。`createServiceClient` や署名付きアップロード用トークンを提供し、community / birthday / music のサーバー処理からも共用する |
 
 ---
 
@@ -314,11 +482,44 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 
 | ディレクトリ | 説明 |
 |-------------|------|
+| `/lib/export/` | 記念カード画像エクスポート。`keepsakeExporter.ts`（HTML5 Canvas / Retina 2x 高解像度 PNG 生成） |
+| `/lib/games/` | ゲームデータサーバー処理。`server.ts`（Postgres クイズ & 神経衰弱デッキ取得） |
 | `/lib/supabase/` | Supabase クライアントとクエリ関連ユーティリティ |
-| `/lib/i18n/` | 翻訳データと言語コンテキスト（英語 / 日本語） |
-| `/lib/animations/` | Framer Motion 用アニメーション定義 |
-| `/lib/utils/` | 汎用ユーティリティ関数 |
+| `/lib/music/` | 厳選楽曲（Cloudflare R2 + Supabase / Jamendo / SoundCloud）。`types.ts`（provider / reference / TrackLyrics 型）、`reference.ts`（`provider:trackId` の parse / serialize）、`lyrics.ts`（LRC タイムスタンプ解析・リアルタイム同期歌詞ヘルパー）、`presets.ts`（Jamendo プリセット）、`server.ts`（server-only の検索・解決） |
+| `/lib/community/` | コミュニティ投稿のサーバー側処理。`server.ts`（投稿 + メディア + 楽曲）、`reply.ts`（誕生日スレッド返信） |
+| `/lib/birthday/` | 誕生日スレッド生成。`date.ts`（営業日 / タイムゾーン）、`thread.ts`（スレッド検索・生成・カバー選択） |
+| `/lib/animations/` | `variants.ts` による Framer Motion 用バリアント定義 |
+| `/lib/utils/` | 汎用ユーティリティ関数（`birthday.ts`, `media.ts`, `theme.ts`, `videoThumbnail.ts`） |
 | `/lib/validations/` | Zod を使ったバリデーションスキーマ |
+
+---
+
+### `/lib` ルート直下のユーティリティ
+
+| File | 説明 |
+|------|------|
+| `healthcheck.ts` | 稼働確認用エンドポイントのヘルパー |
+| `share.ts` | Web Share API フォールバックを含むシェアヘルパー |
+| `time-capsule-client.ts` | クライアントからタイムカプセル API を呼び出すヘルパー |
+| `omikujiHistory.ts` | おみくじ履歴の永続化ヘルパー |
+
+---
+
+## `/data` – 静的データとマニフェスト
+
+| ディレクトリ / ファイル | 説明 |
+|-----------------------|------|
+| `omikujiData.ts` | 12 種類の本格和風おみくじデータ（大吉〜半吉、和歌・俳句、4大運勢、ラッキー色・品・数） |
+| `i18n/en.json` | 英語 UI 辞書データ |
+| `i18n/ja.json` | 日本語 UI 辞書データ |
+| `i18n/keys.json` | i18n キー一覧（整合性チェック用） |
+| `festivals/jp/en.json` | 日本の祝祭日データ辞書（英語）。`generated/themes.ts` の 13 テーマのうち和風イベント系 9 件（クリスマス・ハロウィン・お花見・お盆・月見・七夕・正月・こどもの日・文化の日）の表示用テキストを定義 |
+| `festivals/jp/ja.json` | 日本の祝祭日データ辞書（日本語版、上記と同内容） |
+| `schemas/festival-pack.schema.json` | 祝祭日パックの JSON Schema |
+| `schemas/i18n.schema.json` | i18n 辞書の JSON Schema |
+| `generated/festival-packs.ts` | 自動生成された祝祭日パックマニフェスト |
+| `generated/locales.ts` | 自動生成されたロケールマニフェスト |
+| `generated/themes.ts` | 自動生成されたテーママニフェスト（13 の祝祭日テーマ：季節 4 + 和風イベント 9） |
 
 ---
 
@@ -327,7 +528,7 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 | File | 説明 |
 |------|------|
 | `themes.ts` | 季節・イベントごとのテーマ設定（色・背景・エフェクトなど） |
-| `music.ts` | デフォルトの楽曲リスト定義 |
+| `music.ts` | デフォルト楽曲リスト（`lib/music/presets.ts` の Jamendo プリセットを整形）と ID 検索ヘルパー |
 
 ---
 
@@ -362,6 +563,132 @@ type Language = 'en' | 'ja'
 | `.prettierrc` | Prettier フォーマット設定 |
 | `eslint.config.mjs` | ESLint ルール定義 |
 | `postcss.config.mjs` | PostCSS / Tailwind 設定 |
+
+---
+
+## `/__tests__` – テストコード
+
+Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検証用テストを格納します。
+
+### API ルート（`/__tests__/api/`）
+
+| File | 対象 |
+|------|------|
+| `birthdays-route.test.ts` | `/api/birthdays` 一覧ルート |
+| `route-limit-validation.test.ts` | ルート共通のレートリミット・バリデーション |
+| `time-capsules-route.test.ts` | `/api/time-capsules` ルート |
+| `time-capsules-access-route.test.ts` | `/api/time-capsules/access` ルート |
+| `time-capsules-invite-access-route.test.ts` | 招待経由のアクセスルート |
+| `community-route.test.ts` | `/api/community` ルート |
+| `community-media-route.test.ts` | `/api/community/media`（multipart 直接アップロード）ルート |
+| `community-media-signed-route.test.ts` | `/api/community/media/sign` / `finalize`（署名付きアップロード）ルート |
+| `community-reply-route.test.ts` | `/api/community/reply` ルート |
+| `community-birthday-threads-route.test.ts` | `/api/community/birthday-threads` ルート |
+| `music-search-route.test.ts` | `/api/music/search` ルート |
+| `music-resolve-route.test.ts` | `/api/music/resolve` ルート |
+| `birthday-scheduler-route.test.ts` | `/api/internal/birthday-scheduler` ルート |
+
+> `/api/media`（GET 一覧）のルートテストは `__tests__/app/api/media-route.test.ts` にあります。
+
+### コンポーネント（`/__tests__/components/`）
+
+| File | 対象 |
+|------|------|
+| `Button.test.tsx` | `Button` UI コンポーネント |
+| `Input.test.tsx` | `Input` UI コンポーネント |
+| `Confetti.test.tsx` | `Confetti` エフェクト |
+| `DailyOmikuji.test.tsx` | `DailyOmikuji` 機能 |
+| `PhotoCard.keyboard.test.tsx` | `PhotoCard` のキーボード操作 |
+| `ContributorPromptButtons.test.tsx` | 投稿プロンプトボタン群 |
+| `MessageList.test.tsx` | `MessageList` の楽曲付きメッセージ表示 |
+| `SelectedMusicTrackRow.test.tsx` | `SelectedMusicTrackRow`（楽曲選択行） |
+| `ChatRoom.test.ts` | `ChatRoom` コミュニティ |
+| `TimeCapsule.test.tsx` | `TimeCapsule` コミュニティ |
+| `features/BirthdayHub.events.test.ts` | `BirthdayHub` のイベント判定（midnight 跨ぎ） |
+| `mobile-touch-targets.test.ts` | モバイルのタッチターゲット検証 |
+
+### 統合テスト（`/__tests__/integration/`）
+
+| File | 対象 |
+|------|------|
+| `anonymous-community-contract.test.ts` | 匿名コミュニティの API 契約 |
+| `anonymous-flow.local.test.ts` | 匿名フローのローカル実行 |
+| `production-snapshot-regression.test.ts` | 本番スナップショットに対する回帰検証 |
+| `theme-provider-smoke.test.tsx` | `ThemeProvider` のスモークテスト |
+| `community-submission-rpc-migration.test.ts` | `create_community_submission` RPC の migration 整合 |
+| `birthday-thread-reply-migration.test.ts` | 誕生日スレッド + `create_birthday_reply` の migration 整合 |
+| `revoke-anonymous-music-upload-migration.test.ts` | music 匿名アップロード取り消しの migration 整合 |
+
+### ライブラリ（`/__tests__/lib/`）
+
+| File | 対象 |
+|------|------|
+| `community-media.test.ts` | `lib/supabase/communityMedia.ts` |
+| `birthday-date.test.ts` | `lib/birthday/date.ts` |
+| `birthday-thread.test.ts` | `lib/birthday/thread.ts` |
+| `music-presets.test.ts` | `lib/music/presets.ts` |
+| `music-reference.test.ts` | `lib/music/reference.ts` |
+| `music-server.test.ts` | `lib/music/server.ts` |
+| `healthcheck.test.ts` | `lib/healthcheck.ts` |
+| `media-objecturl.test.ts` | `lib/utils/media.ts` の ObjectURL 処理 |
+| `omikujiData.test.ts` | おみくじデータ整合性 |
+| `omikujiHistory.test.ts` | `lib/omikujiHistory.ts` |
+| `share.test.ts` | `lib/share.ts` |
+| `upload-validation.test.ts` | `lib/validations/upload.ts` |
+| `validations.test.ts` | `lib/validations/schemas.ts` |
+| `time-capsule-client.test.ts` | `lib/time-capsule-client.ts` |
+| `time-capsule-server.test.ts` | `lib/time-capsule/server.ts` |
+| `hooks/useMediaQuery.test.ts` | `useMediaQuery` フック |
+| `hooks/useUserName.test.ts` | `useUserName` フック |
+| `i18n/locale.test.ts` | ロケール解決ロジック |
+| `i18n/translation-parity.test.ts` | 翻訳キーのロケール間パリティ |
+| `festivals/evaluator.test.ts` | `lib/festivals/evaluator.ts` |
+| `festivals/legacy-adapter.test.ts` | `lib/festivals/legacyAdapter.ts` |
+| `festivals/parity.test.ts` | `lib/festivals/parity.ts` |
+| `festivals/validation.test.ts` | `lib/festivals/validation.ts` |
+| `festivals/fixtures/*.json` | テスト用フィクスチャ（重複 ID / 不正日付 / 未対応暦） |
+| `reminders/durable.test.ts` | `lib/reminders/durable.ts` |
+| `reminders/engine.test.ts` | `lib/reminders/engine.ts` |
+| `stores/uiStore-focus.test.ts` | `uiStore` のフォーカス管理 |
+
+### スクリプト（`/__tests__/scripts/`）
+
+| File | 対象 |
+|------|------|
+| `collect-festival-snapshot.test.ts` | `scripts/collect-festival-snapshot.mjs` |
+| `compare-festival-catalogs.test.ts` | `scripts/compare-festival-catalogs.mjs` |
+| `generate-data-manifest.test.ts` | `scripts/generate-data-manifest.mjs` |
+
+### Supabase マイグレーション整合性
+
+| File | 対象 |
+|------|------|
+| `supabase-time-capsule-access-migration.test.ts` | タイムカプセルアクセスマイグレーション |
+| `supabase-time-capsule-open-tracking-migration.test.ts` | 開封トラッキングマイグレーション |
+
+---
+
+## `/e2e` – End-to-End テスト
+
+Playwright による E2E スモークテストです。
+
+| File | 説明 |
+|------|------|
+| `smoke.spec.ts` | 起動・主要画面のスモーク確認 |
+
+---
+
+## `/scripts` – 運用・データ生成スクリプト
+
+CLI から実行する Node スクリプト群です。対応するテストは `__tests__/scripts/` 配下にあります。
+
+| File | 説明 |
+|------|------|
+| `apply-production-allowlist.mjs` | 本番環境向け許可リスト適用 |
+| `collect-festival-snapshot.mjs` | 祝祭日カタログのスナップショット収集 |
+| `compare-festival-catalogs.mjs` | 祝祭日カタログの差分比較 |
+| `generate-data-manifest.mjs` | `data/generated/` のマニフェスト再生成 |
+| `local-healthcheck-mock.mjs` | CI の Supabase read-only 検証（psql attestation）をローカルで再現するモック |
 
 ---
 

@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export interface VideoMessage {
   id: number
@@ -22,6 +23,11 @@ interface VideoSubmission {
 }
 
 export function useVideoMessages(birthdayPerson?: string) {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [messages, setMessages] = useState<VideoMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +58,7 @@ export function useVideoMessages(birthdayPerson?: string) {
         created_at: message.created_at,
       })))
     } catch {
-      setError('ビデオメッセージを読み込めません')
+      setError(tRef.current('videoMessagesLoadError'))
     } finally {
       setLoading(false)
     }

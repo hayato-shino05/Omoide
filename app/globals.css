@@ -1,5 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&family=Noto+Serif:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+
+  --color-music-surface: var(--music-surface);
+  --color-music-surface-elevated: var(--music-surface-elevated);
+  --color-music-text: var(--music-text);
+  --color-music-text-muted: var(--music-text-muted);
+  --color-music-border: var(--music-border);
+  --color-music-accent: var(--music-accent);
+  --color-music-focus: var(--music-focus);
+  --color-music-error: var(--music-error);
+  --color-music-success: var(--music-success);
+}
 
 /* ===== ボタンのテキストカラーを白に固定 ===== */
 span.text-white\! {
@@ -19,7 +33,16 @@ span.text-white\! {
   --color-surface: #FFF9F3;
   --color-text: #2C1810;
   --color-accent: #8B4513;
-  
+  --music-surface: #F3F6F7;
+  --music-surface-elevated: #FFFFFF;
+  --music-text: #102A43;
+  --music-text-muted: #486581;
+  --music-border: #9FB3C8;
+  --music-accent: #D95D39;
+  --music-focus: #0B7285;
+  --music-error: #B42318;
+  --music-success: #167D4B;
+
   /* テーマ固有の設定（テーマによって上書きされる） */
   --theme-primary: #854D27;
   --theme-secondary: #D4B08C;
@@ -30,11 +53,80 @@ span.text-white\! {
   --shadow-vintage: 4px 4px 0 var(--color-secondary);
   --shadow-vintage-hover: 6px 6px 0 var(--color-secondary);
   
-  /* フォント - 多言語対応（EN・JA） */
-  --font-body: 'Noto Serif', 'Noto Serif JP', serif;
-  --font-heading: 'Playfair Display', 'Noto Serif JP', serif;
-  --font-accent: 'Playfair Display', 'Noto Serif JP', serif;
-  --font-display: 'Playfair Display', 'Noto Serif JP', serif;
+  /* フォント - Windows (Yu Gothic / Meiryo) & Mac/iOS (Hiragino Sans / Meiryo) */
+  --font-body: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  --font-accent: "Yu Gothic", "YuGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Meiryo", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+
+  /* タイポグラフィスケールトークン */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* トランジション・イージングトークン */
+  --transition-fast: 150ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-base: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --transition-enter: 250ms cubic-bezier(0.2, 0, 0, 1);
+
+  /* アクセシブルなフォーカスリングトークン */
+  --focus-ring: 0 0 0 3px rgba(133, 77, 39, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #D4B08C;
+    --color-secondary: #854D27;
+    --color-background: #1A120B;
+    --color-surface: #2C1810;
+    --color-text: #F5E6D8;
+    --color-accent: #E76F51;
+    --shadow-vintage: 4px 4px 0 #3D2314;
+    --shadow-vintage-hover: 6px 6px 0 #3D2314;
+
+    --music-surface: #102A43;
+    --music-surface-elevated: #243B53;
+    --music-text: #F0F4F8;
+    --music-text-muted: #BCCCDC;
+    --music-border: #486581;
+    --music-accent: #E76F51;
+    --music-focus: #67E8F9;
+    --music-error: #FFB4AB;
+    --music-success: #86EFAC;
+  }
+}
+
+.dark {
+  --color-primary: #D4B08C;
+  --color-secondary: #854D27;
+  --color-background: #1A120B;
+  --color-surface: #2C1810;
+  --color-text: #F5E6D8;
+  --color-accent: #E76F51;
+  --shadow-vintage: 4px 4px 0 #3D2314;
+  --shadow-vintage-hover: 6px 6px 0 #3D2314;
+
+  --music-surface: #102A43;
+  --music-surface-elevated: #243B53;
+  --music-text: #F0F4F8;
+  --music-text-muted: #BCCCDC;
+  --music-border: #486581;
+  --music-accent: #E76F51;
+  --music-focus: #67E8F9;
+  --music-error: #FFB4AB;
+  --music-success: #86EFAC;
+}
+
+/* ===== テーマ切り替え時のトランジション抑制 ===== */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 /* ===== ベーススタイル ===== */
@@ -46,19 +138,16 @@ body {
   padding: 0;
   overflow-x: hidden;
   min-height: 100vh;
-  transition: color 0.5s ease;
 }
 
 /* ===== タイポグラフィ ===== */
-h1, h2, h3 {
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
 h1 {
-  font-size: 2.5em;
+  font-size: var(--text-3xl);
   color: var(--theme-primary);
-  text-shadow: 2px 2px 0px var(--theme-secondary);
-  animation: pulse 2s infinite;
 }
 
 /* ===== ビンテージ風ボタンスタイル ===== */
@@ -70,22 +159,29 @@ h1 {
   border-radius: 0;
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 1em;
+  font-size: var(--text-base);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
   box-shadow: var(--shadow-vintage);
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), filter var(--transition-base);
 }
 
 .btn-vintage:hover {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-vintage-hover);
+  filter: brightness(1.1);
 }
 
 .btn-vintage:active {
-  transform: translate(0, 0);
+  transform: translate(0, 0) scale(0.96);
   box-shadow: 2px 2px 0 var(--color-secondary);
+  filter: brightness(0.95);
+}
+
+.btn-vintage:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-vintage), var(--focus-ring);
 }
 
 /* ===== ビンテージ風カード／ボックススタイル ===== */
@@ -115,8 +211,6 @@ h1 {
   color: #8B4513;
   font-size: 2em;
   margin-bottom: 30px;
-  text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.2);
-  animation: titleFloat 3s ease-in-out infinite;
 }
 
 .countdown-time {
@@ -148,7 +242,6 @@ h1 {
   font-size: 1.8em;
   font-weight: bold;
   box-shadow: 0 4px 8px rgba(139, 69, 19, 0.3);
-  animation: numberPulse 1s ease-in-out infinite;
 }
 
 /* ===== アニメーション ===== */
@@ -288,6 +381,60 @@ body.theme-hanami {
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23E91E63' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
+body.theme-obon {
+  --theme-primary: #BF360C;
+  --theme-secondary: #FFE0B2;
+  --theme-background: #FFF3E0;
+  --theme-text: #BF360C;
+  background-color: #FFF3E0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FF5722' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.theme-tsukimi {
+  --theme-primary: #64B5F6;
+  --theme-secondary: #1A237E;
+  --theme-background: #0D1B2A;
+  --theme-text: #E3F2FD;
+  background-color: #0D1B2A;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2364B5F6' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.theme-tanabata {
+  --theme-primary: #7B1FA2;
+  --theme-secondary: #E1BEE7;
+  --theme-background: #F3E5F5;
+  --theme-text: #4A148C;
+  background-color: #F3E5F5;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237B1FA2' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.theme-shogatsu {
+  --theme-primary: #D32F2F;
+  --theme-secondary: #FFCDD2;
+  --theme-background: #FFEBEE;
+  --theme-text: #B71C1C;
+  background-color: #FFEBEE;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D32F2F' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.theme-kodomo {
+  --theme-primary: #1976D2;
+  --theme-secondary: #BBDEFB;
+  --theme-background: #E3F2FD;
+  --theme-text: #0D47A1;
+  background-color: #E3F2FD;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231976D2' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body.theme-bunka {
+  --theme-primary: #E65100;
+  --theme-secondary: #FFE0B2;
+  --theme-background: #FFF3E0;
+  --theme-text: #BF360C;
+  background-color: #FFF3E0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23E65100' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
 /* ===== カウントダウン用テーマバリエーション ===== */
 .countdown-box.theme-spring {
   background: linear-gradient(135deg, #FCE4EC 0%, #F8DDE4 100%);
@@ -323,6 +470,37 @@ body.theme-hanami {
 .countdown-box.theme-hanami {
   background: linear-gradient(135deg, #FFE6F2 0%, #F8DDE4 100%);
   border-color: #C2185B;
+}
+
+.countdown-box.theme-obon {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-color: #E64A19;
+}
+
+.countdown-box.theme-tsukimi {
+  background: linear-gradient(135deg, #1A237E 0%, #0D47A1 100%);
+  border-color: #64B5F6;
+  color: #E3F2FD;
+}
+
+.countdown-box.theme-tanabata {
+  background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%);
+  border-color: #7B1FA2;
+}
+
+.countdown-box.theme-shogatsu {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  border-color: #D32F2F;
+}
+
+.countdown-box.theme-kodomo {
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+  border-color: #1976D2;
+}
+
+.countdown-box.theme-bunka {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-color: #E65100;
 }
 
 /* ===== フォトギャラリーのグリッド ===== */
@@ -445,7 +623,14 @@ body.theme-hanami {
   bottom: 20px;
   left: 20px;
   z-index: 1000;
-  max-width: calc(50% - 250px);
+  max-width: calc(50vw - 420px);
+  transition: bottom 0.25s ease-out;
+}
+
+.fixed-bottom-left .games-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 10px;
 }
 
 .games-mobile-only {
@@ -453,7 +638,7 @@ body.theme-hanami {
 }
 
 .games-desktop-only {
-  display: flex;
+  display: grid;
 }
 
 .mobile-game-menu {
@@ -497,8 +682,9 @@ body.theme-hanami {
 
 .fixed-bottom-center {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
+  width: min(980px, calc(100vw - 560px));
   transform: translateX(-50%);
   z-index: 1001;
 }
@@ -510,15 +696,28 @@ body.theme-hanami {
   z-index: 1000;
 }
 
-/* ===== タブレットレイアウト（768px - 1024px）===== */
-@media screen and (max-width: 1024px) {
+/* ===== 画面幅が狭く音楽バーと干渉するデスクトップ・ラップトップ（769px - 1599px）===== */
+@media screen and (max-width: 1599px) and (min-width: 769px) {
+  .fixed-bottom-left {
+    bottom: 124px;
+    max-width: calc(100vw - 40px);
+  }
+  
   .fixed-bottom-left .games-container {
+    grid-template-columns: repeat(3, minmax(0, max-content));
     gap: 8px;
   }
   
   .fixed-bottom-left .game-button {
-    padding: 8px 15px;
-    font-size: 0.85em;
+    padding: 8px 14px;
+    font-size: 0.82em;
+  }
+}
+
+@media screen and (max-width: 1100px) and (min-width: 769px) {
+  .fixed-bottom-left .games-container {
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    gap: 8px;
   }
 }
 
@@ -532,201 +731,69 @@ body.theme-hanami {
     display: none !important;
   }
 
-  /* モバイルでアルバムボタンを上部中央に配置（他のボタンと重ならない） */
-  .fixed-top-center {
-    display: block;
-    position: fixed;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+  /* デスクトップ固定ボタン群はモバイルで非表示（MobileBottomDockに統合） */
+  .fixed-top-center,
+  .fixed-top-right,
+  .fixed-bottom-left,
+  .fixed-bottom-right {
+    display: none !important;
   }
-  
-  .fixed-top-center button,
-  .fixed-top-center .header-btn {
-    padding: 4px 8px !important;
-    font-size: 0.6em !important;
-    box-shadow: 2px 2px 0 #D4B08C !important;
-    gap: 3px !important;
-    white-space: nowrap !important;
-  }
-  
-  /* 左上：言語＆テーマ - 縦並び配置 */
+
+  /* 左上：言語＆テーマセレクター（縦並び配置を維持しつつ、タッチしやすい適正サイズに拡大） */
   .fixed-top-left {
-    top: 8px;
-    left: 8px;
+    top: 14px;
+    left: 14px;
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 6px !important;
+    gap: 8px !important;
+    z-index: 50;
   }
   
   /* モバイル時の言語セレクターとテーマインジケーター */
   .fixed-top-left .language-selector select,
   .fixed-top-left select,
   .fixed-top-left .theme-indicator {
-    padding: 3px 10px 3px 5px !important;
-    font-size: 0.72em !important;
-    height: 28px !important;
-    box-shadow: 0 2px 6px rgba(133, 77, 39, 0.3) !important;
-  }
-  
-  /* 右上：メッセージ＆掲示板ボタン */
-  .fixed-top-right {
-    top: 8px;
-    right: 8px;
-  }
-  
-  .fixed-top-right > div {
-    gap: 4px !important;
-  }
-  
-  .fixed-top-right button,
-  .fixed-top-right .header-btn {
-    padding: 4px 8px !important;
-    font-size: 0.6em !important;
-    box-shadow: 2px 2px 0 #D4B08C !important;
-    gap: 3px !important;
-    white-space: nowrap !important;
-  }
-  
-  /* ゲームボタン - モバイルでは下部左に配置 */
-  .fixed-bottom-left {
-    bottom: 60px;
-    top: auto;
-    left: 8px;
-    right: auto;
-    max-width: none;
+    padding: 6px 14px 6px 10px !important;
+    font-size: 0.88em !important;
+    height: 38px !important;
+    border-radius: 20px !important;
+    border: 2px solid #D4B08C !important;
+    box-shadow: 0 4px 12px rgba(133, 77, 39, 0.35) !important;
   }
 
-  .fixed-bottom-left .games-container {
-    flex-wrap: wrap;
-    gap: 3px;
-    justify-content: flex-start;
-  }
-
-  .fixed-bottom-left .game-button {
-    padding: 3px 5px !important;
-    font-size: 0.5em !important;
-    box-shadow: 1px 1px 0 #D4B08C !important;
-    gap: 2px !important;
-  }
-  
-  /* ミュージックプレイヤー - 左下にコンパクト配置（操作しやすさは維持） */
+  /* ミュージックプレイヤー（モバイルでは非表示にしてDockと重なりを防止） */
   .fixed-bottom-center {
-    bottom: 8px;
-    left: 8px;
-    right: auto;
-    transform: none;
-    max-width: 60%;
-  }
-  
-  .fixed-bottom-center .music-player {
-    padding: 6px 10px !important;
-    gap: 6px !important;
-    box-shadow: 2px 2px 0 #D4B08C !important;
-  }
-  
-  .fixed-bottom-center .music-player > button:not(:last-of-type) {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    font-size: 0.9rem !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
-  
-  .fixed-bottom-center .music-player .song-title {
-    display: none !important;
-  }
-  
-  /* 「曲を選ぶ」ボタンを小さめで表示 */
-  .fixed-bottom-center .music-player > button:last-of-type {
-    padding: 5px 10px !important;
-    font-size: 0.7em !important;
-    width: auto !important;
-    height: auto !important;
-  }
-  
-  .fixed-bottom-center .music-player > button:last-of-type span:last-child {
     display: none !important;
   }
 
-  /* トラック選択ポップアップ - モバイル画面内で綺麗に表示 */
-  .fixed-bottom-center .music-player .track-selector-dropdown {
-    position: fixed !important;
-    bottom: 50px !important;
-    left: 8px !important;
-    right: auto !important;
-    width: calc(100vw - 16px) !important;
-    max-width: 320px !important;
-    min-width: unset !important;
-    z-index: 10010 !important;
-  }
-
-  .fixed-bottom-center .music-player .track-selector-dropdown button {
-    width: 100% !important;
-    height: auto !important;
-    min-width: unset !important;
-    padding: 6px 10px !important;
-    font-size: 0.8rem !important;
-    box-shadow: none !important;
-  }
-  
-  /* ソーシャルボタン - 右下配置 */
-  .fixed-bottom-right {
-    bottom: 8px;
-    right: 8px;
-  }
-  
-  .fixed-bottom-right > div {
-    gap: 3px !important;
-    flex-direction: column !important;
-  }
-  
-  .fixed-bottom-right button {
-    padding: 4px 8px !important;
-    font-size: 0.55em !important;
-    box-shadow: 1px 1px 0 #D4B08C !important;
-    gap: 3px !important;
-  }
-  
-  /* モバイル時はソーシャルボタン内の絵文字アイコンを非表示 */
-  .fixed-bottom-right button span:first-child {
-    display: none;
-  }
-  
   /* メインコンテンツ - カウントダウン用にスペースを広めに確保 */
   .main-content {
-    padding: 140px 10px 80px;
+    padding: 100px 10px 96px;
   }
   
-  /* カウントダウンカードをモバイル向けに小さく調整 */
-  .countdown-card {
-    padding: 20px 15px !important;
-    margin-top: -40px !important;
-    max-width: 95% !important;
-  }
-  
-  .countdown-card h1 {
-    font-size: 1.2rem !important;
-    margin-bottom: 15px !important;
+  /* カウントダウンカードのレスポンシブ余白調整 */
+  .countdown-card-wrapper {
+    margin-top: -20px !important;
   }
 }
 
 /* ===== 小さなモバイル端末向け（最大480px）===== */
 @media screen and (max-width: 480px) {
   .fixed-top-left {
-    top: 6px;
-    left: 6px;
-    gap: 4px !important;
+    top: 12px;
+    left: 12px;
+    gap: 8px !important;
     flex-direction: column !important;
   }
   
   .fixed-top-left .language-selector select,
+  .fixed-top-left select,
   .fixed-top-left .theme-indicator {
-    padding: 2px 8px 2px 4px !important;
-    font-size: 0.68em !important;
-    height: 26px !important;
+    padding: 6px 14px 6px 10px !important;
+    font-size: 0.85em !important;
+    height: 36px !important;
+    border-radius: 20px !important;
+    border: 2px solid #D4B08C !important;
   }
   
   .fixed-top-right {
@@ -788,70 +855,47 @@ body.theme-hanami {
     font-size: 0.45em !important;
   }
   
-  /* ミュージックプレイヤー - 左下にコンパクト配置（タップしやすさ維持） */
-  .fixed-bottom-center {
-    bottom: 5px;
-    left: 5px;
-    right: auto;
-    transform: none;
-    max-width: 55%;
-  }
-  
-  .fixed-bottom-center .music-player {
-    padding: 5px 8px !important;
-    gap: 5px !important;
-  }
-  
-  .fixed-bottom-center .music-player button {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    font-size: 0.8rem !important;
-  }
-  
-  .fixed-bottom-center .music-player .song-title {
-    display: none !important;
-  }
-  
-  /* 「曲を選ぶ」のアイコンだけを表示 */
-  .fixed-bottom-center .music-player > button:last-of-type {
-    padding: 4px 8px !important;
-    width: auto !important;
-    height: auto !important;
-  }
-  
-  .fixed-bottom-center .music-player > button:last-of-type span:last-child {
-    display: none !important;
-  }
-  
   .main-content {
     padding: 130px 8px 60px;
   }
   
-  /* カウントダウンカードをさらに小さく調整 */
-  .countdown-card {
-    padding: 15px 10px !important;
-    margin-top: -30px !important;
-    border-radius: 16px !important;
-  }
-  
-  .countdown-card h1 {
-    font-size: 1rem !important;
-    margin-bottom: 12px !important;
-  }
-  
-  /* カウントダウンタイマーの単位表示を小さく調整 */
-  .countdown-card > div > div > div:first-child {
-    padding: 8px 10px !important;
-    min-width: 45px !important;
-    font-size: 1.2rem !important;
-  }
-  
-  .countdown-card > div > div > span {
-    font-size: 0.6rem !important;
+  /* カウントダウンカードの極小画面用余白調整 */
+  .countdown-card-wrapper {
+    margin-top: -10px !important;
   }
 }
 
+/* ===== 和風音波インジケーターアニメーション ===== */
+@keyframes omoide-soundbar {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.45;
+  }
+  50% {
+    height: 18px;
+    opacity: 1;
+  }
+}
+
+.animate-soundbar-1 {
+  animation: omoide-soundbar 1.1s ease-in-out infinite;
+}
+
+.animate-soundbar-2 {
+  animation: omoide-soundbar 0.85s ease-in-out 0.2s infinite;
+}
+
+.animate-soundbar-3 {
+  animation: omoide-soundbar 1.25s ease-in-out 0.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-soundbar-1,
+  .animate-soundbar-2,
+  .animate-soundbar-3 {
+    animation: none !important;
+  }
+}
 
 /* ===== カスタムアニメーション ===== */
 @keyframes ripple {
@@ -880,33 +924,10 @@ body.theme-hanami {
 
 @keyframes bounce-in {
   0% {
-    transform: scale(0) rotate(-10deg);
+    transform: scale(0.92);
     opacity: 0;
-  }
-  50% {
-    transform: scale(1.2) rotate(5deg);
   }
   100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-@keyframes pulse-scale {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
     transform: scale(1);
     opacity: 1;
   }
@@ -963,15 +984,7 @@ body.theme-hanami {
 }
 
 .animate-bounce-in {
-  animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-.animate-pulse-scale {
-  animation: pulse-scale 1s ease-in-out infinite;
-}
-
-.animate-sparkle {
-  animation: sparkle 0.8s ease-in-out infinite;
+  animation: bounce-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-in {
@@ -995,6 +1008,14 @@ body.theme-hanami {
   animation-name: slide-in-from-bottom;
 }
 
+/* ===== スクロールバー矢印ボタンの非表示（Windowsネイティブ対策） ===== */
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ===== カスタムスクロールバー ===== */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -1002,17 +1023,64 @@ body.theme-hanami {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(212, 176, 140, 0.35);
   border-radius: 3px;
+  transition: background-color 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(212, 176, 140, 0.65);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 176, 140, 0.35) transparent;
+}
+
+/* ===== 和風ミュージックモーダル用カスタムスクロールバー ===== */
+.omoide-music-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--music-border) 40%, transparent);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.omoide-music-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--music-border) 75%, transparent);
+}
+
+.omoide-music-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--music-border) 40%, transparent) transparent;
+}
+
+/* 検索入力のブラウザネイティブクリアボタンを無効化 */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+input[type="search"]::-ms-clear,
+input[type="search"]::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ===== フォーカス時のスタイル ===== */
@@ -1346,11 +1414,12 @@ body.theme-hanami {
     width: calc(100% - 16px);
     right: 8px;
     left: 8px;
-    bottom: 8px;
+    bottom: 72px;
     height: 55vh;
     min-height: 300px;
     max-height: 400px;
     box-shadow: 3px 3px 0 var(--community-secondary);
+    z-index: 45;
   }
   
   .chat-modal-expanded {
@@ -1485,5 +1554,17 @@ body.theme-hanami {
   
   .chat-input-area {
     padding: 6px 8px;
+  }
+}
+
+/* ===== prefers-reduced-motion: CSS アニメーション/トランジションを全体で抑制 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

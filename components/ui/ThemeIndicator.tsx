@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useThemeContext } from '@/lib/providers/ThemeProvider'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { getThemeDisplayName } from '@/lib/utils/theme'
@@ -55,9 +56,9 @@ const themeIconColors: Record<ThemeName, string> = {
   bunka: '#EF6C00', // 文化の日のクリエイティブオレンジ
 }
 
-export function ThemeIndicator() {
+export const ThemeIndicator = React.memo(function ThemeIndicator() {
   const { currentTheme } = useThemeContext()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
 
   const displayName = getThemeDisplayName(currentTheme, language)
   const IconComponent = themeIcons[currentTheme] || Palette
@@ -66,42 +67,43 @@ export function ThemeIndicator() {
   return (
     <div
       className="theme-indicator"
+      suppressHydrationWarning
       style={{
-        padding: '4px 12px 4px 6px',
-        border: '1.5px solid #D4B08C',
-        borderRadius: '20px',
+        padding: '6px 14px 6px 10px',
+        border: '2px solid #D4B08C',
+        borderRadius: '22px',
         background: '#854D27',
         color: '#FFF9F3',
         fontFamily: 'var(--font-accent)',
-        fontSize: '0.8em',
+        fontSize: '0.88em',
         fontWeight: 600,
-        boxShadow: '0 2px 8px rgba(133, 77, 39, 0.35)',
+        boxShadow: '0 3px 10px rgba(133, 77, 39, 0.35)',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '7px',
+        gap: '8px',
         whiteSpace: 'nowrap',
         userSelect: 'none',
-        height: '32px',
+        minHeight: '44px',
       }}
     >
       <span
         style={{
-          background: 'rgba(255, 255, 255, 0.92)',
+          background: 'rgba(255, 255, 255, 0.95)',
           borderRadius: '50%',
-          width: '20px',
-          height: '20px',
+          width: '26px',
+          height: '26px',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: iconColor,
           flexShrink: 0,
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <IconComponent size={13} strokeWidth={2.8} />
+        <IconComponent size={16} strokeWidth={2.8} aria-hidden="true" />
       </span>
-      <span style={{ color: '#FBE8D3', fontSize: '0.9em', opacity: 0.95 }}>Theme:</span>
+      <span style={{ color: '#FBE8D3', fontSize: '0.9em', opacity: 0.95 }}>{t('themeLabel')}</span>
       <span style={{ color: '#FFF9F3', fontWeight: 700 }}>{displayName}</span>
     </div>
   )
-}
+})

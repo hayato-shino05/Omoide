@@ -17,6 +17,7 @@ export interface CustomMessage {
   message: string
   birthday_person?: string
   media_url?: string
+  music_track_id?: string
   created_at: string
 }
 

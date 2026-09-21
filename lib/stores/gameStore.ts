@@ -58,7 +58,7 @@ export const useGameStore = create<GameState>()(
 
         const updatedScores = [...gameScores, newScore]
           .sort((a, b) => b.score - a.score)
-          .slice(0, 10) // Keep top 10
+          .slice(0, 10) // 上位10件のみ保持
 
         set({
           highScores: {
@@ -76,7 +76,8 @@ export const useGameStore = create<GameState>()(
       clearScores: (game) => {
         if (game) {
           const { highScores } = get()
-          const { [game]: _, ...rest } = highScores
+          const { [game]: removedScore, ...rest } = highScores
+          void removedScore
           set({ highScores: rest })
         } else {
           set({ highScores: {} })

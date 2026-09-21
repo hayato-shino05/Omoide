@@ -7,7 +7,6 @@ export interface PhotoStripConfig {
   bgColor: string
   borderColor: string
   bgImage?: string
-  // タイトル文字列
   title: string
   titleColor: string
   decorations: Decoration[]
@@ -28,11 +27,10 @@ export interface Decoration {
   rotation?: number
 }
 
-// フレーム画像のベースパス
 const FRAMES_PATH = '/images/frames'
 
 export const photoStrips: PhotoStripConfig[] = [
-  // === トレンド 2025 ===
+  // === トレンド ===
   {
     id: 'zootopia2',
     name: 'Zootopia 2 🦊🐰',

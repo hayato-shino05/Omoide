@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { detectSeasonAndFestival, getThemeConfig } from '@/lib/utils/theme'
 import type { ThemeName } from '@/types'
 import type { ThemeConfig } from '@/config/themes'
@@ -13,25 +13,14 @@ interface UseThemeReturn {
   setAutoDetect: (auto: boolean) => void
 }
 
-// クライアント側でテーマを検出
+// サーバー（SSR）およびクライアント（CSR）の双方で現在日付に基づく初期テーマを検出
 function getInitialTheme(): ThemeName {
-  if (typeof window === 'undefined') {
-    return 'winter' // SSRのデフォルト（12月）
-  }
   return detectSeasonAndFestival()
 }
 
 export function useTheme(): UseThemeReturn {
   const [theme, setThemeState] = useState<ThemeName>(getInitialTheme)
   const [isAutoDetect, setIsAutoDetect] = useState(true)
-
-  // マウント後にテーマを検出
-  useEffect(() => {
-    if (isAutoDetect) {
-      const detectedTheme = detectSeasonAndFestival()
-      setThemeState(detectedTheme)
-    }
-  }, [isAutoDetect])
 
   // 手動でテーマを設定
   const setTheme = useCallback((newTheme: ThemeName) => {

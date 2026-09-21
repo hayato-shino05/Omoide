@@ -1,9 +1,11 @@
 import {
   AlertTriangle,
+  Archive,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BookOpen,
   Brain,
   Cake,
   Calendar,
@@ -15,6 +17,7 @@ import {
   CircleCheck,
   CircleX,
   ClipboardList,
+  Clock,
   Copy,
   Download,
   Eye,
@@ -36,6 +39,7 @@ import {
   Minimize2,
   Minus,
   Music,
+  Palette,
   Pause,
   PartyPopper,
   PenLine,
@@ -47,6 +51,7 @@ import {
   SkipBack,
   SkipForward,
   Sparkles,
+  Star,
   StopCircle,
   Trophy,
   Upload,
@@ -81,7 +86,6 @@ import menuIcon from '@/src/assets/icons/menu.png'
 import microphoneIcon from '@/src/assets/icons/microphone.png'
 import windIcon from '@/src/assets/icons/wind.png'
 import mailIcon from '@/src/assets/icons/mail.png'
-import speechBubbleIcon from '@/src/assets/icons/speech-bubble.png'
 import trophyIcon from '@/src/assets/icons/trophy.png'
 import downloadIcon from '@/src/assets/icons/download.png'
 import editIcon from '@/src/assets/icons/edit.png'
@@ -101,13 +105,21 @@ import eyeIcon from '@/src/assets/icons/eye.png'
 import eyeOffIcon from '@/src/assets/icons/eye-off.png'
 import gameControllerIcon from '@/src/assets/icons/game-controller.png'
 import groupChatIcon from '@/src/assets/icons/group-chat.png'
+import toriiIcon from '@/src/assets/icons/torii.png'
+import archiveIcon from '@/src/assets/icons/archive.png'
+import scrollIcon from '@/src/assets/icons/scroll.png'
+import maximizeIcon from '@/src/assets/icons/maximize.png'
+import sparklesIcon from '@/src/assets/icons/sparkles.png'
+import fortuneTellerIcon from '@/src/assets/icons/fortune-teller.png'
 
 export const Icons = {
   AlertTriangle,
+  Archive,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  BookOpen,
   Brain,
   Cake,
   Calendar,
@@ -120,6 +132,7 @@ export const Icons = {
   ChevronDown,
   ChevronRight,
   ClipboardList,
+  Clock,
   Close: X,
   Comment: MessageCircle,
   Copy,
@@ -143,6 +156,7 @@ export const Icons = {
   Minimize2,
   Minus,
   Music,
+  Palette,
   Pause,
   Party: PartyPopper,
   PenLine,
@@ -154,6 +168,7 @@ export const Icons = {
   SkipBack,
   SkipForward,
   Sparkles,
+  Star,
   StopCircle,
   Trophy,
   Upload,
@@ -167,12 +182,14 @@ export const Icons = {
   X,
 } as const
 
-interface IconProps
+export type IconName = keyof typeof Icons
+
+export interface IconProps
   extends Pick<
     React.SVGProps<SVGSVGElement>,
     'aria-hidden' | 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'role' | 'tabIndex'
   > {
-  name: keyof typeof Icons
+  name: IconName
   size?: number
   className?: string
   style?: CSSProperties
@@ -219,6 +236,13 @@ const assetIcons: Partial<Record<keyof typeof Icons, StaticImageData>> = {
   Eye: eyeIcon,
   EyeOff: eyeOffIcon,
   Gamepad: gameControllerIcon,
+  Sparkles: sparklesIcon,
+  Archive: archiveIcon,
+  BookOpen: scrollIcon,
+  Star: toriiIcon,
+  Maximize2: maximizeIcon,
+  Minimize2: minusIcon,
+  Palette: fortuneTellerIcon,
 }
 
 const iconToneClasses: Partial<Record<keyof typeof Icons, string>> = {
@@ -267,6 +291,7 @@ export function Icon({ name, size = 20, className, style, useSvg = false, ...ari
         src={assetSrc}
         width={size}
         height={size}
+        loading="eager"
         className={classes || undefined}
         style={{ objectFit: 'contain', filter: combinedFilter, ...style }}
         alt={ariaProps['aria-label'] ?? ''}

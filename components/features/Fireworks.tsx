@@ -23,6 +23,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
   useEffect(() => {
     if (active) {
       const colors = ['#ff0000', '#ffd700', '#00ff00', '#00bfff', '#ff1493', '#ff8c00']
+      const timers: NodeJS.Timeout[] = []
 
       const createFireworks = () => {
         const newFireworks = Array.from({ length: count }, (_, i) => ({
@@ -35,9 +36,10 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
 
         setFireworks(newFireworks)
 
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           setFireworks([])
         }, count * 500 + 2000)
+        timers.push(timer)
       }
 
       createFireworks()
@@ -45,12 +47,15 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
       // 複数回花火を打ち上げる
       const interval = setInterval(createFireworks, 3000)
 
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        timers.forEach((t) => clearTimeout(t))
+      }
     }
   }, [active, count])
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {fireworks.map((firework) => (
           <div
@@ -90,6 +95,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
                   style={{
                     backgroundColor: firework.color,
                     boxShadow: `0 0 10px ${firework.color}`,
+                    willChange: 'transform, opacity',
                   }}
                 />
               )
@@ -112,6 +118,7 @@ export function Fireworks({ active, count = 8 }: FireworksProps) {
                 backgroundColor: firework.color,
                 boxShadow: `0 0 30px ${firework.color}`,
                 filter: 'blur(4px)',
+                willChange: 'transform, opacity',
               }}
             />
           </div>

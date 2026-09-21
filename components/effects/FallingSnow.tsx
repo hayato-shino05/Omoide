@@ -24,7 +24,10 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
   const prefersReducedMotion = usePrefersReducedMotion()
 
   useEffect(() => {
-    if (!active || prefersReducedMotion) return
+    if (!active || prefersReducedMotion) {
+      const raf = requestAnimationFrame(() => setSnowflakes([]))
+      return () => cancelAnimationFrame(raf)
+    }
 
     const createSingleSnowflake = (): Snowflake => ({
       id: Date.now() + Math.random() * 10000,
@@ -42,7 +45,14 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
     }))
     const initializationTimeout = setTimeout(() => setSnowflakes(initialSnow), 0)
 
+    let isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true
+    const handleVisibilityChange = () => {
+      isVisible = document.visibilityState === 'visible'
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     const spawnInterval = setInterval(() => {
+      if (!isVisible) return
       setSnowflakes((previous) => {
         if (previous.length >= count * 1.8) return previous
         const newCount = 2 + Math.floor(Math.random() * 3)
@@ -51,6 +61,7 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
     }, 500)
 
     const cleanupInterval = setInterval(() => {
+      if (!isVisible) return
       setSnowflakes((previous) => {
         const now = Date.now()
         return previous.filter((snowflake) => (
@@ -63,13 +74,14 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
       clearTimeout(initializationTimeout)
       clearInterval(spawnInterval)
       clearInterval(cleanupInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [active, count, prefersReducedMotion])
 
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {snowflakes.map((flake) => (
           <motion.div
@@ -93,6 +105,7 @@ export function FallingSnow({ count = 50, active = true }: FallingSnowProps) {
               width: flake.size,
               height: flake.size,
               boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+              willChange: 'transform',
             }}
           />
         ))}

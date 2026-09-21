@@ -31,21 +31,21 @@ interface LeafColor {
   shadow: string
 }
 
-// Màu lá mùa thu thực tế
+// 実際の紅葉のカラーバリエーション
 const LEAF_COLORS: LeafColor[] = [
-  // Đỏ cam rực (Momiji - lá phong đỏ)
+  // 鮮やかな赤橙（モミジ）
   { main: '#DC2626', secondary: '#EA580C', vein: '#991B1B', shadow: '#7F1D1D' },
-  // Cam vàng (lá phong cam)
+  // オレンジイエロー（モミジ）
   { main: '#EA580C', secondary: '#F59E0B', vein: '#C2410C', shadow: '#9A3412' },
-  // Vàng rực (Ichou - lá bạch quả)
+  // 鮮やかな黄（イチョウ）
   { main: '#EAB308', secondary: '#FACC15', vein: '#A16207', shadow: '#854D0E' },
-  // Nâu đỏ (lá sồi)
+  // 赤褐色（ナラの葉）
   { main: '#92400E', secondary: '#B45309', vein: '#78350F', shadow: '#451A03' },
-  // Đỏ tía
+  // 紫赤
   { main: '#BE123C', secondary: '#E11D48', vein: '#9F1239', shadow: '#881337' },
-  // Cam đất
+  // 土色がかったオレンジ
   { main: '#C2410C', secondary: '#EA580C', vein: '#9A3412', shadow: '#7C2D12' },
-  // Vàng nâu
+  // 黄褐色
   { main: '#CA8A04', secondary: '#EAB308', vein: '#A16207', shadow: '#713F12' },
 ]
 
@@ -63,48 +63,45 @@ export function FallingLeaves({ count = 40, active = true }: FallingLeavesProps)
       x: Math.random() * 100,
       size: 25 + Math.random() * 20,
       delay: 0,
-      duration: 14 + Math.random() * 10, // Rơi chậm hơn
+      duration: 14 + Math.random() * 10, // ゆっくり落下させる
       rotateX: Math.random() * 360,
       rotateY: Math.random() * 360,
       rotateZ: Math.random() * 360,
-      swayAmount: 25 + Math.random() * 35, // Lắc lư nhiều hơn
+      swayAmount: 25 + Math.random() * 35, // 大きく揺らす
       colorScheme: LEAF_COLORS[Math.floor(Math.random() * LEAF_COLORS.length)],
       leafType: leafTypes[Math.floor(Math.random() * leafTypes.length)],
       flipSpeed: 3 + Math.random() * 2.5,
     })
 
-    // Bắt đầu với ít lá hơn
+    // 初期は少数の葉で開始
     const initialLeaves: Leaf[] = Array.from({ length: Math.floor(count * 0.2) }, () => ({
       ...createSingleLeaf(),
       delay: Math.random() * 5,
     }))
     const initialTimeout = setTimeout(() => setLeaves(initialLeaves), 0)
 
-    // Biến để theo dõi "đợt gió"
     let isWindGust = false
     let windGustTimeout: NodeJS.Timeout | null = null
 
-    // Spawn lá theo kiểu tự nhiên - có đợt gió
+    // 突風を織り交ぜた自然なスポーン
     const spawnLeaf = () => {
       setLeaves(prev => {
-        // Giới hạn số lượng tối đa dựa trên count
         const maxLeaves = Math.floor(count * 0.8)
         if (prev.length >= maxLeaves) return prev
 
-        // Trong đợt gió, spawn nhiều hơn
+        // 突風時は多くスポーン
         if (isWindGust) {
-          const gustCount = 1 + Math.floor(Math.random() * 2) // 1-2 lá
+          const gustCount = 1 + Math.floor(Math.random() * 2)
           const newLeaves = Array.from({ length: gustCount }, () => createSingleLeaf())
           return [...prev, ...newLeaves]
         }
 
-        // Bình thường chỉ spawn 1 lá, và có 40% chance không spawn gì
+        // 通常は1枚ずつ。40%の確率でスキップ
         if (Math.random() < 0.4) return prev
         return [...prev, createSingleLeaf()]
       })
 
-      // Lên lịch spawn tiếp theo
-      // Khoảng cách spawn ngẫu nhiên: 1.5-4 giây bình thường, 0.5-1.5 giây khi có gió
+      // スポーン間隔: 通常1.5〜4秒、突風時0.5〜1.5秒
       const nextSpawnTime = isWindGust
         ? 500 + Math.random() * 1000
         : 1500 + Math.random() * 2500
@@ -114,24 +111,22 @@ export function FallingLeaves({ count = 40, active = true }: FallingLeavesProps)
 
     let spawnTimeout = setTimeout(spawnLeaf, 1000)
 
-    // Tạo "đợt gió" ngẫu nhiên
     const triggerWindGust = () => {
-      // 30% chance có đợt gió
       if (Math.random() < 0.3) {
         isWindGust = true
-        // Đợt gió kéo dài 2-4 giây
+        // 突風は2〜4秒継続
         windGustTimeout = setTimeout(() => {
           isWindGust = false
         }, 2000 + Math.random() * 2000)
       }
 
-      // Lên lịch check đợt gió tiếp theo sau 5-12 giây
+      // 次の突風判定は5〜12秒後
       gustCheckTimeout = setTimeout(triggerWindGust, 5000 + Math.random() * 7000)
     }
 
     let gustCheckTimeout = setTimeout(triggerWindGust, 3000)
 
-    // Cleanup lá đã rơi xong
+    // 落下し終えた葉を一括除去
     const cleanupInterval = setInterval(() => {
       setLeaves(prev => {
         const now = Date.now()
@@ -151,7 +146,7 @@ export function FallingLeaves({ count = 40, active = true }: FallingLeavesProps)
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {leaves.map((leaf) => (
           <LeafElement key={leaf.id} leaf={leaf} />
@@ -231,6 +226,7 @@ function LeafElement({ leaf }: LeafElementProps) {
         height: leaf.size,
         transformStyle: 'preserve-3d',
         filter: `drop-shadow(2px 3px 3px rgba(0, 0, 0, 0.25))`,
+        willChange: 'transform, opacity',
       }}
     >
       {leaf.leafType === 'maple' && (
@@ -255,7 +251,7 @@ interface LeafSVGProps {
   id: string
 }
 
-// 紅葉 (Momiji) - Lá phong Nhật Bản
+// 紅葉（モミジ）
 function MapleLeaf({ size, colors, id }: LeafSVGProps) {
   return (
     <svg
@@ -273,7 +269,7 @@ function MapleLeaf({ size, colors, id }: LeafSVGProps) {
         </linearGradient>
       </defs>
 
-      {/* Lá phong 5 thùy */}
+      {/* 5裂のモミジ葉 */}
       <path
         d="M30 5
            L33 12 L40 8 L38 16 L48 14 L42 22 L52 25 L42 28
@@ -283,7 +279,7 @@ function MapleLeaf({ size, colors, id }: LeafSVGProps) {
         fill={`url(#maple-grad-${id})`}
       />
 
-      {/* Gân lá chính */}
+      {/* 主脈 */}
       <path
         d="M30 48 L30 25"
         stroke={colors.vein}
@@ -291,7 +287,7 @@ function MapleLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
         opacity="0.7"
       />
-      {/* Gân phụ */}
+      {/* 側脈 */}
       <path d="M30 25 L20 12" stroke={colors.vein} strokeWidth="1" opacity="0.5" />
       <path d="M30 25 L40 12" stroke={colors.vein} strokeWidth="1" opacity="0.5" />
       <path d="M30 25 L12 25" stroke={colors.vein} strokeWidth="1" opacity="0.5" />
@@ -299,7 +295,7 @@ function MapleLeaf({ size, colors, id }: LeafSVGProps) {
       <path d="M30 25 L18 38" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
       <path d="M30 25 L42 38" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
 
-      {/* Cuống lá */}
+      {/* 葉柄 */}
       <path
         d="M30 48 L30 58"
         stroke={colors.shadow}
@@ -307,13 +303,13 @@ function MapleLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
       />
 
-      {/* Highlight */}
+      {/* ハイライト */}
       <ellipse cx="25" cy="20" rx="5" ry="8" fill="white" opacity="0.12" />
     </svg>
   )
 }
 
-// Lá sồi
+// オーク（ナラ）の葉
 function OakLeaf({ size, colors, id }: LeafSVGProps) {
   return (
     <svg
@@ -331,7 +327,7 @@ function OakLeaf({ size, colors, id }: LeafSVGProps) {
         </linearGradient>
       </defs>
 
-      {/* Lá sồi với các thùy tròn */}
+      {/* 丸みのある裂片のオーク葉 */}
       <path
         d="M25 5
            Q30 5 32 10 Q38 8 38 14 Q44 14 42 20
@@ -345,7 +341,7 @@ function OakLeaf({ size, colors, id }: LeafSVGProps) {
         fill={`url(#oak-grad-${id})`}
       />
 
-      {/* Gân lá chính */}
+      {/* 主脈 */}
       <path
         d="M25 55 L25 15"
         stroke={colors.vein}
@@ -353,7 +349,7 @@ function OakLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
         opacity="0.6"
       />
-      {/* Gân phụ */}
+      {/* 側脈 */}
       <path d="M25 20 L12 18" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
       <path d="M25 20 L38 18" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
       <path d="M25 30 L8 28" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
@@ -361,7 +357,7 @@ function OakLeaf({ size, colors, id }: LeafSVGProps) {
       <path d="M25 40 L10 42" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
       <path d="M25 40 L40 42" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" />
 
-      {/* Cuống lá */}
+      {/* 葉柄 */}
       <path
         d="M25 55 L25 63"
         stroke={colors.shadow}
@@ -369,13 +365,13 @@ function OakLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
       />
 
-      {/* Highlight */}
+      {/* ハイライト */}
       <ellipse cx="20" cy="25" rx="6" ry="10" fill="white" opacity="0.1" />
     </svg>
   )
 }
 
-// 銀杏 (Ichou) - Lá bạch quả
+// イチョウ
 function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
   return (
     <svg
@@ -393,7 +389,7 @@ function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
         </radialGradient>
       </defs>
 
-      {/* Lá bạch quả hình quạt */}
+      {/* 扇形のイチョウ葉 */}
       <path
         d="M27.5 50
            Q27.5 35 15 25
@@ -407,7 +403,7 @@ function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
         fill={`url(#ginkgo-grad-${id})`}
       />
 
-      {/* Khuyết giữa lá */}
+      {/* 葉中央の切れ込み */}
       <path
         d="M27.5 50 Q27.5 30 27.5 18"
         stroke={colors.vein}
@@ -416,7 +412,7 @@ function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
         fill="none"
       />
 
-      {/* Gân lá tỏa ra hình quạt */}
+      {/* 扇状に広がる葉脈 */}
       <path d="M27.5 50 Q20 35 10 15" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" fill="none" />
       <path d="M27.5 50 Q35 35 45 15" stroke={colors.vein} strokeWidth="0.8" opacity="0.4" fill="none" />
       <path d="M27.5 50 Q15 38 8 20" stroke={colors.vein} strokeWidth="0.6" opacity="0.3" fill="none" />
@@ -424,7 +420,7 @@ function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
       <path d="M27.5 50 Q23 40 18 25" stroke={colors.vein} strokeWidth="0.5" opacity="0.25" fill="none" />
       <path d="M27.5 50 Q32 40 37 25" stroke={colors.vein} strokeWidth="0.5" opacity="0.25" fill="none" />
 
-      {/* Cuống lá */}
+      {/* 葉柄 */}
       <path
         d="M27.5 50 L27.5 54"
         stroke={colors.shadow}
@@ -432,13 +428,13 @@ function GinkgoLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
       />
 
-      {/* Highlight */}
+      {/* ハイライト */}
       <ellipse cx="20" cy="18" rx="8" ry="6" fill="white" opacity="0.15" />
     </svg>
   )
 }
 
-// Lá đơn giản (lá oval)
+// シンプルな葉（楕円形）
 function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
   return (
     <svg
@@ -456,7 +452,7 @@ function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
         </linearGradient>
       </defs>
 
-      {/* Lá oval với đầu nhọn */}
+      {/* 先の尖った楕円形の葉 */}
       <path
         d="M17.5 5
            Q30 10 32 25
@@ -466,7 +462,7 @@ function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
         fill={`url(#simple-grad-${id})`}
       />
 
-      {/* Gân lá chính */}
+      {/* 主脈 */}
       <path
         d="M17.5 8 L17.5 48"
         stroke={colors.vein}
@@ -475,7 +471,7 @@ function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
         opacity="0.6"
       />
 
-      {/* Gân phụ */}
+      {/* 側脈 */}
       <path d="M17.5 15 L8 20" stroke={colors.vein} strokeWidth="0.7" opacity="0.4" />
       <path d="M17.5 15 L27 20" stroke={colors.vein} strokeWidth="0.7" opacity="0.4" />
       <path d="M17.5 25 L6 28" stroke={colors.vein} strokeWidth="0.7" opacity="0.4" />
@@ -483,7 +479,7 @@ function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
       <path d="M17.5 35 L8 36" stroke={colors.vein} strokeWidth="0.6" opacity="0.35" />
       <path d="M17.5 35 L27 36" stroke={colors.vein} strokeWidth="0.6" opacity="0.35" />
 
-      {/* Cuống lá */}
+      {/* 葉柄 */}
       <path
         d="M17.5 48 L17.5 54"
         stroke={colors.shadow}
@@ -491,10 +487,10 @@ function SimpleLeaf({ size, colors, id }: LeafSVGProps) {
         strokeLinecap="round"
       />
 
-      {/* Highlight */}
+      {/* ハイライト */}
       <ellipse cx="12" cy="22" rx="5" ry="10" fill="white" opacity="0.12" />
 
-      {/* Mép lá hơi cong */}
+      {/* わずかに湾曲した葉の縁 */}
       <path
         d="M17.5 5 Q30 10 32 25"
         stroke={colors.shadow}

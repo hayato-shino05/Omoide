@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePrefersReducedMotion } from '@/lib/hooks/useMediaQuery'
 
 interface GhostsProps {
   active: boolean
@@ -19,6 +20,7 @@ interface Ghost {
 
 export function Ghosts({ active, count = 5 }: GhostsProps) {
   const [ghosts, setGhosts] = useState<Ghost[]>([])
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   const createGhost = useCallback((): Ghost => {
     return {
@@ -32,13 +34,14 @@ export function Ghosts({ active, count = 5 }: GhostsProps) {
   }, [])
 
   useEffect(() => {
-    if (!active) {
-      setGhosts([])
-      return
+    if (!active || prefersReducedMotion) {
+      const raf = requestAnimationFrame(() => setGhosts([]))
+      return () => cancelAnimationFrame(raf)
     }
 
-    const initial = Array.from({ length: count }, createGhost)
-    setGhosts(initial)
+    const initialRaf = requestAnimationFrame(() => {
+      setGhosts(Array.from({ length: count }, createGhost))
+    })
 
     const interval = setInterval(() => {
       setGhosts(prev => {
@@ -50,13 +53,19 @@ export function Ghosts({ active, count = 5 }: GhostsProps) {
       })
     }, 3000)
 
-    return () => clearInterval(interval)
-  }, [active, count, createGhost])
+    return () => {
+      cancelAnimationFrame(initialRaf)
+      clearInterval(interval)
+    }
+  }, [active, count, createGhost, prefersReducedMotion])
+
+  // reduced-motion 時は描画もループも停止
+  if (prefersReducedMotion) return null
 
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {ghosts.map(ghost => (
           <motion.div
@@ -78,6 +87,7 @@ export function Ghosts({ active, count = 5 }: GhostsProps) {
             style={{
               left: `${ghost.x}%`,
               top: `${ghost.y}%`,
+              willChange: 'transform, opacity',
             }}
           >
             <svg

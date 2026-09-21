@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface VideoRecorderState {
   isRecording: boolean
@@ -12,7 +13,30 @@ interface VideoRecorderState {
   hasPermission: boolean
 }
 
+// 利用可能な動画 MIME タイプをブラウザごとに安全に取得（iOS Safari対応）
+function getSupportedVideoMimeType(): string | undefined {
+  if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return undefined
+  const candidates = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4;codecs=avc1',
+    'video/mp4',
+  ]
+  for (const type of candidates) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      return type
+    }
+  }
+  return undefined
+}
+
 export function useVideoRecorder() {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [state, setState] = useState<VideoRecorderState>({
     isRecording: false,
     isPaused: false,
@@ -41,7 +65,7 @@ export function useVideoRecorder() {
     } catch {
       setState(prev => ({
         ...prev,
-        error: 'カメラ/マイクにアクセスできません。権限を許可してください。',
+        error: tRef.current('cameraMicPermissionError'),
         hasPermission: false,
       }))
       return null
@@ -77,11 +101,10 @@ export function useVideoRecorder() {
         videoPreviewRef.current.srcObject = stream
       }
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-          ? 'video/webm;codecs=vp9'
-          : 'video/webm',
-      })
+      const supportedMimeType = getSupportedVideoMimeType()
+      const mediaRecorder = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
 
       mediaRecorder.ondataavailable = (e) => {
@@ -91,15 +114,22 @@ export function useVideoRecorder() {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' })
+        const mimeType = mediaRecorderRef.current?.mimeType || supportedMimeType || 'video/webm'
+        const blob = new Blob(chunksRef.current, { type: mimeType })
         const url = URL.createObjectURL(blob)
-        setState(prev => ({
-          ...prev,
-          videoBlob: blob,
-          videoUrl: url,
-          isRecording: false,
-          isPaused: false,
-        }))
+        setState(prev => {
+          // 古い ObjectURL を解放してメモリリークを防止
+          if (prev.videoUrl) {
+            URL.revokeObjectURL(prev.videoUrl)
+          }
+          return {
+            ...prev,
+            videoBlob: blob,
+            videoUrl: url,
+            isRecording: false,
+            isPaused: false,
+          }
+        })
       }
 
       mediaRecorder.start(100)
@@ -112,7 +142,7 @@ export function useVideoRecorder() {
     } catch {
       setState(prev => ({
         ...prev,
-        error: '録画を開始できません。',
+        error: tRef.current('recordingStartError'),
       }))
     }
   }, [requestPermission])
@@ -178,6 +208,23 @@ export function useVideoRecorder() {
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }, [])
+
+  // アンマウント時のリソース解放（カメラストリームの停止・タイマー解除・ObjectURL破棄）
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      if (state.videoUrl) {
+        URL.revokeObjectURL(state.videoUrl)
+      }
+    }
+  }, [state.videoUrl])
 
   return {
     ...state,

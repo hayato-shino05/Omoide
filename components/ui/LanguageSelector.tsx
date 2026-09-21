@@ -14,24 +14,26 @@ export function LanguageSelector() {
   return (
     <div className="language-selector">
       <select
+        id="language-selector"
+        name="language"
         value={language}
         onChange={(e) => setLanguage(e.target.value as Language)}
         className="lang-select"
         title={t('language')}
         style={{
-          padding: '4px 10px',
-          border: '1.5px solid #D4B08C',
+          padding: '6px 14px',
+          border: '2px solid #D4B08C',
           borderRadius: '20px',
           background: '#854D27',
           color: '#FFF9F3',
           cursor: 'pointer',
           fontFamily: 'var(--font-accent)',
-          fontSize: '0.8em',
+          fontSize: '0.88em',
           fontWeight: 600,
-          boxShadow: '0 2px 8px rgba(133, 77, 39, 0.35)',
+          boxShadow: '0 3px 10px rgba(133, 77, 39, 0.35)',
           transition: 'transform 0.3s, box-shadow 0.3s',
           outline: 'none',
-          height: '32px',
+          height: '38px',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translate(-1px, -1px)'

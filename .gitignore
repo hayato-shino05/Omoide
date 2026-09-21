@@ -19,7 +19,7 @@
 
 # 本番ビルド関連
 /build
-
+tmp/
 # その他
 .DS_Store
 *.pem
@@ -38,7 +38,6 @@ yarn-error.log*
 
 # TypeScript 関連
 *.tsbuildinfo
-next-env.d.ts
 
 # エージェント・開発補助ツール関連
 .agents/
@@ -52,3 +51,7 @@ happy-birthday-production/
 tmp-*.png
 smoke-snapshot.txt
 canonical-home.network-response
+*.log
+.impeccable/
+artifacts/
+.cache/

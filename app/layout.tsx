@@ -8,41 +8,45 @@ import { LANGUAGE_COOKIE_NAME } from '@/lib/i18n/cookie'
 import { DEFAULT_LOCALE, resolveLocale } from '@/lib/i18n/resolveLocale'
 import { ThemeProvider } from '@/lib/providers/ThemeProvider'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
+import { ToastProvider } from '@/components/ui/Toast'
+import { MotionConfig } from 'framer-motion'
+import { ServiceWorkerRegister } from '@/components/layout/ServiceWorkerRegister'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://happy-birthday.vercel.app'),
-  title: 'Happy Birthday | お誕生日おめでとう',
-  description: '誕生日を祝うウェブサイト。ろうそくを吹き消したり、メッセージを送ったり、ゲームをしよう！',
-  keywords: ['birthday', '誕生日', 'お祝い', 'happy birthday', 'celebration'],
-  authors: [{ name: 'Happy Birthday Team' }],
-  creator: 'Happy Birthday Team',
-  publisher: 'Happy Birthday Team',
+  title: 'Omoide | 想い出箱 — 大切な記念日と思い出を分かち合う空間',
+  description: '大切な人の誕生日とみんなの思い出をひとつの場所に。「想い出箱（Omoide Bako）」— カウントダウン、フォトブース、メッセージボード、ミニゲーム、13の四季・祝祭日テーマを搭載。',
+  keywords: ['Omoide', '想い出箱', 'birthday', '誕生日', 'お祝い', '記念日', 'celebration', 'フォトブース'],
+  authors: [{ name: 'hayato-shino05', url: 'https://github.com/hayato-shino05' }],
+  creator: 'hayato-shino05',
+  publisher: 'hayato-shino05',
   robots: 'index, follow',
   openGraph: {
     type: 'website',
     locale: 'ja_JP',
     alternateLocale: ['en_US'],
     url: 'https://happy-birthday.vercel.app',
-    siteName: 'Happy Birthday',
-    title: 'Happy Birthday | お誕生日おめでとう',
-    description: '誕生日を祝うウェブサイト。楽しい機能がたくさん！',
+    siteName: 'Omoide (想い出箱)',
+    title: 'Omoide | 想い出箱 — 大切な記念日と思い出を分かち合う空間',
+    description: '大切な人の誕生日とみんなの思い出をひとつの場所に。「想い出箱（Omoide Bako）」',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Happy Birthday',
+        alt: 'Omoide (想い出箱)',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Happy Birthday | お誕生日おめでとう',
-    description: '誕生日を祝うウェブサイト。楽しい機能がたくさん！',
+    title: 'Omoide | 想い出箱 — 大切な記念日と思い出を分かち合う空間',
+    description: '大切な人の誕生日とみんなの思い出をひとつの場所に。「想い出箱（Omoide Bako）」',
     images: ['/og-image.png'],
   },
   icons: {
     icon: [
+      { url: '/images/logo.png', type: 'image/png' },
       { url: '/favicon.ico' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -51,7 +55,12 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Omoide',
+  },
 }
 
 export const viewport: Viewport = {
@@ -80,10 +89,16 @@ export default async function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <LanguageProvider initialLocale={locale}>
-              {children}
+              <ToastProvider position="top-right">
+                {/* prefers-reduced-motion を framer-motion 全体で尊重 */}
+                <MotionConfig reducedMotion="user">
+                  {children}
+                </MotionConfig>
+              </ToastProvider>
             </LanguageProvider>
           </ThemeProvider>
         </QueryProvider>
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
     </html>

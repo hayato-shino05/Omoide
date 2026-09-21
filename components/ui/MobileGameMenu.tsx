@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect, useId } from 'react'
+import React, { useState, useRef, useEffect, useId, useMemo, useCallback } from 'react'
 import { Icon } from './Icon'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useUIStore } from '@/lib/stores/uiStore'
+import { GAME_MENU_ITEMS } from './gameConfig'
 
 const menuButtonStyle: React.CSSProperties = {
   minWidth: '44px',
@@ -46,20 +47,23 @@ const menuItemStyle: React.CSSProperties = {
   transition: 'background 0.2s',
 }
 
-export function MobileGameMenu() {
+export const MobileGameMenu = React.memo(function MobileGameMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
   const menuId = useId()
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
 
-  const games = [
-    { id: 'memoryGame' as const, icon: 'Brain' as const, label: t('memoryGame') },
-    { id: 'puzzleGame' as const, icon: 'Puzzle' as const, label: t('puzzleGame') },
-    { id: 'calendar' as const, icon: 'Calendar' as const, label: t('birthdayCalendar') },
-    { id: 'quiz' as const, icon: 'HelpCircle' as const, label: t('birthdayQuiz') },
-  ]
+  const games = useMemo(
+    () =>
+      GAME_MENU_ITEMS.map((g) => ({
+        id: g.id,
+        icon: g.icon,
+        label: t(g.i18nKey),
+      })),
+    [t]
+  )
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
@@ -93,7 +97,7 @@ export function MobileGameMenu() {
   }
 
 
-  const handleGameClick = (gameId: 'memoryGame' | 'puzzleGame' | 'calendar' | 'quiz') => {
+  const handleGameClick = (gameId: (typeof GAME_MENU_ITEMS)[number]['id']) => {
     openModal(gameId)
     setIsOpen(false)
   }
@@ -134,4 +138,4 @@ export function MobileGameMenu() {
       )}
     </div>
   )
-}
+})

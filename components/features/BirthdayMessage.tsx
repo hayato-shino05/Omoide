@@ -19,11 +19,7 @@ export function BirthdayMessage({ message }: BirthdayMessageProps) {
       }}
     >
       <p 
-        className="text-2xl md:text-3xl text-center leading-relaxed font-bold"
-        style={{
-          color: '#1a1a1a',
-          textShadow: '1px 1px 2px rgba(255, 255, 255, 0.9), 0 0 10px rgba(255, 255, 255, 0.5)',
-        }}
+        className="text-2xl md:text-3xl text-center leading-relaxed font-bold text-[#2C1810] dark:text-stone-100"
       >
         {message}
       </p>

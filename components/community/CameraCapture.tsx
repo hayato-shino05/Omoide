@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '@/components/ui/Icon'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface CameraCaptureProps {
   mode: 'photo' | 'video'
@@ -11,23 +12,27 @@ interface CameraCaptureProps {
 }
 
 export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) {
-  const [mounted, setMounted] = useState(false)
-  
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
+  const { t } = useLanguage()
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
-  
+  const translateRef = useRef(t)
+
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [cameraReady, setCameraReady] = useState(false)
 
-  // カメラを起動する
+  useEffect(() => {
+    translateRef.current = t
+  }, [t])
+
   useEffect(() => {
     let mounted = true
 
@@ -67,7 +72,7 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
                 })
                 .catch(err => {
                   console.error('Video play error:', err)
-                  if (mounted) setError('カメラからビデオを再生できません。')
+                  if (mounted) setError(translateRef.current('cameraPlaybackError'))
                 })
             }
           }
@@ -77,11 +82,11 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         if (mounted) {
           if (errorMessage.includes('Permission denied') || errorMessage.includes('NotAllowedError')) {
-            setError('ブラウザの設定でカメラへのアクセスを許可してください。')
+            setError(translateRef.current('cameraPermission'))
           } else if (errorMessage.includes('NotFoundError') || errorMessage.includes('DevicesNotFoundError')) {
-            setError('このデバイスにカメラが見つかりません。')
+            setError(translateRef.current('cameraUnavailable'))
           } else {
-            setError(`カメラにアクセスできません: ${errorMessage}`)
+            setError(`${translateRef.current('accessCameraError')}: ${errorMessage}`)
           }
         }
       }
@@ -150,10 +155,29 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
     
     if (!streamRef.current) return
 
+// 利用可能な動画 MIME タイプをブラウザごとに安全に取得（iOS Safari対応）
+function getSupportedVideoMimeType(): string | undefined {
+  if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return undefined
+  const candidates = [
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm',
+    'video/mp4;codecs=avc1',
+    'video/mp4',
+  ]
+  for (const type of candidates) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      return type
+    }
+  }
+  return undefined
+}
+
     chunksRef.current = []
-    const mediaRecorder = new MediaRecorder(streamRef.current, {
-      mimeType: 'video/webm;codecs=vp9',
-    })
+    const supportedMimeType = getSupportedVideoMimeType()
+    const mediaRecorder = supportedMimeType
+      ? new MediaRecorder(streamRef.current, { mimeType: supportedMimeType })
+      : new MediaRecorder(streamRef.current)
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
@@ -162,8 +186,10 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
     }
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' })
-      const file = new File([blob], `video_${Date.now()}.webm`, { type: 'video/webm' })
+      const mimeType = mediaRecorderRef.current?.mimeType || supportedMimeType || 'video/webm'
+      const isMp4 = mimeType.includes('mp4')
+      const blob = new Blob(chunksRef.current, { type: mimeType })
+      const file = new File([blob], `video_${Date.now()}.${isMp4 ? 'mp4' : 'webm'}`, { type: mimeType })
       // onCapture を呼び出す前にカメラを停止する
       stopCamera()
       // 状態更新が正しく反映されるように setTimeout を使用
@@ -201,8 +227,51 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
     onClose()
   }, [stopCamera, onClose])
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const lastFocusedRef = useRef<Element | null>(null)
+
+  // ダイアログとしてのフォーカス lifecycle（開いたら奪い、閉じたら返す）
+  useEffect(() => {
+    lastFocusedRef.current = document.activeElement
+    containerRef.current?.focus()
+    return () => {
+      if (lastFocusedRef.current instanceof HTMLElement) {
+        lastFocusedRef.current.focus()
+      }
+    }
+  }, [])
+
+  // Tab キーによるダイアログ内のフォーカストラップ
+  useEffect(() => {
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !containerRef.current) return
+      const focusableElements = containerRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusableElements.length === 0) return
+      const firstElement = focusableElements[0] as HTMLElement
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+      if (e.shiftKey && (document.activeElement === firstElement || document.activeElement === containerRef.current)) {
+        e.preventDefault()
+        lastElement?.focus()
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault()
+        firstElement?.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleTab)
+    return () => document.removeEventListener('keydown', handleTab)
+  }, [])
+
   const cameraContent = (
     <div
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={mode === 'photo' ? t('takePhoto') : t('takeVideo')}
+      tabIndex={-1}
       style={{
         position: 'fixed',
         inset: 0,
@@ -210,11 +279,18 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
         zIndex: 100000,
         display: 'flex',
         flexDirection: 'column',
+        outline: 'none',
       }}
       onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        // Escape で閉じつつ、外側のモーダルへ伝播させない
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          handleClose()
+        }
+        e.stopPropagation()
+      }}
     >
-      {/* Header */}
       {/* ヘッダー */}
       <div
         style={{
@@ -227,11 +303,11 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
       >
         <span style={{ color: '#fff', fontSize: '1.1rem', fontWeight: 600 }}>
           <Icon name={mode === 'photo' ? 'Camera' : 'Video'} size={20} style={{ color: '#fff', verticalAlign: 'middle', marginRight: '8px' }} />
-          {mode === 'photo' ? '写真を撮る' : 'ビデオを撮る'}
+          {mode === 'photo' ? t('takePhoto') : t('takeVideo')}
         </span>
         <button
           onClick={handleClose}
-          aria-label="閉じる"
+          aria-label={t('close')}
           style={{
             background: 'rgba(255,255,255,0.2)',
             color: '#fff',
@@ -322,6 +398,7 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
           <button
             onClick={capturePhoto}
             disabled={!cameraReady}
+            aria-label={t('capture')}
             style={{
               width: '70px',
               height: '70px',
@@ -336,6 +413,7 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
           <button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={!cameraReady}
+            aria-label={isRecording ? t('stopRecording') : t('startRecording')}
             style={{
               width: '70px',
               height: '70px',
@@ -370,3 +448,5 @@ export function CameraCapture({ mode, onCapture, onClose }: CameraCaptureProps) 
   
   return createPortal(cameraContent, document.body)
 }
+
+export default CameraCapture

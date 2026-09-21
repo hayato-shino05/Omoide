@@ -9,7 +9,7 @@ interface CandleProps {
 }
 
 // ろうそくコンポーネント
-export function Candle({ isBlown, delay = 0, onBlown }: CandleProps) {
+export function Candle({ isBlown, delay = 0 }: CandleProps) {
   return (
     <div className="relative w-2 h-8">
       {/* ろうそく本体 */}
@@ -50,7 +50,7 @@ export function Candle({ isBlown, delay = 0, onBlown }: CandleProps) {
                   scale: [0, 1, 2],
                   opacity: [0.7, 0.4, 0],
                   y: [0, -20, -40],
-                  x: [(Math.random() - 0.5) * 10, (Math.random() - 0.5) * 20],
+                  x: [(((i * 37) % 100) / 100 - 0.5) * 10, (((i * 61) % 100) / 100 - 0.5) * 20],
                 }}
                 transition={{
                   duration: 2,
@@ -58,6 +58,7 @@ export function Candle({ isBlown, delay = 0, onBlown }: CandleProps) {
                   ease: 'easeOut',
                 }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-400 rounded-full blur-sm"
+                style={{ willChange: 'transform, opacity' }}
               />
             ))}
           </>
@@ -80,6 +81,7 @@ function Flame() {
         ease: 'easeInOut',
       }}
       className="relative w-3 h-5"
+      style={{ willChange: 'transform' }}
     >
       {/* 外側の炎 */}
       <div

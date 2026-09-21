@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 
 interface ChristmasLightsProps {
@@ -11,27 +10,17 @@ interface ChristmasLightsProps {
 const COLORS = ['#FF0000', '#00FF00', '#FFD700', '#0066FF', '#FF69B4', '#FFFFFF']
 
 export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
-  const [lights, setLights] = useState<{ id: number; x: number; color: string; delay: number }[]>([])
-
-  useEffect(() => {
-    if (!active) {
-      setLights([])
-      return
-    }
-
-    const newLights = Array.from({ length: count }, (_, i) => ({
-      id: i,
-      x: (i / count) * 100,
-      color: COLORS[i % COLORS.length],
-      delay: (i % 6) * 0.15,
-    }))
-    setLights(newLights)
-  }, [active, count])
-
   if (!active) return null
 
+  const lights = Array.from({ length: count }, (_, i) => ({
+    id: i,
+    x: (i / count) * 100,
+    color: COLORS[i % COLORS.length],
+    delay: (i % 6) * 0.15,
+  }))
+
   return (
-    <div className="fixed top-0 left-0 right-0 pointer-events-none z-40">
+    <div className="fixed top-0 left-0 right-0 pointer-events-none z-40" style={{ contain: 'layout style paint' }}>
       <svg className="w-full h-16" viewBox="0 0 1000 60" preserveAspectRatio="none">
         <path
           d="M0,10 Q250,40 500,10 Q750,40 1000,10"
@@ -71,6 +60,7 @@ export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
                 }}
                 style={{
                   filter: `drop-shadow(0 0 8px ${light.color})`,
+                  willChange: 'filter, opacity',
                 }}
               />
             </motion.g>
@@ -117,6 +107,7 @@ export function ChristmasLights({ active, count = 30 }: ChristmasLightsProps) {
                 }}
                 style={{
                   filter: `drop-shadow(0 0 8px ${color})`,
+                  willChange: 'opacity',
                 }}
               />
             </motion.g>

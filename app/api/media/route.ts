@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/client'
 
+const MAX_MEDIA_LIMIT = 100
+const DEFAULT_MEDIA_LIMIT = 20
+const MAX_MEDIA_OFFSET = 1_000_000
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase()
@@ -28,12 +32,18 @@ export async function GET(request: NextRequest) {
       query = query.or(`original_name.ilike.%${search}%,description.ilike.%${search}%`)
     }
 
-    if (limit) {
-      query = query.limit(parseInt(limit))
-    }
+    const requestedLimit = limit ? Number(limit) : DEFAULT_MEDIA_LIMIT
+    const validLimit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_MEDIA_LIMIT)
+      : DEFAULT_MEDIA_LIMIT
+    query = query.limit(validLimit)
 
-    if (offset) {
-      query = query.range(parseInt(offset), parseInt(offset) + parseInt(limit || '20') - 1)
+    const requestedOffset = offset ? Number(offset) : 0
+    const validOffset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0
+      ? Math.min(requestedOffset, MAX_MEDIA_OFFSET)
+      : 0
+    if (validOffset > 0) {
+      query = query.range(validOffset, validOffset + validLimit - 1)
     }
 
     const { data, error, count } = await query

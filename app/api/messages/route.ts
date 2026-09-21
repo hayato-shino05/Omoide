@@ -7,12 +7,13 @@ export async function GET(request: NextRequest) {
     const birthdayPerson = searchParams.get('birthdayPerson')
     const limit = Number(searchParams.get('limit'))
     const offset = Number(searchParams.get('offset'))
+    const validLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 100) : undefined
     const supabase = getSupabase()
     let query = supabase.from('messages').select('*', { count: 'exact' }).order('created_at', { ascending: false })
 
     if (birthdayPerson) query = query.eq('birthday_person', birthdayPerson)
-    if (Number.isInteger(limit) && limit > 0) query = query.limit(Math.min(limit, 100))
-    if (Number.isInteger(offset) && offset >= 0) query = query.range(offset, offset + (limit || 10) - 1)
+    if (validLimit) query = query.limit(validLimit)
+    if (Number.isInteger(offset) && offset >= 0) query = query.range(offset, offset + (validLimit ?? 10) - 1)
 
     const { data, error, count } = await query
     if (error) return NextResponse.json({ error: 'メッセージを読み込めません' }, { status: 500 })

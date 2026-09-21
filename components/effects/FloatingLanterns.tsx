@@ -97,7 +97,7 @@ export function FloatingLanterns({ count = 15, active = true }: FloatingLanterns
   if (!active || prefersReducedMotion) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ opacity: 0.7 }}>
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden" style={{ opacity: 0.7, contain: 'layout style paint' }}>
       <AnimatePresence>
         {lanterns.map((lantern) => (
           <LanternElement key={lantern.id} lantern={lantern} />
@@ -134,7 +134,7 @@ function LanternElement({ lantern }: { lantern: Lantern }) {
         rotate: { duration: lantern.duration * 0.8, ease: 'easeInOut' },
       }}
       className="absolute"
-      style={{ filter: `drop-shadow(0 0 ${lantern.size * 0.5}px ${colorScheme.glow}60)` }}
+      style={{ filter: `drop-shadow(0 0 ${lantern.size * 0.5}px ${colorScheme.glow}60)`, willChange: 'transform, opacity' }}
     >
       {lantern.style === 'chochin' && <ChochinLantern size={lantern.size} colors={colorScheme} id={id} />}
       {lantern.style === 'bonbori' && <BonboriLantern size={lantern.size} colors={colorScheme} id={id} />}

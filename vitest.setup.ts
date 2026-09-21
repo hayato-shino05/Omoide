@@ -1,7 +1,6 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
-// window.matchMediaのモック
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
@@ -16,7 +15,6 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// IntersectionObserverのモック
 class MockIntersectionObserver {
   observe = vi.fn()
   disconnect = vi.fn()
@@ -28,7 +26,6 @@ Object.defineProperty(window, 'IntersectionObserver', {
   value: MockIntersectionObserver,
 })
 
-// ResizeObserverのモック
 class MockResizeObserver {
   observe = vi.fn()
   disconnect = vi.fn()
@@ -40,7 +37,6 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: MockResizeObserver,
 })
 
-// scrollToのモック
 Object.defineProperty(window, 'scrollTo', {
   writable: true,
   value: vi.fn(),

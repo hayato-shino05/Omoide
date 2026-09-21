@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
+import { usePrefersReducedMotion } from '@/lib/hooks/useMediaQuery'
 
 interface Particle {
   x: number
@@ -75,6 +76,7 @@ export default function ParticleSystem({
   const particlesRef = useRef<Particle[]>([])
   const mouseRef = useRef({ x: 0, y: 0 })
   const animationRef = useRef<number | null>(null)
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   const config = particleConfigs[type]
 
@@ -107,6 +109,8 @@ export default function ParticleSystem({
   }
 
   useEffect(() => {
+    if (prefersReducedMotion) return
+
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -127,7 +131,9 @@ export default function ParticleSystem({
       window.addEventListener('mousemove', handleMouseMove)
     }
 
+    let isRunning = true
     const animate = () => {
+      if (!isRunning) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       if (isActive) {
@@ -167,10 +173,29 @@ export default function ParticleSystem({
       animationRef.current = requestAnimationFrame(animate)
     }
 
+    // バックグラウンドタブ時にアニメーションループを一時停止
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isRunning = false
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+          animationRef.current = null
+        }
+      } else {
+        if (!isRunning) {
+          isRunning = true
+          animationRef.current = requestAnimationFrame(animate)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     animate()
 
     return () => {
+      isRunning = false
       window.removeEventListener('resize', resizeCanvas)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (followMouse) {
         window.removeEventListener('mousemove', handleMouseMove)
       }
@@ -178,13 +203,16 @@ export default function ParticleSystem({
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isActive, type, initialX, initialY, followMouse, particleCount, createParticle, config.gravity])
+  }, [isActive, type, initialX, initialY, followMouse, particleCount, createParticle, config.gravity, prefersReducedMotion])
+
+  // reduced-motion 時は描画もループも停止
+  if (prefersReducedMotion) return null
 
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-40"
-      style={{ mixBlendMode: type === 'magic' ? 'screen' : 'normal' }}
+      style={{ mixBlendMode: type === 'magic' ? 'screen' : 'normal', contain: 'layout style paint' }}
     />
   )
 }

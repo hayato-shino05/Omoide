@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 
 // Tailwind CSS のブレークポイントに対応した値
 export const breakpoints = {
@@ -12,23 +12,18 @@ export const breakpoints = {
 }
 
 export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false)
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      const mediaQuery = window.matchMedia(query)
+      mediaQuery.addEventListener('change', onStoreChange)
+      return () => mediaQuery.removeEventListener('change', onStoreChange)
+    },
+    [query]
+  )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
+  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query])
 
-    const mediaQuery = window.matchMedia(query)
-    setMatches(mediaQuery.matches)
-
-    const handler = (event: MediaQueryListEvent) => {
-      setMatches(event.matches)
-    }
-
-    mediaQuery.addEventListener('change', handler)
-    return () => mediaQuery.removeEventListener('change', handler)
-  }, [query])
-
-  return matches
+  return useSyncExternalStore(subscribe, getSnapshot, () => false)
 }
 
 // よく使うブレークポイント用の補助フック
@@ -50,13 +45,10 @@ export function useIsLargeDesktop(): boolean {
 
 // タッチデバイスかどうかを判定
 export function useIsTouchDevice(): boolean {
-  const [isTouch, setIsTouch] = useState(false)
+  const subscribe = useCallback(() => () => {}, [])
+  const getSnapshot = useCallback(() => 'ontouchstart' in window || navigator.maxTouchPoints > 0, [])
 
-  useEffect(() => {
-    setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0)
-  }, [])
-
-  return isTouch
+  return useSyncExternalStore(subscribe, getSnapshot, () => false)
 }
 
 // 動きの軽減設定（reduced motion）の有無を判定

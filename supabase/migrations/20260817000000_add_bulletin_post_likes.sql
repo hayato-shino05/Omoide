@@ -1,7 +1,7 @@
 begin;
 
 alter table public.bulletin_posts
-  add column likes integer not null default 0
+  add column if not exists likes integer not null default 0
   constraint bulletin_posts_likes_nonnegative check (likes >= 0);
 
 create or replace function public.increment_bulletin_post_likes(p_post_id bigint)

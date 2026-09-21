@@ -1,16 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Post } from '@/lib/hooks/usePosts'
 import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { MusicComment } from './MusicComment'
+import { SelectedMusicTrackRow } from './SelectedMusicTrackRow'
+
+const SongPickerModal = dynamic(() => import('./SongPickerModal'), { ssr: false })
 
 interface Reply {
   id: string
   post_id: string
   sender: string
-  message: string
+  message: string | null
+  music_track_id: string | null
   created_at: string
 }
 
@@ -26,6 +32,9 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
   const [loading, setLoading] = useState(true)
   const [replyText, setReplyText] = useState('')
   const [replyName, setReplyName] = useState('')
+  const [musicTrackId, setMusicTrackId] = useState('')
+  const [isMusicPickerOpen, setIsMusicPickerOpen] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [liked, setLiked] = useState(false)
   const [localLikes, setLocalLikes] = useState(post.likes)
@@ -46,6 +55,7 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
         .select('*')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
 
       if (error) throw error
       setReplies(data || [])
@@ -62,28 +72,39 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!replyText.trim() || !replyName.trim()) return
+    const sender = replyName.trim()
+    const content = replyText.trim()
+    const hasContent = content.length > 0
+    const hasMusic = musicTrackId.length > 0
+    if (!sender || (!hasContent && !hasMusic)) return
 
     setSubmitting(true)
+    setSubmitError(null)
     try {
-      const supabase = getSupabase()
-      const { data, error } = await supabase
-        .from('post_replies')
-        .insert({
-          post_id: post.id,
-          sender: replyName.trim(),
-          message: replyText.trim(),
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-      setReplies(prev => [...prev, data])
+      const response = await fetch('/api/community/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          sender,
+          content: hasContent ? content : null,
+          musicTrackId: hasMusic ? musicTrackId : null,
+        }),
+      })
+      const payload = (await response.json().catch(() => null)) as { data?: Reply; error?: string } | null
+      if (!response.ok) {
+        setSubmitError(payload?.error ?? t('sendMessageFailed'))
+        return
+      }
+      if (payload?.data) {
+        setReplies(prev => [...prev, payload.data as Reply])
+      }
       // 名前を共有ストレージへ保存する
-      localStorage.setItem('birthday_user_name', replyName.trim())
+      localStorage.setItem('birthday_user_name', sender)
       setReplyText('')
-    } catch (err) {
-      console.error('Error submitting reply:', err)
+      setMusicTrackId('')
+    } catch {
+      setSubmitError(t('sendMessageFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -130,221 +151,137 @@ export default function PostDetail({ post, onBack, onLike }: PostDetailProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-
+    <div className="flex h-full min-h-0 flex-col text-[var(--music-text)]">
       <button
+        type="button"
         onClick={onBack}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'none',
-          border: 'none',
-          color: '#854D27',
-          cursor: 'pointer',
-          padding: '0 0 16px 0',
-          fontSize: '0.95rem',
-        }}
+        className="mb-4 inline-flex min-h-11 items-center gap-2 self-start border-0 bg-transparent p-0 text-sm text-[var(--music-accent)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
       >
-        <Icon name="ArrowLeft" size={18} style={{ color: '#854D27' }} />
+        <Icon name="ArrowLeft" size={18} />
         <span>{t('back')}</span>
       </button>
 
-      <div style={{ display: 'flex', gap: '24px', flex: 1, overflow: 'hidden' }}>
-
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div
-            style={{
-              background: '#FFF9F3',
-              border: '2px solid #D4B08C',
-              borderRadius: '12px',
-              padding: '20px',
-            }}
-          >
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '50%',
-                  background: '#854D27',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFF9F3',
-                  fontWeight: 'bold',
-                  fontSize: '1.2rem',
-                }}
-              >
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto lg:flex-row lg:overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-visible lg:overflow-y-auto">
+          <article className="border border-[var(--music-border)] border-t-4 border-t-[var(--music-accent)] bg-[var(--music-surface)] p-5">
+            <header className="mb-5 flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-[var(--music-accent)] font-serif text-lg font-semibold text-[var(--music-surface)]">
                 {post.sender?.[0]?.toUpperCase() || '?'}
               </div>
-              <div>
-                <p style={{ fontWeight: 600, color: '#854D27', margin: 0, fontSize: '1.1rem' }}>{post.sender}</p>
-                <p style={{ fontSize: '0.8rem', color: '#854D27', opacity: 0.6, margin: 0 }}>
-                  {formatDate(post.created_at)}
-                </p>
+              <div className="min-w-0">
+                <p className="m-0 truncate text-base font-semibold text-[var(--music-text)]">{post.sender}</p>
+                <p className="m-0 text-xs text-[var(--music-text-muted)]">{formatDate(post.created_at)}</p>
               </div>
-            </div>
+            </header>
 
-
-            <p style={{ color: '#854D27', fontSize: '1.05rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-              {post.message}
-            </p>
-
+            <p className="m-0 mb-5 whitespace-pre-wrap text-base leading-relaxed text-[var(--music-text)]">{post.message}</p>
 
             {post.media_url && (
-              <div style={{ marginBottom: '16px', borderRadius: '8px', overflow: 'hidden' }}>
+              <div className="mb-5 overflow-hidden border border-[var(--music-border)] bg-[var(--music-text)]">
                 {post.media_url.endsWith('.mp4') || post.media_url.endsWith('.webm') || post.media_url.endsWith('.ogg') ? (
-                  <video src={post.media_url} controls style={{ width: '100%', maxHeight: '400px', background: '#000' }} />
+                  <video src={post.media_url} controls className="max-h-[400px] w-full" />
                 ) : (
-                  <img src={post.media_url} alt="Media" style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }} />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={post.media_url} alt={t('mediaAlt')} className="max-h-[400px] w-full object-contain" />
                 )}
               </div>
             )}
 
-
-            <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '1px solid #D4B08C' }}>
+            <div className="flex flex-wrap items-center gap-3 border-t border-[var(--music-border)] pt-4">
               <button
+                type="button"
                 onClick={handleLike}
                 disabled={liked}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: liked ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
-                  border: '1px solid',
-                  borderColor: liked ? '#E91E63' : '#D4B08C',
-                  borderRadius: '20px',
-                  padding: '8px 16px',
-                  cursor: liked ? 'default' : 'pointer',
-                  color: liked ? '#E91E63' : '#854D27',
-                }}
+                className={`inline-flex min-h-11 items-center gap-2 border px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] ${liked ? 'border-[var(--music-accent)] bg-[color-mix(in_srgb,var(--music-accent)_12%,transparent)] text-[var(--music-accent)]' : 'border-[var(--music-border)] bg-transparent text-[var(--music-text)] hover:border-[var(--music-accent)] hover:text-[var(--music-accent)]'} disabled:cursor-default`}
               >
-                <Icon name="Heart" size={18} style={{ color: liked ? '#E91E63' : '#854D27' }} />
+                <Icon name="Heart" size={18} />
                 <span>{localLikes} {t('liked')}</span>
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#854D27', opacity: 0.7 }}>
-                <Icon name="MessageCircle" size={18} style={{ color: '#2D8CFF' }} />
+              <div className="inline-flex min-h-11 items-center gap-2 text-sm text-[var(--music-text-muted)]">
+                <Icon name="MessageCircle" size={18} />
                 <span>{replies.length} {t('replies')}</span>
               </div>
             </div>
-          </div>
+          </article>
         </div>
 
 
-        <div style={{ width: '350px', display: 'flex', flexDirection: 'column', background: 'rgba(212,176,140,0.1)', borderRadius: '12px', padding: '16px' }}>
-          <h4 style={{ color: '#854D27', margin: '0 0 16px 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="MessageCircle" size={18} style={{ color: '#2D8CFF' }} />
+        <section className="flex min-w-0 flex-1 flex-col border border-[var(--music-border)] bg-[var(--music-surface-elevated)] p-4">
+          <h2 className="mb-4 flex items-center gap-2 border-b border-[var(--music-border)] pb-3 text-sm font-semibold uppercase tracking-[0.14em] text-[var(--music-text)]">
+            <Icon name="MessageCircle" size={18} />
             {t('replies')} ({replies.length})
-          </h4>
+          </h2>
 
-
-          <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px' }}>
+          <div className="mb-4 min-h-0 flex-1 overflow-y-auto">
             {loading ? (
-              <p style={{ color: '#854D27', opacity: 0.6, textAlign: 'center' }}>{t('loading')}</p>
+              <p role="status" aria-live="polite" className="py-6 text-center text-sm text-[var(--music-text-muted)]">{t('loading')}</p>
             ) : replies.length === 0 ? (
-              <p style={{ color: '#854D27', opacity: 0.6, textAlign: 'center', fontSize: '0.9rem' }}>
-                {t('noRepliesPrompt')}
-              </p>
+              <p className="py-6 text-center text-sm text-[var(--music-text-muted)]">{t('noRepliesPrompt')}</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="flex flex-col gap-3">
                 {replies.map((reply) => (
-                  <div
-                    key={reply.id}
-                    style={{
-                      background: '#FFF9F3',
-                      border: '1px solid #D4B08C',
-                      borderRadius: '8px',
-                      padding: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <div
-                        style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          background: '#854D27',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#FFF9F3',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold',
-                        }}
-                      >
+                  <article key={reply.id} className="border border-[var(--music-border)] bg-[var(--music-surface)] p-3">
+                    <header className="mb-2 flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center bg-[var(--music-text)] font-serif text-xs font-semibold text-[var(--music-surface)]">
                         {reply.sender?.[0]?.toUpperCase() || '?'}
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 600, color: '#854D27', margin: 0, fontSize: '0.85rem' }}>{reply.sender}</p>
-                        <p style={{ fontSize: '0.7rem', color: '#854D27', opacity: 0.6, margin: 0 }}>
-                          {formatDate(reply.created_at)}
-                        </p>
+                      <div className="min-w-0">
+                        <p className="m-0 truncate text-sm font-semibold text-[var(--music-text)]">{reply.sender}</p>
+                        <p className="m-0 text-xs text-[var(--music-text-muted)]">{formatDate(reply.created_at)}</p>
                       </div>
-                    </div>
-                    <p style={{ color: '#854D27', margin: 0, fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{reply.message}</p>
-                  </div>
+                    </header>
+                    {reply.music_track_id ? (
+                      <MusicComment trackReference={reply.music_track_id} />
+                    ) : (
+                      reply.message && <p className="m-0 whitespace-pre-wrap text-sm leading-relaxed text-[var(--music-text)]">{reply.message}</p>
+                    )}
+                  </article>
                 ))}
               </div>
             )}
           </div>
 
-
-          <form onSubmit={handleSubmitReply} style={{ borderTop: '1px solid #D4B08C', paddingTop: '12px' }}>
+          <form onSubmit={handleSubmitReply} className="border-t border-[var(--music-border)] pt-3">
             <input
               type="text"
               value={replyName}
               onChange={(e) => setReplyName(e.target.value)}
               placeholder={t('yourName')}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #D4B08C',
-                borderRadius: '6px',
-                marginBottom: '8px',
-                fontSize: '0.85rem',
-                background: '#FFF9F3',
-                color: '#854D27',
-              }}
+              aria-label={t('yourName')}
+              className="mb-2 box-border min-h-11 w-full border border-[var(--music-border)] bg-[var(--music-surface)] px-3 py-2 text-sm text-[var(--music-text)] outline-none placeholder:text-[var(--music-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
             />
             <textarea
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               placeholder={t('typeReply')}
+              aria-label={t('typeReply')}
               rows={2}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: '1px solid #D4B08C',
-                borderRadius: '6px',
-                marginBottom: '8px',
-                fontSize: '0.85rem',
-                resize: 'none',
-                background: '#FFF9F3',
-                color: '#854D27',
-              }}
+              className="mb-2 box-border min-h-11 w-full resize-none border border-[var(--music-border)] bg-[var(--music-surface)] px-3 py-2 text-sm text-[var(--music-text)] outline-none placeholder:text-[var(--music-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)]"
             />
+            <SelectedMusicTrackRow
+              value={musicTrackId}
+              onChange={setMusicTrackId}
+              onOpenPicker={() => setIsMusicPickerOpen(true)}
+            />
+            {submitError && <p role="alert" className="mb-2 text-sm text-[var(--music-error)]">{submitError}</p>}
             <button
               type="submit"
-              disabled={submitting || !replyText.trim() || !replyName.trim()}
-              style={{
-                width: '100%',
-                padding: '8px 16px',
-                background: submitting ? '#999' : '#854D27',
-                color: '#FFF9F3',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                opacity: (!replyText.trim() || !replyName.trim()) ? 0.5 : 1,
-              }}
+              disabled={submitting || !replyName.trim() || (!replyText.trim() && !musicTrackId)}
+              className="min-h-11 w-full border border-[var(--music-accent)] bg-[var(--music-accent)] px-4 py-2 text-sm font-semibold text-[var(--music-surface)] outline-none transition-colors hover:bg-[var(--music-text)] focus-visible:ring-2 focus-visible:ring-[var(--music-focus)] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
             >
               {submitting ? t('sending') : t('sendMessage')}
             </button>
           </form>
-        </div>
+          <SongPickerModal
+            isOpen={isMusicPickerOpen}
+            onClose={() => setIsMusicPickerOpen(false)}
+            onConfirm={(reference) => {
+              setMusicTrackId(reference)
+              setIsMusicPickerOpen(false)
+            }}
+            initialValue={musicTrackId}
+          />
+        </section>
       </div>
     </div>
   )

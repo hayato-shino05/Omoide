@@ -19,19 +19,58 @@ interface UsePuzzleGameReturn {
   resetGame: () => void
 }
 
+// 100%解ける盤面を生成するため、完成状態から有効な移動をランダムにシミュレートしてシャッフルする
 function shufflePuzzle(size: number): PuzzlePiece[] {
   const total = size * size
-  const positions = Array.from({ length: total }, (_, i) => i)
+  const emptyId = total - 1
   
-  // Fisher-Yatesシャッフル
-  for (let i = positions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[positions[i], positions[j]] = [positions[j], positions[i]]
+  // 初期状態（完成状態）
+  const positions = Array.from({ length: total }, (_, i) => i)
+  let emptyPos = emptyId
+
+  // ランダムウォーク（80回の有効な移動）
+  const movesCount = 80
+  let lastMovedPos = -1
+
+  for (let step = 0; step < movesCount; step++) {
+    const emptyRow = Math.floor(emptyPos / size)
+    const emptyCol = emptyPos % size
+
+    // 移動可能な隣接位置を収集
+    const neighbors: number[] = []
+    if (emptyRow > 0) neighbors.push((emptyRow - 1) * size + emptyCol)
+    if (emptyRow < size - 1) neighbors.push((emptyRow + 1) * size + emptyCol)
+    if (emptyCol > 0) neighbors.push(emptyRow * size + (emptyCol - 1))
+    if (emptyCol < size - 1) neighbors.push(emptyRow * size + (emptyCol + 1))
+
+    // 直前の位置へ戻る無駄なループを抑制
+    const validNeighbors = neighbors.filter((pos) => pos !== lastMovedPos)
+    const nextPos = validNeighbors.length > 0
+      ? validNeighbors[Math.floor(Math.random() * validNeighbors.length)]
+      : neighbors[Math.floor(Math.random() * neighbors.length)]
+
+    // スワップ
+    const pieceIndex = positions.indexOf(nextPos)
+    const emptyIndex = positions.indexOf(emptyPos)
+    positions[pieceIndex] = emptyPos
+    positions[emptyIndex] = nextPos
+
+    lastMovedPos = emptyPos
+    emptyPos = nextPos
   }
 
-  return positions.map((pos, index) => ({
+  // 偶然完成状態のままなら、追加で1手スワップ
+  if (positions.every((pos, i) => pos === i)) {
+    const neighborPos = emptyPos > 0 ? emptyPos - 1 : emptyPos + 1
+    const pieceIndex = positions.indexOf(neighborPos)
+    const emptyIndex = positions.indexOf(emptyPos)
+    positions[pieceIndex] = emptyPos
+    positions[emptyIndex] = neighborPos
+  }
+
+  return Array.from({ length: total }, (_, index) => ({
     id: index,
-    currentPos: pos,
+    currentPos: positions[index],
     correctPos: index,
   }))
 }

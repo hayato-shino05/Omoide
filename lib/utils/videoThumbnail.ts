@@ -47,47 +47,6 @@ export async function generateVideoThumbnail(
 }
 
 /**
- * 動画 URL からサムネイルを生成する
- */
-export async function generateThumbnailFromUrl(
-  videoUrl: string,
-  seekTime: number = 0.5
-): Promise<string | null> {
-  return new Promise((resolve) => {
-    const video = document.createElement('video')
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-
-    video.crossOrigin = 'anonymous'
-    video.preload = 'metadata'
-    video.muted = true
-    video.playsInline = true
-
-    video.onloadedmetadata = () => {
-      video.currentTime = Math.min(seekTime, video.duration)
-    }
-
-    video.onseeked = () => {
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.8))
-      } else {
-        resolve(null)
-      }
-    }
-
-    video.onerror = () => {
-      resolve(null)
-    }
-
-    video.src = videoUrl
-  })
-}
-
-/**
  * 生成したサムネイルを Supabase ストレージにアップロードする
  */
 export async function uploadThumbnail(

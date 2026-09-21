@@ -2,7 +2,7 @@
 
 import { useBirthdayCheck } from '@/lib/hooks/useBirthdayCheck'
 import { BirthdayHero } from './BirthdayHero'
-import { CountdownDisplay } from './CountdownDisplay'
+import { BirthdayHub } from './BirthdayHub'
 
 // 誕生日チェックコンポーネント
 export function BirthdayChecker() {
@@ -12,5 +12,5 @@ export function BirthdayChecker() {
     return <BirthdayHero person={birthdayPerson} />
   }
 
-  return <CountdownDisplay />
+  return <BirthdayHub />
 }

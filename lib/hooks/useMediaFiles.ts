@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { uploadCommunityMedia } from '@/lib/supabase/communityMedia'
 import type { MediaFile, MediaStats } from '@/types'
 
@@ -43,15 +44,25 @@ function toMediaFile(submission: MediaSubmission): MediaFile {
 }
 
 export function useMediaFiles(): UseMediaFilesReturn {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  const cacheTimeRef = useRef(0)
+  const filesLengthRef = useRef(0)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [files, setFiles] = useState<MediaFile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<MediaStats | null>(null)
   const [cacheTime, setCacheTime] = useState(0)
 
+  cacheTimeRef.current = cacheTime
+  filesLengthRef.current = files.length
+
   const fetchFiles = useCallback(async (forceRefresh = false) => {
     const now = Date.now()
-    if (!forceRefresh && cacheTime > 0 && now - cacheTime < CACHE_EXPIRY_TIME && files.length > 0) return
+    if (!forceRefresh && cacheTimeRef.current > 0 && now - cacheTimeRef.current < CACHE_EXPIRY_TIME && filesLengthRef.current > 0) return
 
     setIsLoading(true)
     setError(null)
@@ -79,27 +90,27 @@ export function useMediaFiles(): UseMediaFilesReturn {
       })
       setCacheTime(now)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'メディアを読み込めませんでした')
+      setError(err instanceof Error ? err.message : tRef.current('mediaLoadError'))
       setFiles([])
       setStats({ totalFiles: 0, totalImages: 0, totalVideos: 0, totalSize: 0, recentUploads: [] })
     } finally {
       setIsLoading(false)
     }
-  }, [cacheTime, files.length])
+  }, [])
 
   useEffect(() => {
     void fetchFiles()
-  }, [])
+  }, [fetchFiles])
 
   const uploadFile = useCallback(async (file: File): Promise<MediaFile | null> => {
     try {
-      const data = await uploadCommunityMedia({ file, sender: 'ゲスト' })
+      const data = await uploadCommunityMedia({ file, sender: 'Guest' })
 
       setCacheTime(0)
       await fetchFiles(true)
       return toMediaFile(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ファイルをアップロードできませんでした')
+      setError(err instanceof Error ? err.message : tRef.current('uploadFileFailed'))
       return null
     }
   }, [fetchFiles])
