@@ -2,6 +2,25 @@
 
 このプロジェクトの変更履歴は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) の形式に沿い、バージョンは [Semantic Versioning](https://semver.org/lang/ja/) に従います。
 
+## [1.1.0] - 2026-09-21
+
+### Added
+
+- 想い出カード・おみくじ結果の高解像度 PNG エクスポートにおける計算済みスタイル再帰注入（`applyComputedStylesRecursively`）およびドキュメントスタイルシート収集（`collectDocumentStyles`）エンジン
+- PWA Service Worker v2 における言語別ルートシェル（`/`, `/?locale=ja`, `/?locale=en`）の独立事前キャッシュおよび和モダンオフライン HTML フォールバック
+- Supabase によるクイズ（`birthday_quizzes`）、神経衰弱デッキ（`memory_card_decks`）、13 祝祭日パック（`festival_packs`）の動的 DB 移行とオフライン自動フォールバック
+
+### Security
+
+- 勉強部屋（`study_rooms`, `study_room_members`）における Column-Level Security（CLS）の導入。`anon` および `authenticated` ロールからの認証トークンハッシュ（`host_token_hash`, `member_token_hash`）公開 SELECT を完全遮断
+- 掲示板（`bulletin_posts`）および返信（`post_replies`）の RLS `WITH CHECK` 制約強化によるシステム生成スレッドの偽造・いいね数改ざん防止
+
+### Fixed
+
+- Keepsake Exporter における Tailwind CSS スタイル欠落の解消
+- Service Worker における多言語 HTML キャッシュの混在解消
+- 全 19 テストスイート（110 テストケース）による画像読み込みライフサイクル・エクスポート・SQL 制約の網羅的検証
+
 ## [1.0.0] - 2026-09-20
 
 ### Added

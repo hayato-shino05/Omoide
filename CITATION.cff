@@ -1,11 +1,11 @@
 # Replace the GitHub handle below with the author's preferred name and/or ORCID if they provide one.
 cff-version: 1.2.0
 message: If you use this software, please cite it as below.
-title: Omoide (Happy Birthday Website)
-abstract: An interactive web application for remembering, celebrating, recording, and sharing birthdays and anniversaries, featuring a photo and video album, community message board, curated background music player, mini-games, and a time capsule.
+title: Omoide (想い出箱)
+abstract: An interactive web application for remembering, celebrating, recording, and sharing birthdays and anniversaries, featuring 3D Omikuji fortunes, Keepsake card exports, Study Rooms with synchronized BGM, Zen Focus Pomodoro with ambient soundscapes, photo and video albums, community message boards, mini-games, and 13 seasonal and festival themes.
 authors:
   - family-names: hayato-shino05
-version: "0.5"
-date-released: 2026-07-22
+version: "1.0.0"
+date-released: 2026-09-21
 license: MIT
 url: https://github.com/hayato-shino05/Omoide

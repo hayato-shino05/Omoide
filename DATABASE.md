@@ -37,6 +37,7 @@
 - [`supabase/migrations/20260920000000_study_room_requests_and_lifecycle.sql`](./supabase/migrations/20260920000000_study_room_requests_and_lifecycle.sql)
 - [`supabase/migrations/20260920100000_daily_fortunes_table.sql`](./supabase/migrations/20260920100000_daily_fortunes_table.sql)
 - [`supabase/migrations/20260920200000_quizzes_memory_and_festivals.sql`](./supabase/migrations/20260920200000_quizzes_memory_and_festivals.sql)
+- [`supabase/migrations/20260921000000_harden_security_and_credentials.sql`](./supabase/migrations/20260921000000_harden_security_and_credentials.sql)
 - 初期データ: [`supabase/seed.sql`](./supabase/seed.sql) / [`database/seed.sql`](./database/seed.sql)
 - 統合 SQL スキーマ: [`database/database.sql`](./database/database.sql)
 
@@ -139,9 +140,12 @@ insert into public.music_tracks (
 
 ---
 
-## 匿名アクセスと RLS
+## 匿名アクセス・カラムレベルセキュリティ（CLS）と RLS
 
-すべての `public` テーブルで RLS を有効にしています。`anon` ロールは次の表を閲覧できます。`birthdays` と `music_tracks` は SELECT 専用で、それ以外は匿名 INSERT も許可されています。
+すべての `public` テーブルで RLS を有効にしています。
+
+### 1. 匿名閲覧テーブル
+`anon` ロールは次のテーブルを SELECT できます。`birthdays`, `music_tracks`, `daily_fortunes`, `birthday_quizzes`, `quiz_questions`, `memory_card_decks`, `festival_packs` は SELECT 専用で、INSERT / UPDATE / DELETE は許可されていません。
 
 - `birthdays` (SELECT のみ)
 - `messages`
@@ -152,6 +156,22 @@ insert into public.music_tracks (
 - `post_replies`
 - `music_tracks` (SELECT のみ)
 - `daily_fortunes` (SELECT のみ)
+- `birthday_quizzes` (SELECT のみ)
+- `quiz_questions` (SELECT のみ)
+- `memory_card_decks` (SELECT のみ)
+- `festival_packs` (SELECT のみ)
+
+### 2. カラムレベルセキュリティ（Column-Level Security / CLS）
+`study_rooms` および `study_room_members` は `20260921000000_harden_security_and_credentials.sql` によりテーブル全体の SELECT 権限を剥奪（REVOKE）し、機密カラムを除いた安全なカラムのみ SELECT を許可しています。
+
+- `study_rooms`: `host_token_hash` および `passcode_hash` の公開 SELECT を遮断
+- `study_room_members`: `member_token_hash` の公開 SELECT を遮断
+
+### 3. RLS WITH CHECK によるメタデータ改ざん防止
+匿名クライアントからの直接 INSERT におけるメタデータの偽造を防止するため、以下の WITH CHECK 制約を適用しています。
+
+- `bulletin_posts`: `coalesce(is_system_generated, false) = false AND coalesce(likes, 0) = 0` を強制（システム生成スレッドの偽造やいいね数改ざんを防止）
+- `post_replies`: `coalesce(moderation_status, 'visible') = 'visible'` を強制
 
 匿名の更新・削除ポリシーは定義していません。`music_tracks` と Storage `music` バケットへの匿名 INSERT は `20260904000001_revoke_anonymous_music_upload.sql` で取り消し、キュレーション楽曲は管理者またはシード経由で登録します。`daily_fortunes` は INSERT / UPDATE / DELETE をすべてのロールに対して禁止し、シードデータのみを正本として扱います。
 

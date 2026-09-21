@@ -568,103 +568,51 @@ type Language = 'en' | 'ja'
 
 ## `/__tests__` – テストコード
 
-Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検証用テストを格納します。
+Vitest ベースの単体・統合テストと、E2E（Playwright）以外の検証用テストを格納します（全 19 テストスイート、110 テストケース）。
 
 ### API ルート（`/__tests__/api/`）
 
 | File | 対象 |
 |------|------|
-| `birthdays-route.test.ts` | `/api/birthdays` 一覧ルート |
-| `route-limit-validation.test.ts` | ルート共通のレートリミット・バリデーション |
-| `time-capsules-route.test.ts` | `/api/time-capsules` ルート |
-| `time-capsules-access-route.test.ts` | `/api/time-capsules/access` ルート |
-| `time-capsules-invite-access-route.test.ts` | 招待経由のアクセスルート |
-| `community-route.test.ts` | `/api/community` ルート |
-| `community-media-route.test.ts` | `/api/community/media`（multipart 直接アップロード）ルート |
-| `community-media-signed-route.test.ts` | `/api/community/media/sign` / `finalize`（署名付きアップロード）ルート |
-| `community-reply-route.test.ts` | `/api/community/reply` ルート |
-| `community-birthday-threads-route.test.ts` | `/api/community/birthday-threads` ルート |
-| `music-search-route.test.ts` | `/api/music/search` ルート |
-| `music-resolve-route.test.ts` | `/api/music/resolve` ルート |
-| `birthday-scheduler-route.test.ts` | `/api/internal/birthday-scheduler` ルート |
-
-> `/api/media`（GET 一覧）のルートテストは `__tests__/app/api/media-route.test.ts` にあります。
+| `community-reply-route.test.ts` | `/api/community/reply` 誕生日スレッド返信ルート（テキスト・楽曲添付・バリデーション） |
+| `study-api.test.ts` | `/api/study/*` 勉強部屋 API（作成・参加・退出・BGM同期・楽曲リクエスト・承認モデレーション・パスコード検証） |
 
 ### コンポーネント（`/__tests__/components/`）
 
 | File | 対象 |
 |------|------|
-| `Button.test.tsx` | `Button` UI コンポーネント |
-| `Input.test.tsx` | `Input` UI コンポーネント |
-| `Confetti.test.tsx` | `Confetti` エフェクト |
-| `DailyOmikuji.test.tsx` | `DailyOmikuji` 機能 |
-| `PhotoCard.keyboard.test.tsx` | `PhotoCard` のキーボード操作 |
-| `ContributorPromptButtons.test.tsx` | 投稿プロンプトボタン群 |
-| `MessageList.test.tsx` | `MessageList` の楽曲付きメッセージ表示 |
-| `SelectedMusicTrackRow.test.tsx` | `SelectedMusicTrackRow`（楽曲選択行） |
-| `ChatRoom.test.ts` | `ChatRoom` コミュニティ |
-| `TimeCapsule.test.tsx` | `TimeCapsule` コミュニティ |
-| `features/BirthdayHub.events.test.ts` | `BirthdayHub` のイベント判定（midnight 跨ぎ） |
-| `mobile-touch-targets.test.ts` | モバイルのタッチターゲット検証 |
+| `BirthdayFeatures.test.tsx` | 誕生日機能（ケーキ・カウントダウン・バースデーメッセージ・ヒーロー） |
+| `GamesComponents.test.tsx` | ゲームコンポーネント（神経衰弱・パズル・バースデークイズ・バースデーカレンダー） |
+| `KeepsakeExportModal.test.tsx` | 想い出ポラロイド・記念メッセージカードの Retina 高解像度 PNG エクスポートモーダル |
+| `MessageForm.test.tsx` | メッセージ入力フォーム（バリデーション・楽曲添付・送信制御） |
+| `OmikujiModal.test.tsx` | 3D 想い出みくじモーダル（筒シェイク・運勢表示・ラッキーアイテム・保存） |
+| `PostPickerModal.test.tsx` | 掲示板スレッド選択モーダル（検索・ページネーション・選択イベント） |
+| `SelectedPostRow.test.tsx` | 選択された掲示板投稿のプレビュー表示行（解除・変更アクション） |
+| `ServiceWorkerRegister.test.tsx` | PWA サービスワーカー登録およびオフラインキャッシュ初期化 |
+| `StudyRoomComponents.test.tsx` | 勉強部屋 UI（机グリッド・ポモドーロリング・環境音ミキサー・非言語応援オーバーレイ） |
+| `VideoBackground.test.tsx` | サーバー時間同期対応の動画背景コンポーネント |
 
-### 統合テスト（`/__tests__/integration/`）
+### カスタムフック（`/__tests__/hooks/`）
 
 | File | 対象 |
 |------|------|
-| `anonymous-community-contract.test.ts` | 匿名コミュニティの API 契約 |
-| `anonymous-flow.local.test.ts` | 匿名フローのローカル実行 |
-| `production-snapshot-regression.test.ts` | 本番スナップショットに対する回帰検証 |
-| `theme-provider-smoke.test.tsx` | `ThemeProvider` のスモークテスト |
-| `community-submission-rpc-migration.test.ts` | `create_community_submission` RPC の migration 整合 |
-| `birthday-thread-reply-migration.test.ts` | 誕生日スレッド + `create_birthday_reply` の migration 整合 |
-| `revoke-anonymous-music-upload-migration.test.ts` | music 匿名アップロード取り消しの migration 整合 |
+| `useDailyFortunes.test.tsx` | おみくじ運勢データのフェッチとオフライン静的フォールバック |
+| `useMusicPlayer.test.tsx` | 音楽プレーヤー Context Provider（再生・シャッフル・リピート・シーク・歌詞ドロワー連携） |
 
-### ライブラリ（`/__tests__/lib/`）
+### ライブラリ・ユーティリティ（`/__tests__/lib/`）
 
 | File | 対象 |
 |------|------|
-| `community-media.test.ts` | `lib/supabase/communityMedia.ts` |
-| `birthday-date.test.ts` | `lib/birthday/date.ts` |
-| `birthday-thread.test.ts` | `lib/birthday/thread.ts` |
-| `music-presets.test.ts` | `lib/music/presets.ts` |
-| `music-reference.test.ts` | `lib/music/reference.ts` |
-| `music-server.test.ts` | `lib/music/server.ts` |
-| `healthcheck.test.ts` | `lib/healthcheck.ts` |
-| `media-objecturl.test.ts` | `lib/utils/media.ts` の ObjectURL 処理 |
-| `omikujiData.test.ts` | おみくじデータ整合性 |
-| `omikujiHistory.test.ts` | `lib/omikujiHistory.ts` |
-| `share.test.ts` | `lib/share.ts` |
-| `upload-validation.test.ts` | `lib/validations/upload.ts` |
-| `validations.test.ts` | `lib/validations/schemas.ts` |
-| `time-capsule-client.test.ts` | `lib/time-capsule-client.ts` |
-| `time-capsule-server.test.ts` | `lib/time-capsule/server.ts` |
-| `hooks/useMediaQuery.test.ts` | `useMediaQuery` フック |
-| `hooks/useUserName.test.ts` | `useUserName` フック |
-| `i18n/locale.test.ts` | ロケール解決ロジック |
-| `i18n/translation-parity.test.ts` | 翻訳キーのロケール間パリティ |
-| `festivals/evaluator.test.ts` | `lib/festivals/evaluator.ts` |
-| `festivals/legacy-adapter.test.ts` | `lib/festivals/legacyAdapter.ts` |
-| `festivals/parity.test.ts` | `lib/festivals/parity.ts` |
-| `festivals/validation.test.ts` | `lib/festivals/validation.ts` |
-| `festivals/fixtures/*.json` | テスト用フィクスチャ（重複 ID / 不正日付 / 未対応暦） |
-| `reminders/durable.test.ts` | `lib/reminders/durable.ts` |
-| `reminders/engine.test.ts` | `lib/reminders/engine.ts` |
-| `stores/uiStore-focus.test.ts` | `uiStore` のフォーカス管理 |
+| `keepsake-exporter.test.ts` | `lib/export/keepsakeExporter.ts`（計算済みスタイル再帰注入・スタイルシート収集・画像読み込みライフサイクル） |
+| `music-reference.test.ts` | `lib/music/reference.ts`（`provider:trackId` 形式のシリアライズ・パース・整合性検証） |
+| `omikuji-history.test.ts` | `lib/omikujiHistory.ts`（ローカルストレージおみくじ履歴永続化・ストリーク計算） |
+| `study-room.test.ts` | `lib/study/client.ts`（勉強部屋クライアントヘルパー・NTPドリフト補正・リクエスト送信） |
 
-### スクリプト（`/__tests__/scripts/`）
+### データベースマイグレーション検証（`/__tests__/migrations/`）
 
 | File | 対象 |
 |------|------|
-| `collect-festival-snapshot.test.ts` | `scripts/collect-festival-snapshot.mjs` |
-| `compare-festival-catalogs.test.ts` | `scripts/compare-festival-catalogs.mjs` |
-| `generate-data-manifest.test.ts` | `scripts/generate-data-manifest.mjs` |
-
-### Supabase マイグレーション整合性
-
-| File | 対象 |
-|------|------|
-| `supabase-time-capsule-access-migration.test.ts` | タイムカプセルアクセスマイグレーション |
-| `supabase-time-capsule-open-tracking-migration.test.ts` | 開封トラッキングマイグレーション |
+| `sql-constraints.test.ts` | Supabase SQL マイグレーション・テーブル制約・RLS WITH CHECK ポリシー・CLS 列権限の静的整合性検証 |
 
 ---
 
