@@ -33,8 +33,8 @@
 1. リポジトリを Fork してローカルに clone します。
 
    ```bash
-   git clone https://github.com/<your-username>/happy-birthday-website.git
-   cd happy-birthday-website
+   git clone https://github.com/<your-username>/Omoide.git
+   cd Omoide
    ```
 
 2. 依存パッケージをインストールします。
