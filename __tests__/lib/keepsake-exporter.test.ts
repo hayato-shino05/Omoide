@@ -121,13 +121,14 @@ describe('keepsakeExporter', () => {
       expect(result).toBeNull()
     })
 
-    it('DOM 要素を渡した場合に PNG エクスポート処理を試みること', async () => {
+    it('DOM 要素を渡した場合に SVG 変換と PNG レンダリングを行いデータURLを返すこと', async () => {
       const div = document.createElement('div')
       div.id = 'target-element'
       div.innerText = '想い出カード'
+      div.style.color = '#854D27'
       document.body.appendChild(div)
 
-      const mockDataUrl = 'data:image/png;base64,mockExport'
+      const mockDataUrl = 'data:image/png;base64,mockExportPng'
       const mockContext = {
         scale: vi.fn(),
         fillStyle: '',
@@ -140,9 +141,90 @@ describe('keepsakeExporter', () => {
       )
       vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(mockDataUrl)
 
-      const exportPromise = exportElementAsPng(div, 'test-keepsake.png')
-      expect(exportPromise).toBeInstanceOf(Promise)
+      // Blob URL 生成と解放のモック
+      const mockBlobUrl = 'blob:http://localhost/mock-svg-blob'
+      const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue(mockBlobUrl)
+      const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
 
+      // Image の onload をシミュレート
+      const originalImage = global.Image
+      class MockImage {
+        onload: (() => void) | null = null
+        onerror: (() => void) | null = null
+        private _src = ''
+
+        set src(val: string) {
+          this._src = val
+          setTimeout(() => {
+            if (this.onload) this.onload()
+          }, 0)
+        }
+
+        get src(): string {
+          return this._src
+        }
+      }
+      global.Image = MockImage as unknown as typeof Image
+
+      const result = await exportElementAsPng(div, 'test-keepsake.png')
+
+      expect(result).toBe(mockDataUrl)
+      expect(mockContext.drawImage).toHaveBeenCalled()
+      expect(createObjectURLSpy).toHaveBeenCalled()
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith(mockBlobUrl)
+
+      // クリーンアップ
+      global.Image = originalImage
+      document.body.removeChild(div)
+    })
+
+    it('画像読み込み失敗（onerror）時に null を返すこと', async () => {
+      const div = document.createElement('div')
+      div.id = 'target-error-element'
+      document.body.appendChild(div)
+
+      const mockContext = {
+        scale: vi.fn(),
+        fillStyle: '',
+        fillRect: vi.fn(),
+        drawImage: vi.fn(),
+      }
+
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+        mockContext as unknown as CanvasRenderingContext2D
+      )
+
+      const mockBlobUrl = 'blob:http://localhost/mock-error-blob'
+      vi.spyOn(URL, 'createObjectURL').mockReturnValue(mockBlobUrl)
+      const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+
+      // Image の onerror をシミュレート
+      const originalImage = global.Image
+      class MockFailingImage {
+        onload: (() => void) | null = null
+        onerror: (() => void) | null = null
+        private _src = ''
+
+        set src(val: string) {
+          this._src = val
+          setTimeout(() => {
+            if (this.onerror) this.onerror()
+          }, 0)
+        }
+
+        get src(): string {
+          return this._src
+        }
+      }
+      global.Image = MockFailingImage as unknown as typeof Image
+
+      const result = await exportElementAsPng(div, 'error-keepsake.png')
+
+      expect(result).toBeNull()
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith(mockBlobUrl)
+
+      // クリーンアップ
+      global.Image = originalImage
       document.body.removeChild(div)
     })
   })
