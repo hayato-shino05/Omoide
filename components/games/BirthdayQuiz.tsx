@@ -1,12 +1,14 @@
 'use client'
 
+import React, { useMemo, useCallback } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useQuiz } from '@/lib/hooks/useQuiz'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Icon } from '@/components/ui/Icon'
 import { useBirthdays } from '@/lib/hooks/useBirthdays'
 
 interface BirthdayQuizProps {
-  onClose: () => void
+  onClose?: () => void
 }
 
 export function BirthdayQuiz({}: BirthdayQuizProps) {
@@ -22,67 +24,116 @@ export function BirthdayQuiz({}: BirthdayQuizProps) {
     nextQuestion,
     startQuiz,
   } = useQuiz(language)
+
   const { data: birthdays = [] } = useBirthdays()
+  const shouldReduceMotion = useReducedMotion()
 
   const question = questions[currentQuestion]
+  const totalQuestions = questions.length || 5
+  const progressPercent = Math.min(
+    100,
+    Math.round(((currentQuestion + (selectedAnswer !== null ? 1 : 0)) / Math.max(1, totalQuestions)) * 100)
+  )
 
+  const handleStart = useCallback(() => {
+    startQuiz(birthdays, language)
+  }, [startQuiz, birthdays, language])
+
+  // アニメーション設定
+  const containerVariants = useMemo(
+    () => ({
+      initial: shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+    }),
+    [shouldReduceMotion]
+  )
+
+  // 未開始状態
   if (!isPlaying) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <p style={{ color: '#854D27', marginBottom: '20px', fontSize: '1rem' }}>
-          {t('quizInstructions')}
-        </p>
-        {birthdays.length < 4 ? (
-          <p style={{ color: '#dc3545' }}>{t('quizMinimumPlayers')}</p>
-        ) : (
-          <button
-            onClick={() => startQuiz(birthdays, language)}
-            style={{
-              padding: '12px 30px',
-              background: '#854D27',
-              color: '#FFF9F3',
-              border: '2px solid #D4B08C',
-              borderRadius: 0,
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              fontSize: '1rem',
-              fontWeight: 600,
-              boxShadow: '4px 4px 0 #D4B08C',
-            }}
-          >
-            {t('gameStart')}
-          </button>
-        )}
+      <div className="w-full max-w-lg mx-auto py-2">
+        <motion.div
+          variants={containerVariants}
+          initial="initial"
+          animate="animate"
+          className="p-6 sm:p-8 bg-[#FFF9F3] border-2 border-[#D4B08C] rounded-xl shadow-[4px_4px_0_#D4B08C] text-center"
+        >
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#854D27] text-[#FFF9F3] mb-4 shadow-[2px_2px_0_#D4B08C]">
+            <Icon name="HelpCircle" size={28} aria-hidden="true" />
+          </div>
+
+          <h3 className="text-xl sm:text-2xl font-bold text-[#854D27] mb-2 font-heading">
+            {t('birthdayQuiz')}
+          </h3>
+
+          <p className="text-sm text-[#2C1810]/80 leading-relaxed mb-6 max-w-md mx-auto">
+            {t('quizInstructions')}
+          </p>
+
+          {birthdays.length < 4 ? (
+            <div className="p-4 bg-[#FFEBEE] border-2 border-[#EF9A9A] rounded-lg text-[#C62828] text-sm mb-4 flex items-center justify-center gap-2">
+              <Icon name="CircleAlert" size={18} className="shrink-0" />
+              <span>{t('quizMinimumPlayers')}</span>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={handleStart}
+                className="min-h-[44px] px-8 py-3 bg-[#854D27] text-[#FFF9F3] border-2 border-[#D4B08C] font-semibold text-base cursor-pointer shadow-[4px_4px_0_#D4B08C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_#D4B08C] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:outline-none"
+              >
+                {t('gameStart')}
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
     )
   }
 
+  // クイズ完了画面
   if (isComplete) {
+    const isPerfect = score === 100
     return (
-      <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <h3 style={{ color: '#854D27', fontSize: '1.5rem', marginBottom: '10px' }}>
-          <Icon name="Party" size={22} aria-hidden="true" /> {t('quizComplete')}
-        </h3>
-        <p style={{ color: '#854D27', fontSize: '2rem', fontWeight: 'bold', marginBottom: '20px' }}>
-          {t('gameScore')}: {score}/100
-        </p>
-        <button
-          onClick={() => startQuiz(birthdays, language)}
-          style={{
-            padding: '12px 30px',
-            background: '#854D27',
-            color: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: 0,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: '1rem',
-            fontWeight: 600,
-            boxShadow: '4px 4px 0 #D4B08C',
-          }}
+      <div className="w-full max-w-lg mx-auto py-2">
+        <motion.div
+          variants={containerVariants}
+          initial="initial"
+          animate="animate"
+          className="p-6 sm:p-8 bg-[#FFF9F3] border-2 border-[#D4B08C] rounded-xl shadow-[4px_4px_0_#D4B08C] text-center"
         >
-          {t('gameRestart')}
-        </button>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#854D27] text-[#D4B08C] mb-4 shadow-[2px_2px_0_#D4B08C]">
+            <Icon name="Trophy" size={32} aria-hidden="true" />
+          </div>
+
+          <h3 className="text-2xl font-bold text-[#854D27] mb-2 font-heading">
+            {t('quizComplete')}
+          </h3>
+
+          <p className="text-sm text-[#854D27]/80 mb-6">
+            {isPerfect
+              ? '全問正解！みんなの誕生日を完璧に覚えていますね。'
+              : 'クイズ挑戦お疲れ様でした！'}
+          </p>
+
+          {/* スコアバッジ */}
+          <div className="p-4 bg-[#F3E5D8]/50 border border-[#D4B08C] rounded-lg mb-6 max-w-xs mx-auto">
+            <div className="text-xs text-[#854D27]/80 font-medium mb-1">{t('gameScore')}</div>
+            <div className="text-3xl font-bold text-[#854D27] font-heading">
+              {score} <span className="text-base font-normal text-[#854D27]/70">/ 100</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={handleStart}
+              className="min-h-[44px] px-8 py-3 bg-[#854D27] text-[#FFF9F3] border-2 border-[#D4B08C] font-semibold text-sm cursor-pointer shadow-[3px_3px_0_#D4B08C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_#D4B08C] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:outline-none"
+            >
+              {t('gameRestart')}
+            </button>
+          </div>
+        </motion.div>
       </div>
     )
   }
@@ -90,94 +141,113 @@ export function BirthdayQuiz({}: BirthdayQuizProps) {
   if (!question) return null
 
   return (
-    <div>
-      {/* 進捗 */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ color: '#854D27', fontSize: '0.9rem' }}>
+    <div className="w-full max-w-lg mx-auto py-2 space-y-4">
+      {/* 進捗とスコア */}
+      <div className="p-3.5 bg-[#FFF9F3] border-2 border-[#D4B08C] rounded-lg shadow-[2px_2px_0_#D4B08C]">
+        <div className="flex items-center justify-between text-xs font-semibold text-[#854D27] mb-2">
+          <span>
             {t('questionProgress', { current: currentQuestion + 1, total: questions.length })}
           </span>
-          <span style={{ color: '#854D27', fontSize: '0.9rem' }}>
-            {t('gameScore')}: {score}
+          <span className="flex items-center gap-1 font-bold">
+            <span>{t('gameScore')}:</span>
+            <span className="text-sm font-heading">{score}</span>
           </span>
         </div>
-        <div style={{ background: '#D4B08C', height: '8px', borderRadius: '4px' }}>
+
+        {/* プログレスバー（アクセシブル対応） */}
+        <div
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="クイズの進捗状況"
+          className="h-2 w-full bg-[#D4B08C]/40 rounded-full overflow-hidden"
+        >
           <div
-            style={{
-              background: '#854D27',
-              height: '100%',
-              borderRadius: '4px',
-              width: `${((currentQuestion + 1) / questions.length) * 100}%`,
-              transition: 'width 0.3s',
-            }}
+            className="h-full bg-[#854D27] rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
 
-      {/* 質問 */}
-      <h3 style={{ color: '#854D27', fontSize: '1.2rem', marginBottom: '20px', textAlign: 'center' }}>
-        {question.question}
-      </h3>
+      {/* 質問カード */}
+      <motion.div
+        key={currentQuestion}
+        variants={containerVariants}
+        initial="initial"
+        animate="animate"
+        className="p-5 sm:p-6 bg-[#FFF9F3] border-2 border-[#D4B08C] rounded-xl shadow-[3px_3px_0_#D4B08C]"
+      >
+        <h3 className="text-base sm:text-lg font-bold text-[#854D27] text-center mb-5 font-heading leading-snug">
+          {question.question}
+        </h3>
 
-      {/* 選択肢 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {question.options.map((option, index) => {
-          const isSelected = selectedAnswer === index
-          const isCorrect = index === question.correctAnswer
-          const showResult = selectedAnswer !== null
+        {/* 選択肢リスト */}
+        <div className="flex flex-col gap-2.5" role="radiogroup" aria-label="クイズの選択肢">
+          {question.options.map((option, index) => {
+            const isSelected = selectedAnswer === index
+            const isCorrect = index === question.correctAnswer
+            const showResult = selectedAnswer !== null
 
-          let bgColor = '#FFF9F3'
-          if (showResult) {
-            if (isCorrect) bgColor = 'rgba(76, 175, 80, 0.3)'
-            else if (isSelected) bgColor = 'rgba(244, 67, 54, 0.3)'
-          }
+            let stateClasses = 'bg-white/80 text-[#2C1810] border-[#D4B08C] hover:bg-white hover:border-[#854D27]'
+            let iconElement = null
 
-          return (
+            if (showResult) {
+              if (isCorrect) {
+                stateClasses =
+                  'bg-[#E8F5E9] text-[#1B5E20] border-[#2E7D32] shadow-[0_0_8px_rgba(46,125,50,0.25)] font-semibold'
+                iconElement = (
+                  <Icon name="CheckCircle2" size={18} className="text-[#2E7D32] shrink-0" />
+                )
+              } else if (isSelected) {
+                stateClasses =
+                  'bg-[#FFEBEE] text-[#C62828] border-[#C62828] font-semibold'
+                iconElement = (
+                  <Icon name="CircleAlert" size={18} className="text-[#C62828] shrink-0" />
+                )
+              } else {
+                stateClasses = 'bg-white/40 text-[#2C1810]/50 border-[#D4B08C]/40 opacity-70'
+              }
+            }
+
+            return (
+              <button
+                key={index}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => answerQuestion(index)}
+                disabled={selectedAnswer !== null}
+                className={`min-h-[48px] px-4 py-3 border-2 rounded-lg text-left text-sm sm:text-base flex items-center justify-between gap-3 transition-all duration-200 cursor-pointer
+                  focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:outline-none
+                  ${selectedAnswer !== null ? 'cursor-default' : 'active:scale-[0.99]'}
+                  ${stateClasses}
+                `}
+              >
+                <span className="flex-1 leading-snug">{option}</span>
+                {iconElement}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* 次の質問へ進むボタン */}
+        {selectedAnswer !== null && (
+          <motion.div
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-5"
+          >
             <button
-              key={index}
-              onClick={() => answerQuestion(index)}
-              disabled={selectedAnswer !== null}
-              style={{
-                padding: '15px 20px',
-                background: bgColor,
-                color: '#854D27',
-                border: `2px solid ${showResult && isCorrect ? '#4CAF50' : '#D4B08C'}`,
-                borderRadius: '8px',
-                cursor: selectedAnswer !== null ? 'default' : 'pointer',
-                fontFamily: 'var(--font-body)',
-                fontSize: '1rem',
-                textAlign: 'left',
-                transition: 'all 0.3s',
-              }}
+              type="button"
+              onClick={nextQuestion}
+              className="w-full min-h-[44px] px-6 py-3 bg-[#854D27] text-[#FFF9F3] border-2 border-[#D4B08C] font-semibold text-sm sm:text-base cursor-pointer shadow-[3px_3px_0_#D4B08C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_#D4B08C] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:outline-none"
             >
-              {option}
+              {currentQuestion < questions.length - 1 ? t('nextQuestion') : t('viewResult')}
             </button>
-          )
-        })}
-      </div>
-
-      {/* 次へボタン */}
-      {selectedAnswer !== null && (
-        <button
-          onClick={nextQuestion}
-          style={{
-            marginTop: '20px',
-            padding: '12px 30px',
-            background: '#854D27',
-            color: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: 0,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: '1rem',
-            fontWeight: 600,
-            boxShadow: '4px 4px 0 #D4B08C',
-            width: '100%',
-          }}
-        >
-          {currentQuestion < questions.length - 1 ? t('nextQuestion') : t('viewResult')}
-        </button>
-      )}
+          </motion.div>
+        )}
+      </motion.div>
     </div>
   )
 }

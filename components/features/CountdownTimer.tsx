@@ -165,10 +165,10 @@ const PolaroidUnit = React.memo(function PolaroidUnit({ value, label, tapeStyle,
             boxShadow: 'inset 0 1px 3px rgba(74, 36, 0, 0.08)',
           }}
         >
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.span
               key={formattedValue}
-              initial={{ opacity: 0, y: isSeconds ? -3 : 0, scale: 0.96 }}
+              initial={false}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: isSeconds ? 3 : 0, scale: 0.96 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}

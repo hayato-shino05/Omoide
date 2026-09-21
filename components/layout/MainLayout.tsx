@@ -23,6 +23,14 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <MusicPlayerProvider>
       <div className="main-layout">
+        {/* スキップリンク（アクセシビリティ向上） */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[99999] focus:px-4 focus:py-2.5 focus:bg-[#854D27] focus:text-[#FFF9F3] focus:border-2 focus:border-[#D4B08C] focus:rounded-xl focus:shadow-lg focus:outline-none font-semibold text-sm"
+        >
+          メインコンテンツへスキップ
+        </a>
+
         {/* 左上 - 言語 & テーマ (禅・集中モード時は非表示) */}
         {!isZenActive && (
           <div className="fixed-top-left">
@@ -46,7 +54,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         )}
 
         {/* メインコンテンツ */}
-        <main className="main-content pb-24 md:pb-0">
+        <main id="main-content" tabIndex={-1} className="main-content pb-24 md:pb-0 outline-none">
           {children}
         </main>
 

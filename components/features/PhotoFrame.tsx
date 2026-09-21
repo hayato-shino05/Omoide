@@ -251,13 +251,23 @@ export default function PhotoFrame() {
     stopCamera()
   }
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
     setIsCapturing(false)
-  }
+  }, [])
+
+  // コンポーネントアンマウント時のストリームクリーンアップ
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+      }
+    }
+  }, [])
 
   const downloadImage = () => {
     if (!finalImage) return
@@ -331,10 +341,10 @@ export default function PhotoFrame() {
             <div className="photoframe-camera">
               <video ref={videoRef} autoPlay playsInline muted className="photoframe-video" />
               <div className="photoframe-camera-btns">
-                <button onClick={capturePhoto} className="photoframe-btn capture">
+                <button onClick={capturePhoto} className="photoframe-btn capture" aria-label={t('capture')}>
                   <Camera size={18} /> {t('capture')}
                 </button>
-                <button onClick={stopCamera} className="photoframe-btn cancel">
+                <button onClick={stopCamera} className="photoframe-btn cancel" aria-label={t('cancel')}>
                   <X size={18} /> {t('cancel')}
                 </button>
               </div>
@@ -355,6 +365,7 @@ export default function PhotoFrame() {
                   onClick={() => setActiveSlot(i)}
                   className={`photoframe-slot ${activeSlot === i ? 'active' : ''}`}
                   style={{ borderColor: activeSlot === i ? selectedStrip.borderColor : undefined }}
+                  aria-label={t('photoPlaceholder', { index: i + 1 })}
                 >
                   {userImages[i] ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -364,8 +375,12 @@ export default function PhotoFrame() {
                   )}
                 </button>
                 {userImages[i] && (
-                  <button onClick={() => removeImage(i)} className="photoframe-slot-remove">
-                    <X size={10} />
+                  <button
+                    onClick={() => removeImage(i)}
+                    className="photoframe-slot-remove"
+                    aria-label={t('reset')}
+                  >
+                    <X size={12} />
                   </button>
                 )}
               </div>
@@ -385,8 +400,9 @@ export default function PhotoFrame() {
 
 
           <div className="photoframe-note">
-            <label>{t('noteLabel')}</label>
+            <label htmlFor="photoframe-note-input">{t('noteLabel')}</label>
             <input
+              id="photoframe-note-input"
               type="text"
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
@@ -418,62 +434,70 @@ export default function PhotoFrame() {
 
         .photoframe-categories {
           display: flex;
-          gap: 6px;
-          margin-bottom: 10px;
-          overflow-x: auto;
-          padding-bottom: 6px;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .photoframe-cat-btn {
-          padding: 6px 12px;
-          background: transparent;
-          color: #854D27;
-          border: 2px solid #D4B08C;
-          border-radius: 0;
-          cursor: pointer;
-          font-family: var(--font-body);
-          font-size: 0.75em;
-          font-weight: 600;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-
-        .photoframe-cat-btn.active {
-          background: #854D27;
-          color: #FFF9F3;
-        }
-
-        .photoframe-strips {
-          display: flex;
-          gap: 6px;
+          gap: 8px;
           margin-bottom: 12px;
           overflow-x: auto;
           padding-bottom: 6px;
           -webkit-overflow-scrolling: touch;
         }
 
+        .photoframe-cat-btn {
+          min-height: 44px;
+          padding: 8px 16px;
+          background: #FFFDF9;
+          color: #854D27;
+          border: 2px solid #D4B08C;
+          border-radius: 8px;
+          cursor: pointer;
+          font-family: var(--font-body);
+          font-size: 0.85em;
+          font-weight: 600;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.2s ease-out;
+        }
+
+        .photoframe-cat-btn.active {
+          background: #854D27;
+          color: #FFF9F3;
+          border-color: #854D27;
+          box-shadow: 0 4px 12px rgba(133, 77, 39, 0.25);
+        }
+
+        .photoframe-strips {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 16px;
+          overflow-x: auto;
+          padding-bottom: 6px;
+          -webkit-overflow-scrolling: touch;
+        }
+
         .photoframe-strip-btn {
-          padding: 6px 10px;
+          min-height: 44px;
+          padding: 8px 14px;
           background: #FFF9F3;
           color: #854D27;
           border: 2px solid #D4B08C;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
-          font-size: 0.7em;
-          font-weight: 500;
+          font-size: 0.8em;
+          font-weight: 600;
           white-space: nowrap;
-          min-width: 80px;
+          min-width: 90px;
           flex-shrink: 0;
+          transition: all 0.2s ease-out;
         }
 
         .photoframe-strip-btn.active {
-          border-width: 3px;
+          border-width: 2.5px;
+          border-color: #854D27;
+          box-shadow: 0 4px 12px rgba(133, 77, 39, 0.2);
         }
 
         .photoframe-main {
           display: flex;
-          gap: 16px;
+          gap: 20px;
           flex-wrap: wrap;
           justify-content: center;
         }
@@ -484,10 +508,10 @@ export default function PhotoFrame() {
         }
 
         .photoframe-canvas {
-          width: 160px;
+          width: 170px;
           height: auto;
           border-radius: 8px;
-          box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+          box-shadow: 0 8px 24px rgba(44, 24, 16, 0.2);
         }
 
         .photoframe-camera {
@@ -504,27 +528,27 @@ export default function PhotoFrame() {
 
         .photoframe-camera-btns {
           display: flex;
-          gap: 8px;
+          gap: 10px;
           justify-content: center;
-          margin-top: 10px;
+          margin-top: 12px;
         }
 
         .photoframe-controls {
           flex: 1;
-          min-width: 200px;
+          min-width: 220px;
         }
 
         .photoframe-label {
           color: #854D27;
-          font-weight: 600;
-          margin-bottom: 6px;
-          font-size: 0.85em;
+          font-weight: 700;
+          margin-bottom: 8px;
+          font-size: 0.9em;
         }
 
         .photoframe-slots {
           display: flex;
-          gap: 6px;
-          margin-bottom: 12px;
+          gap: 8px;
+          margin-bottom: 16px;
           flex-wrap: wrap;
         }
 
@@ -533,21 +557,23 @@ export default function PhotoFrame() {
         }
 
         .photoframe-slot {
-          width: 50px;
-          height: 50px;
+          width: 52px;
+          height: 52px;
           border: 2px solid #D4B08C;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           overflow: hidden;
-          background: #f5f5f5;
+          background: #FFFDF9;
           padding: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s;
         }
 
         .photoframe-slot.active {
-          border-width: 3px;
+          border-width: 2.5px;
+          box-shadow: 0 0 0 2px rgba(133, 77, 39, 0.3);
         }
 
         .photoframe-slot img {
@@ -558,109 +584,150 @@ export default function PhotoFrame() {
 
         .photoframe-slot-remove {
           position: absolute;
-          top: -5px;
-          right: -5px;
-          width: 18px;
-          height: 18px;
+          top: -8px;
+          right: -8px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: #dc3545;
-          color: #fff;
-          border: none;
+          background: #D95D39;
+          color: #FFFDF9;
+          border: 2px solid #FFFDF9;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+          transition: transform 0.15s;
+        }
+
+        .photoframe-slot-remove:hover {
+          transform: scale(1.15);
+          background: #C64C28;
         }
 
         .photoframe-upload-btns {
           display: flex;
-          gap: 6px;
-          margin-bottom: 12px;
+          gap: 8px;
+          margin-bottom: 16px;
           flex-wrap: wrap;
         }
 
         .photoframe-btn {
-          padding: 8px 14px;
+          min-height: 44px;
+          padding: 10px 18px;
           border: 2px solid #D4B08C;
-          border-radius: 0;
+          border-radius: 8px;
           cursor: pointer;
           display: flex;
           align-items: center;
-          gap: 5px;
-          font-size: 0.8em;
-          font-weight: 600;
+          justify-content: center;
+          gap: 8px;
+          font-size: 0.85em;
+          font-weight: 700;
           font-family: var(--font-body);
+          transition: all 0.2s ease-out;
         }
 
         .photoframe-btn.primary {
           background: #854D27;
           color: #FFF9F3;
+          border-color: #854D27;
+          box-shadow: 0 4px 12px rgba(133, 77, 39, 0.2);
+        }
+
+        .photoframe-btn.primary:hover {
+          background: #6D3D1E;
+          transform: translateY(-1px);
         }
 
         .photoframe-btn.secondary {
-          background: #6c757d;
-          color: #fff;
-          border: none;
+          background: #FFFDF9;
+          color: #854D27;
+          border: 2px solid #D4B08C;
+        }
+
+        .photoframe-btn.secondary:hover {
+          background: rgba(212, 176, 140, 0.2);
         }
 
         .photoframe-btn.success {
-          background: #28a745;
-          color: #fff;
-          border: none;
+          background: #2D5A27;
+          color: #FFFDF9;
+          border: 2px solid #2D5A27;
+          box-shadow: 0 4px 12px rgba(45, 90, 39, 0.25);
+        }
+
+        .photoframe-btn.success:hover:not(:disabled) {
+          background: #23471E;
+          transform: translateY(-1px);
         }
 
         .photoframe-btn.success:disabled {
-          background: #ccc;
+          background: #D4B08C/40;
+          border-color: #D4B08C/40;
+          color: #854D27/50;
           cursor: not-allowed;
+          opacity: 0.5;
         }
 
         .photoframe-btn.capture {
-          background: #28a745;
-          color: #fff;
-          border: none;
-          border-radius: 20px;
+          background: #2D5A27;
+          color: #FFFDF9;
+          border: 2px solid #2D5A27;
+          border-radius: 9999px;
+          min-height: 44px;
         }
 
         .photoframe-btn.cancel {
-          background: #dc3545;
-          color: #fff;
-          border: none;
-          border-radius: 20px;
+          background: #D95D39;
+          color: #FFFDF9;
+          border: 2px solid #D95D39;
+          border-radius: 9999px;
+          min-height: 44px;
         }
 
         .photoframe-note {
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
 
         .photoframe-note label {
           color: #854D27;
-          font-weight: 600;
-          font-size: 0.8em;
+          font-weight: 700;
+          font-size: 0.85em;
           display: block;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
         }
 
         .photoframe-note input {
           width: 100%;
-          padding: 8px 10px;
+          min-height: 44px;
+          padding: 8px 12px;
           border: 2px solid #D4B08C;
-          border-radius: 0;
-          font-size: 0.85em;
+          border-radius: 8px;
+          background: #FFFDF9;
+          color: #2C1810;
+          font-size: 0.9em;
           font-family: var(--font-body);
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        .photoframe-note input:focus {
+          border-color: #854D27;
         }
 
         .photoframe-actions {
           display: flex;
-          gap: 6px;
+          gap: 8px;
           flex-wrap: wrap;
         }
 
         .photoframe-hint {
           text-align: center;
           color: #854D27;
-          opacity: 0.6;
-          margin-top: 12px;
-          font-size: 0.75em;
+          opacity: 0.7;
+          margin-top: 16px;
+          font-size: 0.8em;
         }
 
         @media (max-width: 480px) {
@@ -670,27 +737,11 @@ export default function PhotoFrame() {
           }
 
           .photoframe-canvas {
-            width: 140px;
+            width: 150px;
           }
 
           .photoframe-controls {
             width: 100%;
-          }
-
-          .photoframe-slot {
-            width: 45px;
-            height: 45px;
-          }
-
-          .photoframe-btn {
-            padding: 7px 12px;
-            font-size: 0.75em;
-          }
-
-          .photoframe-cat-btn,
-          .photoframe-strip-btn {
-            font-size: 0.7em;
-            padding: 5px 10px;
           }
         }
       `}</style>

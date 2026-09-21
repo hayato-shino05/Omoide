@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/lib/providers/ThemeProvider'
 import { QueryProvider } from '@/lib/providers/QueryProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import { MotionConfig } from 'framer-motion'
+import { ServiceWorkerRegister } from '@/components/layout/ServiceWorkerRegister'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://happy-birthday.vercel.app'),
@@ -54,7 +55,12 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Omoide',
+  },
 }
 
 export const viewport: Viewport = {
@@ -92,6 +98,7 @@ export default async function RootLayout({
             </LanguageProvider>
           </ThemeProvider>
         </QueryProvider>
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
     </html>

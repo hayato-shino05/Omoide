@@ -26,18 +26,24 @@ function readLocaleFromCookie(): Locale {
 function DefaultErrorFallback({ onRetry, message }: { onRetry: () => void; message?: string }) {
   const locale = readLocaleFromCookie()
   return (
-    <div className="min-h-[200px] flex items-center justify-center">
-      <div className="bg-red-500/10 backdrop-blur-md rounded-2xl p-6 border border-red-500/20 text-center max-w-md">
-        <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-          <Icon name="AlertTriangle" size={24} className="text-rose-300" aria-hidden="true" />
+    <div className="min-h-[220px] flex items-center justify-center p-4">
+      <div
+        role="alert"
+        aria-live="assertive"
+        className="bg-[#FFF9F3] dark:bg-stone-900 rounded-2xl p-6 sm:p-8 border-2 border-[#D4B08C] shadow-[6px_6px_0_#D4B08C] text-center max-w-md w-full"
+      >
+        <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto mb-4 text-rose-500">
+          <Icon name="AlertTriangle" size={24} className="text-rose-500" aria-hidden="true" />
         </div>
-        <h3 className="text-lg font-bold text-white mb-2">{translate(locale, 'error', DEFAULT_LOCALE)}</h3>
-        <p className="text-white/70 text-sm mb-4">
+        <h3 className="text-lg font-bold text-[#854D27] dark:text-stone-100 mb-2 font-heading">
+          {translate(locale, 'error', DEFAULT_LOCALE)}
+        </h3>
+        <p className="text-stone-600 dark:text-stone-300 text-sm mb-6 leading-relaxed font-body">
           {message || translate(locale, 'unexpectedError', DEFAULT_LOCALE)}
         </p>
         <button
           onClick={onRetry}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors cursor-pointer"
+          className="px-6 py-2.5 min-h-[44px] bg-[#854D27] hover:bg-[#6e3e1e] text-[#FFF9F3] border-2 border-[#D4B08C] rounded-xl font-semibold transition-all active:scale-[0.96] shadow-[3px_3px_0_#D4B08C] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
         >
           {translate(locale, 'retry', DEFAULT_LOCALE)}
         </button>

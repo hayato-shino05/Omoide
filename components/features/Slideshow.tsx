@@ -122,19 +122,12 @@ export function Slideshow({ media, autoPlay = true, interval = 5000, onClose }: 
         <button
           onClick={goToPrev}
           aria-label={t('previousMedia')}
+          className="min-w-11 min-h-11 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 active:scale-95 text-white border-none flex items-center justify-center cursor-pointer transition-all z-20"
           style={{
             position: 'absolute',
             left: '20px',
             top: '50%',
             transform: 'translateY(-50%)',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '50px',
-            height: '50px',
-            cursor: 'pointer',
-            fontSize: '1.5rem',
           }}
         >
           <Icon name="ArrowLeft" size={24} />
@@ -142,19 +135,12 @@ export function Slideshow({ media, autoPlay = true, interval = 5000, onClose }: 
         <button
           onClick={goToNext}
           aria-label={t('nextMedia')}
+          className="min-w-11 min-h-11 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 active:scale-95 text-white border-none flex items-center justify-center cursor-pointer transition-all z-20"
           style={{
             position: 'absolute',
             right: '20px',
             top: '50%',
             transform: 'translateY(-50%)',
-            background: 'rgba(255, 255, 255, 0.1)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '50px',
-            height: '50px',
-            cursor: 'pointer',
-            fontSize: '1.5rem',
           }}
         >
           <Icon name="ArrowRight" size={24} />
@@ -162,49 +148,21 @@ export function Slideshow({ media, autoPlay = true, interval = 5000, onClose }: 
       </div>
 
       {/* コントロール */}
-      <div
-        style={{
-          padding: '20px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          gap: '20px',
-          background: 'rgba(0, 0, 0, 0.5)',
-        }}
-      >
+      <div className="p-4 sm:p-5 flex justify-center items-center gap-4 bg-black/60 z-20">
         <button
           onClick={() => setIsPlaying((prev) => !prev)}
-          style={{
-            padding: '10px 20px',
-            background: '#854D27',
-            color: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: 0,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.9rem',
-            boxShadow: '2px 2px 0 #D4B08C',
-          }}
+          className="min-h-11 px-5 py-2.5 bg-[#854D27] text-[#FFF9F3] border-2 border-[#D4B08C] rounded-lg cursor-pointer font-[var(--font-body)] text-sm font-bold shadow-xs hover:bg-[#6D3D1E] active:scale-95 transition-all flex items-center gap-2"
         >
           <Icon name={isPlaying ? 'Pause' : 'Play'} size={18} /> {isPlaying ? t('pause') : t('play')}
         </button>
 
-        <span style={{ color: '#fff', fontSize: '0.9rem' }}>
+        <span className="text-white text-sm font-bold tracking-wide">
           {currentIndex + 1} / {media.length}
         </span>
 
         <button
           onClick={onClose}
-          style={{
-            padding: '10px 20px',
-            background: 'transparent',
-            color: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: 0,
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.9rem',
-          }}
+          className="min-h-11 px-5 py-2.5 bg-white/15 text-[#FFF9F3] border-2 border-[#D4B08C] rounded-lg cursor-pointer font-[var(--font-body)] text-sm font-bold hover:bg-white/25 active:scale-95 transition-all flex items-center gap-2"
         >
           <Icon name="X" size={18} /> {t('close')}
         </button>
@@ -212,33 +170,24 @@ export function Slideshow({ media, autoPlay = true, interval = 5000, onClose }: 
 
       {/* 進行状況ドット */}
       <div
-        style={{
-          position: 'absolute',
-          bottom: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          gap: '8px',
-        }}
+        className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-2 items-center z-20"
       >
         {media.slice(0, 10).map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrentIndex(i)}
             aria-label={t('slide', { index: i + 1 })}
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              border: 'none',
-              background: i === currentIndex ? '#854D27' : 'rgba(255, 255, 255, 0.3)',
-              cursor: 'pointer',
-              transition: 'background 0.3s',
-            }}
-          />
+            className="w-8 h-8 flex items-center justify-center cursor-pointer bg-transparent border-none"
+          >
+            <span
+              className={`block w-2.5 h-2.5 rounded-full transition-all ${
+                i === currentIndex ? 'bg-[#D4B08C] scale-125' : 'bg-white/30 hover:bg-white/60'
+              }`}
+            />
+          </button>
         ))}
         {media.length > 10 && (
-          <span style={{ color: '#fff', fontSize: '0.8rem' }}>+{media.length - 10}</span>
+          <span className="text-white text-xs font-bold">+{media.length - 10}</span>
         )}
       </div>
     </motion.div>

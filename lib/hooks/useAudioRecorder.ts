@@ -155,6 +155,23 @@ export function useAudioRecorder() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }, [])
 
+  // アンマウント時のリソース解放（マイクストリームの停止・タイマー解除・ObjectURL破棄）
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      if (state.audioUrl) {
+        URL.revokeObjectURL(state.audioUrl)
+      }
+    }
+  }, [state.audioUrl])
+
   return {
     ...state,
     startRecording,

@@ -532,7 +532,7 @@ export function TimeCapsule() {
             </label>
             <p className="text-[10px] text-[#854D27]/70">{t('timeCapsuleAccessCodeHint')}</p>
             {accessError && <p className="text-xs text-red-600">{accessError}</p>}
-            <button type="submit" disabled={isAccessing} className="w-full min-h-[44px] rounded-xl bg-[#854D27] py-2 text-xs font-bold text-[#FFF9F3] disabled:opacity-50">
+            <button type="submit" disabled={isAccessing} className="w-full min-h-[44px] rounded-xl bg-[#854D27] hover:bg-[#6D3D1E] py-2 text-xs font-bold text-[#FFF9F3] disabled:opacity-50 cursor-pointer shadow-[2px_2px_0_#D4B08C] focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none transition-colors">
               {t('timeCapsuleRedeemAction')}
             </button>
             {accessedCapsule && (

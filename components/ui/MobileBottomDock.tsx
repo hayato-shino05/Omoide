@@ -22,7 +22,7 @@ const formatTime = (seconds: number): string => {
 
 export function MobileBottomDock() {
   const { t } = useLanguage()
-  const { openModal } = useUIStore()
+  const openModal = useUIStore((state) => state.openModal)
   const {
     isPlaying,
     currentTrack,

@@ -105,6 +105,10 @@ export default function Modal({
         setShouldRender(true)
         setIsAnimating(true)
       })
+
+      // スクロールバー幅を計算してレイアウトシフト（ガタつき）を防止
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.paddingRight = `${scrollBarWidth}px`
       document.body.style.overflow = 'hidden'
       document.addEventListener('keydown', handleEscape)
       document.addEventListener('keydown', handleTab)
@@ -128,6 +132,7 @@ export default function Modal({
       closeTimeoutRef.current = setTimeout(() => {
         setShouldRender(false)
         document.body.style.overflow = ''
+        document.body.style.paddingRight = ''
         if (previousActiveElement.current?.isConnected) previousActiveElement.current.focus()
         previousActiveElement.current = null
       }, 200)
@@ -145,6 +150,7 @@ export default function Modal({
       document.removeEventListener('keydown', handleEscape)
       document.removeEventListener('keydown', handleTab)
       document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
     }
   }, [isOpen, handleEscape, handleTab, initialFocusRef])
 
@@ -242,7 +248,7 @@ export default function Modal({
                   className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer text-[#854D27] hover:opacity-80 active:scale-95 transition-all rounded-lg focus-visible:ring-2 focus-visible:ring-[#854D27]"
                   aria-label={t('close')}
                 >
-                  <Icon name="Close" size={22} useSvg className="text-[#854D27]" aria-hidden="true" />
+                  <Icon name="X" size={22} useSvg className="text-[#854D27]" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -336,20 +342,20 @@ export function ConfirmModal({
         <div className={`w-14 h-14 rounded-full ${style.iconBg} flex items-center justify-center mx-auto mb-4`}>
           {style.icon}
         </div>
-        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-white/70 mb-6">{message}</p>
+        <h3 className="text-lg font-bold text-[#854D27] dark:text-stone-100 mb-2 font-heading">{title}</h3>
+        <p className="text-stone-600 dark:text-stone-300 text-sm mb-6 leading-relaxed font-body">{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 min-h-[44px] bg-[#FFF9F3] hover:bg-[#FAF0E6] text-[#854D27] border-2 border-[#D4B08C] rounded-xl font-semibold transition-all active:scale-[0.96] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
           >
             {resolvedCancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 px-4 py-2.5 ${style.confirmClass} text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2`}
+            className={`flex-1 px-4 py-2.5 min-h-[44px] ${style.confirmClass} text-white rounded-xl font-semibold transition-all active:scale-[0.96] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
           >
             {isLoading && (
               <Icon name="LoaderCircle" size={16} className="animate-spin" aria-hidden="true" />

@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { getSupabase } from '@/lib/supabase/client'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { Icon } from '@/components/ui/Icon'
@@ -23,82 +24,85 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
   const openModal = useUIStore((state) => state.openModal)
   const [memories, setMemories] = useState<FlashbackMemory[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  useEffect(() => {
-    async function fetchFlashbackMemories() {
-      setLoading(true)
-      try {
-        const supabase = getSupabase()
-        const now = new Date()
-        const currentMonth = now.getMonth() + 1
-        const currentDay = now.getDate()
-        const currentYear = now.getFullYear()
+  const fetchFlashbackMemories = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const supabase = getSupabase()
+      const now = new Date()
+      const currentMonth = now.getMonth() + 1
+      const currentDay = now.getDate()
+      const currentYear = now.getFullYear()
 
-        // メディアと掲示板投稿を取得
-        const [mediaRes, postsRes] = await Promise.all([
-          supabase.from('media_submissions').select('*').order('created_at', { ascending: false }).limit(100),
-          supabase.from('bulletin_posts').select('*').order('created_at', { ascending: false }).limit(100),
-        ])
+      // メディアと掲示板投稿を取得
+      const [mediaRes, postsRes] = await Promise.all([
+        supabase.from('media_submissions').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('bulletin_posts').select('*').order('created_at', { ascending: false }).limit(100),
+      ])
 
-        const matchedMemories: FlashbackMemory[] = []
+      const matchedMemories: FlashbackMemory[] = []
 
-        // メディアの照合
-        if (mediaRes.data) {
-          for (const item of mediaRes.data) {
-            const date = new Date(item.created_at)
-            if (
-              date.getMonth() + 1 === currentMonth &&
-              date.getDate() === currentDay &&
-              date.getFullYear() < currentYear
-            ) {
-              const { data } = supabase.storage
-                .from('community-media')
-                .getPublicUrl(item.object_path)
+      // メディアの照合
+      if (mediaRes.data) {
+        for (const item of mediaRes.data) {
+          const date = new Date(item.created_at)
+          if (
+            date.getMonth() + 1 === currentMonth &&
+            date.getDate() === currentDay &&
+            date.getFullYear() < currentYear
+          ) {
+            const { data } = supabase.storage
+              .from('community-media')
+              .getPublicUrl(item.object_path)
 
-              matchedMemories.push({
-                id: `media-${item.id}`,
-                type: 'media',
-                sender: item.sender,
-                content: item.description || undefined,
-                mediaUrl: data?.publicUrl,
-                mediaKind: item.media_kind as 'image' | 'video' | 'audio',
-                createdAt: item.created_at,
-                yearsAgo: currentYear - date.getFullYear(),
-              })
-            }
+            matchedMemories.push({
+              id: `media-${item.id}`,
+              type: 'media',
+              sender: item.sender,
+              content: item.description || undefined,
+              mediaUrl: data?.publicUrl,
+              mediaKind: item.media_kind as 'image' | 'video' | 'audio',
+              createdAt: item.created_at,
+              yearsAgo: currentYear - date.getFullYear(),
+            })
           }
         }
-
-        // 掲示板投稿の照合
-        if (postsRes.data) {
-          for (const item of postsRes.data) {
-            const date = new Date(item.created_at)
-            if (
-              date.getMonth() + 1 === currentMonth &&
-              date.getDate() === currentDay &&
-              date.getFullYear() < currentYear
-            ) {
-              matchedMemories.push({
-                id: `post-${item.id}`,
-                type: 'post',
-                sender: item.sender,
-                content: item.message,
-                createdAt: item.created_at,
-                yearsAgo: currentYear - date.getFullYear(),
-              })
-            }
-          }
-        }
-
-        setMemories(matchedMemories)
-      } catch (err) {
-        console.error('Failed to fetch flashback memories:', err)
-      } finally {
-        setLoading(false)
       }
-    }
 
+      // 掲示板投稿の照合
+      if (postsRes.data) {
+        for (const item of postsRes.data) {
+          const date = new Date(item.created_at)
+          if (
+            date.getMonth() + 1 === currentMonth &&
+            date.getDate() === currentDay &&
+            date.getFullYear() < currentYear
+          ) {
+            matchedMemories.push({
+              id: `post-${item.id}`,
+              type: 'post',
+              sender: item.sender,
+              content: item.message,
+              createdAt: item.created_at,
+              yearsAgo: currentYear - date.getFullYear(),
+            })
+          }
+        }
+      }
+
+      setMemories(matchedMemories)
+    } catch (err) {
+      console.error('Failed to fetch flashback memories:', err)
+      setError(t('error'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchFlashbackMemories()
   }, [])
 
@@ -107,9 +111,21 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center p-2 max-w-lg mx-auto">
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div className="w-10 h-10 border-3 border-[#D4B08C]/30 border-t-[#854D27] rounded-full animate-spin" />
-          <span className="text-sm text-[#854D27]/80">{t('loading')}</span>
+        <div className="w-full bg-[#FFF9F3] border-2 border-[#D4B08C]/40 rounded-2xl p-6 shadow-sm animate-pulse flex flex-col items-center gap-4 py-12" role="status" aria-label={t('loading')}>
+          <div className="w-full h-56 rounded-xl bg-[#D4B08C]/20" />
+          <div className="w-3/4 h-4 rounded-full bg-[#D4B08C]/30" />
+          <div className="w-1/2 h-3 rounded-full bg-[#D4B08C]/20" />
+        </div>
+      ) : error ? (
+        <div className="w-full bg-[#FFF9F3] border-2 border-red-300 rounded-2xl p-6 text-center shadow-sm" role="alert">
+          <p className="text-sm text-red-600 font-bold mb-4">{error}</p>
+          <button
+            onClick={() => fetchFlashbackMemories()}
+            className="min-h-11 px-5 py-2.5 rounded-xl bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer inline-flex items-center gap-2"
+          >
+            <RotateCcw size={16} />
+            {t('retry')}
+          </button>
         </div>
       ) : memories.length > 0 && currentMemory ? (
         <div className="w-full">
@@ -172,7 +188,8 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
             <div className="flex items-center justify-between mt-4 px-2">
               <button
                 onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : memories.length - 1))}
-                className="px-3 py-1.5 rounded-lg bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 transition-all cursor-pointer"
+                className="min-h-11 min-w-11 px-4 py-2.5 rounded-xl bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs"
+                aria-label={t('previousMedia')}
               >
                 {t('previousMedia')}
               </button>
@@ -181,7 +198,8 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
               </span>
               <button
                 onClick={() => setCurrentIndex((prev) => (prev < memories.length - 1 ? prev + 1 : 0))}
-                className="px-3 py-1.5 rounded-lg bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 transition-all cursor-pointer"
+                className="min-h-11 min-w-11 px-4 py-2.5 rounded-xl bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center shadow-xs"
+                aria-label={t('nextMedia')}
               >
                 {t('nextMedia')}
               </button>
@@ -199,13 +217,13 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
             {t('flashbackEmptyDesc')}
           </p>
 
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => {
                 onClose?.()
                 openModal('message')
               }}
-              className="px-4 py-2 rounded-xl bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 transition-all shadow-md cursor-pointer"
+              className="min-h-11 px-5 py-2.5 rounded-xl bg-[#854D27] text-[#FFF9F3] text-xs font-bold hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center"
             >
               {t('sendMessage')}
             </button>
@@ -214,7 +232,7 @@ export function OnThisDayFlashback({ onClose }: { onClose?: () => void }) {
                 onClose?.()
                 openModal('album')
               }}
-              className="px-4 py-2 rounded-xl bg-transparent border border-[#854D27] text-[#854D27] text-xs font-bold hover:bg-[#854D27]/10 transition-all cursor-pointer"
+              className="min-h-11 px-5 py-2.5 rounded-xl bg-transparent border border-[#854D27] text-[#854D27] text-xs font-bold hover:bg-[#854D27]/10 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
             >
               {t('viewAlbum')}
             </button>

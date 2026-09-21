@@ -113,6 +113,9 @@ describe('OmikujiModal & DailyOmikuji', () => {
     expect(screen.getByText(/ラッキーカラー|Lucky Color/i)).toBeInTheDocument()
     expect(screen.getByText(/ラッキーアイテム|Lucky Item/i)).toBeInTheDocument()
 
+    // おみくじ画像保存ボタンの存在を確認
+    expect(screen.getByRole('button', { name: /おみくじ画像を保存|Save Fortune Card/i })).toBeInTheDocument()
+
     vi.useRealTimers()
   })
 })

@@ -57,15 +57,15 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
       ))}
 
       {/* メインのギフト表示 */}
-      <div className="relative z-10 flex flex-col items-center animate-bounce-in">
+      <div className="relative z-10 flex flex-col items-center animate-scale-fade-in">
         <div className="text-8xl mb-4">
           {emoji}
         </div>
 
         {/* ギフト情報 */}
-        <div className="bg-white/95 text-[#2C1810] border-2 border-[#D4B08C] shadow-lg rounded-2xl px-8 py-4 text-center">
-          <p className="text-2xl font-bold text-[#854D27] mb-1">{giftName}</p>
-          <p className="text-[#5D4037] font-medium">
+        <div className="bg-[#FFF9F3] text-[#2C1810] border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C] rounded-2xl px-8 py-5 text-center">
+          <p className="text-2xl font-bold text-[#854D27] mb-1 font-serif">{giftName}</p>
+          <p className="text-[#854D27]/90 font-medium text-sm">
             <span className="font-bold text-[#2C1810]">{sender}</span> {t('giftFrom')}
           </p>
         </div>
@@ -77,8 +77,8 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
           to { opacity: 1; }
         }
 
-        @keyframes bounce-in {
-          0% { transform: scale3d(0.6, 0.6, 1); opacity: 0; }
+        @keyframes scale-fade-in {
+          0% { transform: scale3d(0.85, 0.85, 1); opacity: 0; }
           100% { transform: scale3d(1, 1, 1); opacity: 1; }
         }
 
@@ -92,14 +92,24 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
           will-change: opacity;
         }
 
-        .animate-bounce-in {
-          animation: bounce-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .animate-scale-fade-in {
+          animation: scale-fade-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
           will-change: transform, opacity;
         }
 
         .animate-float-up {
           animation: float-up 2s ease-out forwards;
           will-change: transform, opacity;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fade-in,
+          .animate-scale-fade-in,
+          .animate-float-up {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+          }
         }
       `}</style>
     </div>

@@ -20,8 +20,19 @@ export function MessageList({ limit }: MessageListProps) {
 
   if (isLoading) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px' }}>
-        <p style={{ color: '#854D27' }}>{t('loading')}</p>
+      <div style={{ textAlign: 'center', padding: '30px' }}>
+        <div
+          className="animate-spin"
+          style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #D4B08C',
+            borderTopColor: '#854D27',
+            borderRadius: '50%',
+            margin: '0 auto',
+          }}
+        />
+        <p style={{ marginTop: '12px', color: '#854D27', fontSize: '0.85rem' }}>{t('loading')}</p>
       </div>
     )
   }
@@ -29,15 +40,15 @@ export function MessageList({ limit }: MessageListProps) {
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
-        <p style={{ color: '#dc3545' }}>{error}</p>
+        <p style={{ color: '#dc3545', fontSize: '0.9rem', fontWeight: 600 }}>{error}</p>
       </div>
     )
   }
 
   if (messages.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '20px' }}>
-        <p style={{ color: '#854D27' }}>{t('noWishes')}</p>
+      <div style={{ textAlign: 'center', padding: '30px 20px', background: 'rgba(212, 176, 140, 0.15)', borderRadius: '8px', border: '1px dashed #D4B08C' }}>
+        <p style={{ color: '#854D27', fontSize: '0.9rem', margin: 0, fontWeight: 500 }}>{t('noWishes')}</p>
       </div>
     )
   }

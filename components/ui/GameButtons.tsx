@@ -28,16 +28,16 @@ export const GameButtons = React.memo(function GameButtons() {
         <MobileGameMenu />
       </div>
 
-      <nav aria-label="Games Menu" className="games-container games-desktop-only">
+      <nav aria-label={t('games')} className="games-container games-desktop-only">
         {games.map((game) => {
           return (
             <button
               key={game.id}
               type="button"
-              className="game-button btn-vintage flex items-center gap-1.5 px-4 py-2 text-xs min-h-[44px] cursor-pointer whitespace-nowrap"
+              className="game-button btn-vintage flex items-center gap-1.5 px-4 py-2 text-xs min-h-[44px] cursor-pointer whitespace-nowrap active:scale-[0.96] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
               onClick={() => openModal(game.id)}
             >
-              <Icon name={game.icon} size={18} />
+              <Icon name={game.icon} size={18} aria-hidden="true" />
               <span>{game.label}</span>
             </button>
           )

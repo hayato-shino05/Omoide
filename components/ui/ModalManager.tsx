@@ -108,70 +108,6 @@ export const ModalManager = React.memo(function ModalManager() {
   )
   const { t } = useLanguage()
 
-  const modalConfig: Record<string, { title: string; content: React.ReactNode; size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'widescreen' }> = {
-    album: {
-      title: t('viewAlbum'),
-      content: <PhotoGallery />,
-      size: 'widescreen' as const,
-    },
-    photoFrame: {
-      title: t('photoFrame'),
-      content: <PhotoFrame />,
-      size: 'widescreen' as const,
-    },
-    message: {
-      title: t('sendMessage'),
-      content: (
-        <MessageForm
-          birthdayPerson={messageModalPayload?.birthdayPerson}
-          initialThreadId={messageModalPayload?.threadId}
-          onSuccess={closeModal}
-        />
-      ),
-    },
-    bulletin: {
-      title: t('bulletinBoard'),
-      content: <BulletinBoard />,
-      size: 'full' as const,
-    },
-    memoryGame: {
-      title: t('memoryGame'),
-      content: <MemoryGame onClose={closeModal} />,
-    },
-    puzzleGame: {
-      title: t('puzzleGame'),
-      content: <PuzzleGame onClose={closeModal} />,
-    },
-    calendar: {
-      title: t('birthdayCalendar'),
-      content: <BirthdayCalendar onClose={closeModal} />,
-    },
-    quiz: {
-      title: t('birthdayQuiz'),
-      content: <BirthdayQuiz onClose={closeModal} />,
-    },
-    flashback: {
-      title: t('flashbackTitle'),
-      content: <OnThisDayFlashback onClose={closeModal} />,
-      size: 'md' as const,
-    },
-    omikuji: {
-      title: t('omikujiTitle'),
-      content: <DailyOmikuji onClose={closeModal} />,
-      size: 'md' as const,
-    },
-    timeCapsule: {
-      title: t('timeCapsuleTitle'),
-      content: <TimeCapsule />,
-      size: 'md' as const,
-    },
-    studyRoom: {
-      title: t('studyRoomTitle'),
-      content: <StudyRoomHub />,
-      size: 'full' as const,
-    },
-  }
-
   const renderActiveModal = () => {
     if (!activeModal) return null
 
@@ -180,14 +116,79 @@ export const ModalManager = React.memo(function ModalManager() {
       return <ZenFocusModal isOpen={true} onClose={closeModal} />
     }
 
-    const config = modalConfig[activeModal]
-    if (!config) return null
+    let title = ''
+    let content: React.ReactNode = null
+    let size: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'widescreen' = 'lg'
 
-    const size = config.size || 'lg'
+    switch (activeModal) {
+      case 'album':
+        title = t('viewAlbum')
+        content = <PhotoGallery />
+        size = 'widescreen'
+        break
+      case 'photoFrame':
+        title = t('photoFrame')
+        content = <PhotoFrame />
+        size = 'widescreen'
+        break
+      case 'message':
+        title = t('sendMessage')
+        content = (
+          <MessageForm
+            birthdayPerson={messageModalPayload?.birthdayPerson}
+            initialThreadId={messageModalPayload?.threadId}
+            onSuccess={closeModal}
+          />
+        )
+        break
+      case 'bulletin':
+        title = t('bulletinBoard')
+        content = <BulletinBoard />
+        size = 'full'
+        break
+      case 'memoryGame':
+        title = t('memoryGame')
+        content = <MemoryGame onClose={closeModal} />
+        break
+      case 'puzzleGame':
+        title = t('puzzleGame')
+        content = <PuzzleGame onClose={closeModal} />
+        break
+      case 'calendar':
+        title = t('birthdayCalendar')
+        content = <BirthdayCalendar onClose={closeModal} />
+        break
+      case 'quiz':
+        title = t('birthdayQuiz')
+        content = <BirthdayQuiz onClose={closeModal} />
+        break
+      case 'flashback':
+        title = t('flashbackTitle')
+        content = <OnThisDayFlashback onClose={closeModal} />
+        size = 'md'
+        break
+      case 'omikuji':
+        title = t('omikujiTitle')
+        content = <DailyOmikuji onClose={closeModal} />
+        size = 'md'
+        break
+      case 'timeCapsule':
+        title = t('timeCapsuleTitle')
+        content = <TimeCapsule />
+        size = 'md'
+        break
+      case 'studyRoom':
+        title = t('studyRoomTitle')
+        content = <StudyRoomHub />
+        size = 'full'
+        break
+      default:
+        return null
+    }
 
     return (
-      <Modal isOpen={true} onClose={closeModal} title={config.title} size={size}>
-        {config.content}
+      <Modal isOpen={true} onClose={closeModal} title={title} size={size}>
+        {content}
       </Modal>
     )
   }

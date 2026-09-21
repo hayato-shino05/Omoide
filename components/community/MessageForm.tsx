@@ -73,6 +73,15 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
     }
   }, [])
 
+  // コンポーネントアンマウント時のプレビューURL解放（メモリリーク防止）
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   // 返信対象となるスレッドおよび掲示板投稿の取得
   const fetchTargetPosts = useCallback(async () => {
     setIsLoadingTargets(true)
@@ -443,11 +452,11 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
       {/* モード説明バナー */}
       <div
         style={{
-          padding: '8px 12px',
+          padding: '10px 14px',
           background: mode === 'new' ? 'rgba(133, 77, 39, 0.06)' : 'rgba(217, 93, 57, 0.08)',
-          borderLeft: `3px solid ${mode === 'new' ? '#854D27' : '#D95D39'}`,
-          borderRadius: '4px',
-          fontSize: '0.8rem',
+          border: `1.5px solid ${mode === 'new' ? '#D4B08C' : '#D95D39'}`,
+          borderRadius: '8px',
+          fontSize: '0.82rem',
           color: '#854D27',
           lineHeight: '1.4',
         }}
@@ -756,9 +765,12 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
             <div
               style={{
                 height: '100%',
-                width: `${uploadProgress}%`,
+                width: '100%',
                 background: '#854D27',
-                transition: 'width 0.3s',
+                transform: `scaleX(${uploadProgress / 100})`,
+                transformOrigin: 'left',
+                transition: 'transform 0.3s ease-out',
+                willChange: 'transform',
               }}
             />
           </div>
@@ -776,9 +788,10 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
             color: '#dc3545',
             background: 'rgba(220, 53, 69, 0.1)',
             padding: '8px 12px',
-            borderRadius: '6px',
+            borderRadius: '8px',
             border: '1px solid rgba(220, 53, 69, 0.3)',
             fontSize: '0.85rem',
+            fontWeight: 600,
           }}
         >
           {error}
@@ -791,20 +804,22 @@ export function MessageForm({ birthdayPerson, initialThreadId, defaultMode = 'ne
         disabled={isSubmitting}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
+        className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
         style={{
           width: '100%',
+          minHeight: '44px',
           padding: '12px 20px',
           background: isSubmitting ? '#999' : mode === 'reply' ? '#D95D39' : '#854D27',
           color: '#FFF9F3',
           border: '2px solid #D4B08C',
-          borderRadius: 0,
+          borderRadius: '8px',
           cursor: isSubmitting ? 'not-allowed' : 'pointer',
           fontFamily: 'var(--font-body)',
           fontSize: '0.95rem',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '1px',
-          boxShadow: '4px 4px 0 #D4B08C',
+          boxShadow: '3px 3px 0 #D4B08C',
           transition: 'background 0.2s',
         }}
       >

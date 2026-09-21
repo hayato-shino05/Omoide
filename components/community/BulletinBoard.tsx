@@ -83,17 +83,21 @@ export default function BulletinBoard() {
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '40px' }}>
-        <p style={{ color: '#dc3545', marginBottom: '16px' }}>{error}</p>
+        <p style={{ color: '#dc3545', marginBottom: '16px', fontWeight: 600 }}>{error}</p>
         <button
+          type="button"
           onClick={refetch}
+          className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
           style={{
-            padding: '10px 20px',
+            minHeight: '44px',
+            padding: '10px 24px',
             background: '#854D27',
             color: '#FFF9F3',
             border: '2px solid #D4B08C',
-            borderRadius: 0,
+            borderRadius: '8px',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
+            fontWeight: 700,
             boxShadow: '3px 3px 0 #D4B08C',
           }}
         >
@@ -118,8 +122,8 @@ export default function BulletinBoard() {
       {/* ヘッダー */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Icon name="ClipboardList" size={24} style={{ color: '#2D8CFF' }} />
-          <h3 style={{ color: '#854D27', margin: 0, fontSize: '1.2rem' }}>
+          <Icon name="ClipboardList" size={24} style={{ color: '#D95D39' }} />
+          <h3 style={{ color: '#854D27', margin: 0, fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>
             {t('bulletinMessagesCount', { count: posts.length })}
           </h3>
         </div>
@@ -129,8 +133,8 @@ export default function BulletinBoard() {
       {!threadsLoading && birthdayThreads.length > 0 && (
         <section style={{ marginBottom: '28px' }} aria-labelledby="birthday-threads-heading">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <Icon name="Cake" size={22} style={{ color: '#E91E63' }} />
-            <h4 id="birthday-threads-heading" style={{ color: '#854D27', margin: 0, fontSize: '1.05rem' }}>
+            <Icon name="Cake" size={22} style={{ color: '#D95D39' }} />
+            <h4 id="birthday-threads-heading" style={{ color: '#854D27', margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-heading)' }}>
               {t('birthdayThreadsTitle')}
             </h4>
           </div>
@@ -146,6 +150,7 @@ export default function BulletinBoard() {
                 key={thread.id}
                 role="button"
                 tabIndex={0}
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
                 onClick={() => setSelectedPost(toPost(thread))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -157,23 +162,25 @@ export default function BulletinBoard() {
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px',
-                  padding: '14px',
+                  padding: '16px',
                   background: '#FFF9F3',
                   border: '2px solid #D4B08C',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   cursor: 'pointer',
                   textAlign: 'left',
                   fontFamily: 'var(--font-body)',
-                  boxShadow: '2px 2px 0 #D4B08C',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  boxShadow: '3px 3px 0 #D4B08C',
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = '4px 4px 0 #D4B08C'
+                  e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
+                  e.currentTarget.style.borderColor = '#854D27'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '2px 2px 0 #D4B08C'
+                  e.currentTarget.style.boxShadow = '3px 3px 0 #D4B08C'
+                  e.currentTarget.style.borderColor = '#D4B08C'
                 }}
               >
                 <span
@@ -182,11 +189,11 @@ export default function BulletinBoard() {
                     alignItems: 'center',
                     gap: '4px',
                     alignSelf: 'flex-start',
-                    padding: '2px 8px',
+                    padding: '3px 10px',
                     borderRadius: '999px',
-                    background: 'rgba(233, 30, 99, 0.1)',
-                    color: '#E91E63',
-                    fontSize: '0.68rem',
+                    background: 'rgba(217, 93, 57, 0.12)',
+                    color: '#D95D39',
+                    fontSize: '0.72rem',
                     fontWeight: 700,
                     letterSpacing: '0.02em',
                   }}
@@ -203,6 +210,7 @@ export default function BulletinBoard() {
                       borderRadius: '8px',
                       overflow: 'hidden',
                       display: 'block',
+                      border: '1px solid #D4B08C',
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -240,6 +248,7 @@ export default function BulletinBoard() {
                         justifyContent: 'center',
                         fontSize: '1.6rem',
                         fontWeight: 700,
+                        boxShadow: '1px 1px 0 #D4B08C',
                       }}
                     >
                       {thread.birthday_person?.[0]?.toUpperCase() || '?'}
@@ -265,7 +274,7 @@ export default function BulletinBoard() {
                       display: 'block',
                       color: '#854D27',
                       fontSize: '0.78rem',
-                      opacity: 0.7,
+                      opacity: 0.8,
                       marginTop: '2px',
                     }}
                   >
@@ -283,22 +292,24 @@ export default function BulletinBoard() {
                       threadId: thread.id,
                     })
                   }}
+                  className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
                     width: '100%',
+                    minHeight: '44px',
                     padding: '8px 12px',
                     marginTop: '4px',
                     background: '#854D27',
                     color: '#FFF9F3',
                     border: '1.5px solid #D4B08C',
-                    borderRadius: '6px',
-                    fontSize: '0.8rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    boxShadow: '1px 1px 0 #D4B08C',
+                    boxShadow: '2px 2px 0 #D4B08C',
                     transition: 'background 0.2s, border-color 0.2s',
                   }}
                   onMouseEnter={(e) => {
@@ -310,7 +321,7 @@ export default function BulletinBoard() {
                     e.currentTarget.style.borderColor = '#D4B08C'
                   }}
                 >
-                  <Icon name="Music" size={14} />
+                  <Icon name="Music" size={15} />
                   <span>{t('celebrateWithMusic')}</span>
                 </button>
               </div>
@@ -321,23 +332,24 @@ export default function BulletinBoard() {
 
       {/* 投稿グリッド */}
       {posts.length === 0 ? (
-        <div 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          style={{
+            textAlign: 'center',
             padding: '60px 20px',
-            background: 'rgba(212, 176, 140, 0.1)',
-            borderRadius: '8px',
+            background: 'rgba(212, 176, 140, 0.15)',
+            border: '2px dashed #D4B08C',
+            borderRadius: '12px',
           }}
         >
-          <Icon name="Mail" size={48} style={{ color: '#E91E63', display: 'block', margin: '0 auto 16px' }} />
-          <p style={{ color: '#854D27', opacity: 0.7 }}>
+          <Icon name="Mail" size={48} style={{ color: '#D95D39', display: 'block', margin: '0 auto 16px' }} />
+          <p style={{ color: '#854D27', fontWeight: 600 }}>
             {t('noBulletinMessages')}
           </p>
         </div>
       ) : (
-        <div 
-          style={{ 
-            display: 'grid', 
+        <div
+          style={{
+            display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '16px',
             maxHeight: '60vh',

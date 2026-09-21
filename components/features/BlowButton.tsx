@@ -23,28 +23,29 @@ export function BlowButton({ onClick, disabled, allCandlesBlown }: BlowButtonPro
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1.5, duration: 0.5 }}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.96 }}
       onClick={onClick}
       disabled={disabled}
-      className="relative px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-xl font-bold rounded-full shadow-2xl overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      className="relative min-h-12 px-8 py-3.5 bg-gradient-to-r from-[#D95D39] via-[#C64C28] to-[#854D27] hover:brightness-110 text-lg sm:text-xl font-bold rounded-full shadow-xl border-2 border-[#D4B08C]/80 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
     >
-      {/* ボタンの光沢エフェクト */}
+      {/* 和紙の風をイメージした光沢エフェクト */}
       <motion.div
         animate={{
           x: ['-100%', '200%'],
         }}
         transition={{
-          duration: 2,
+          duration: 2.4,
           repeat: Infinity,
-          repeatDelay: 1,
+          repeatDelay: 1.2,
+          ease: 'easeInOut',
         }}
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none"
       />
 
       <span
-        className="relative z-10 inline-flex items-center gap-2"
-        style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+        className="relative z-10 inline-flex items-center gap-2 font-black tracking-wide"
+        style={{ color: '#FFFDF9', WebkitTextFillColor: '#FFFDF9' }}
       >
         <Icon name="Wind" size={20} />
         {t('blowCandles')}

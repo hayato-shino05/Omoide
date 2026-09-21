@@ -95,11 +95,10 @@ export function BirthdayCake({ candleCount = 5, onAllCandlesBlown }: BirthdayCak
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
             onClick={handleEnableMic}
-            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-full shadow-lg transition-colors cursor-pointer"
-            style={{ color: '#ffffff' }}
+            className="min-h-11 min-w-11 px-6 py-3 bg-[#854D27] hover:bg-[#6D3D1E] active:scale-95 text-[#FFF9F3] border border-[#D4B08C] rounded-full shadow-lg transition-all cursor-pointer font-bold text-sm"
           >
             <span
-              style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+              style={{ color: '#FFF9F3', WebkitTextFillColor: '#FFF9F3' }}
               className="inline-flex items-center gap-2"
             >
               <Icon name="Mic" size={18} />

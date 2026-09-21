@@ -88,11 +88,11 @@ export function CountdownDisplay({ selectedBirthday }: { selectedBirthday?: Birt
             {/* 左上の非表示ボタン（背景をじっくり鑑賞するためのトグルボタン） */}
             <button
               onClick={() => setIsHidden(true)}
-              className="absolute top-3 left-3 sm:top-4 sm:left-4 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/80 hover:bg-white border border-white/80 flex items-center justify-center text-[#6E3902] hover:text-[#2C1400] shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="absolute top-2 left-2 sm:top-3 sm:left-3 z-20 min-w-11 min-h-11 w-11 h-11 rounded-full bg-white/80 hover:bg-white border border-white/80 flex items-center justify-center text-[#6E3902] hover:text-[#2C1400] shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
               title={t('countdownHideTitle')}
               aria-label={t('countdownHide')}
             >
-              <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <EyeOff className="w-4 h-4" />
             </button>
 
             {/* 右上のクリップとヴィンテージチケット装飾 */}

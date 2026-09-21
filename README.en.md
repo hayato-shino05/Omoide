@@ -69,6 +69,7 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | `Camera` | Photo booth / frame | Applies seasonal frames to WebRTC camera captures or library images and downloads the result as an image. |
 | `Clock` | On This Day Flashback | Revisit memories and photos from past milestones on the same calendar day. |
 | `Mail` | Time Capsule | Seal a letter with an optional photo for a future milestone date, share it with an access code, and print an unlocked capsule as a keepsake card. |
+| `Download` | Keepsake Card & Omikuji High-Res Exporter | Generates Retina 2x PNG images using HTML5 Canvas for customized memory cards, polaroid memories, and omikuji fortune results. |
 | `Tags` | Tag management | Adds searchable tags to media files. |
 | `Upload` | Media upload | Supports image and video uploads through `react-dropzone`. |
 | `Search` | Search | Helps users find media by tags or text. |
@@ -77,9 +78,9 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 
 | Icon | Feature | Description |
 |------|---------|-------------|
-| `Brain` | Memory game | Card matching mini-game for entertainment. |
+| `Brain` | Memory game | Card matching mini-game with Supabase `memory_card_decks` dynamic loading and offline fallback. |
 | `Puzzle` | Jigsaw puzzle | Creates customizable jigsaw puzzles from memory photos. |
-| `HelpCircle` | Birthday quiz | Interactive trivia quiz for the celebrant. |
+| `HelpCircle` | Birthday quiz | Interactive trivia quiz powered by Supabase `birthday_quizzes` & `quiz_questions` with offline fallback. |
 | `Calendar` | Birthday calendar | Monthly overview of birthdays and anniversaries. |
 
 ### COMMUNITY
@@ -107,7 +108,8 @@ Beyond birthday countdowns and 2D/3D cake candle-blowing, it brings together a T
 | Icon | Feature | Description |
 |------|---------|-------------|
 | `Palette` | Four seasons | Dynamic visual themes for Spring, Summer, Autumn, and Winter. |
-| `CalendarDays` | 13 Festival themes | Dynamic themes for Hanami, Tanabata, Obon, Tsukimi, Shogatsu, Halloween, Christmas, etc. |
+| `CalendarDays` | 13 Festival themes | Dynamic themes for Hanami, Tanabata, Obon, Tsukimi, Shogatsu, Halloween, Christmas, etc. powered by Supabase `festival_packs`. |
+| `Smartphone` | PWA & Offline Support | Progressive Web App manifest (`manifest.webmanifest`) and Service Worker caching for seamless offline access to music, fonts, and ambient soundscapes. |
 | `Compass` | Mobile Bottom Dock & Drawer | Mobile-first bottom dock and expandable Japanese memory drawer. |
 | `Type` | Japanese Typography System | High-contrast font stack: Windows (Yu Gothic / Meiryo), macOS / iOS (Hiragino Sans), and Mincho Serif (Yu Mincho / Noto Serif JP). |
 | `Languages` | Multi-language (i18n) | Seamless switching between Japanese (JA) and English (EN). |

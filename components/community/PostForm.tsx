@@ -34,6 +34,15 @@ export default function PostForm({ onSubmit }: PostFormProps) {
   const [cameraMode, setCameraMode] = useState<'photo' | 'video'>('photo')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // コンポーネントアンマウント時のプレビューURL解放（メモリリーク防止）
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const handleSelectedFile = (file: File): boolean => {
     const normalizedFile = normalizeMediaFile(file)
     const validation = validateCommunityMediaFile(normalizedFile)
@@ -119,20 +128,21 @@ export default function PostForm({ onSubmit }: PostFormProps) {
   const isVideo = selectedFile?.type.startsWith('video/')
 
   return (
-    <form 
-      onSubmit={handleSubmit} 
+    <form
+      onSubmit={handleSubmit}
       style={{
-        background: 'rgba(212, 176, 140, 0.1)',
+        background: '#FFF9F3',
         border: '2px solid #D4B08C',
-        borderRadius: '8px',
-        padding: '16px',
+        borderRadius: '12px',
+        padding: '18px',
+        boxShadow: '3px 3px 0 #D4B08C',
       }}
     >
       <div style={{ display: 'flex', gap: '12px' }}>
-        <div 
+        <div
           style={{
-            width: '40px',
-            height: '40px',
+            width: '42px',
+            height: '42px',
             borderRadius: '50%',
             background: '#854D27',
             display: 'flex',
@@ -140,111 +150,226 @@ export default function PostForm({ onSubmit }: PostFormProps) {
             justifyContent: 'center',
             color: '#FFF9F3',
             fontWeight: 'bold',
+            fontSize: '1.05rem',
             flexShrink: 0,
+            border: '1.5px solid #D4B08C',
+            boxShadow: '1px 1px 0 #D4B08C',
           }}
+          aria-hidden="true"
         >
           {author ? author[0].toUpperCase() : '?'}
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <input
-            type="text"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder={t('yourName')}
-            required
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              background: '#FFF9F3',
-              border: '2px solid #D4B08C',
-              borderRadius: 0,
-              color: '#854D27',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.9rem',
-            }}
-          />
+          <div>
+            <label htmlFor="post-form-author" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#854D27', marginBottom: '4px' }}>
+              {t('yourName')}
+            </label>
+            <input
+              id="post-form-author"
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder={t('yourName')}
+              aria-label={t('yourName')}
+              required
+              className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{
+                width: '100%',
+                minHeight: '44px',
+                padding: '10px 14px',
+                background: '#FFF9F3',
+                border: '2px solid #D4B08C',
+                borderRadius: '8px',
+                color: '#2C1810',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.95rem',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={t('typeMessage')}
-            rows={3}
-            required
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              background: '#FFF9F3',
-              border: '2px solid #D4B08C',
-              borderRadius: 0,
-              color: '#854D27',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.9rem',
-              resize: 'none',
-            }}
-          />
+          <div>
+            <label htmlFor="post-form-content" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#854D27', marginBottom: '4px' }}>
+              {t('typeMessage')}
+            </label>
+            <textarea
+              id="post-form-content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={t('typeMessage')}
+              aria-label={t('typeMessage')}
+              rows={3}
+              required
+              className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                background: '#FFF9F3',
+                border: '2px solid #D4B08C',
+                borderRadius: '8px',
+                color: '#2C1810',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.95rem',
+                resize: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
 
           <ContributorPromptButtons hasContent={content.trim().length > 0} onSelect={setContent} />
 
           {/* メディアアップロード */}
           <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileSelect} style={{ display: 'none' }} />
-          
+
           {!selectedFile ? (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                style={{ padding: '8px 12px', border: '1px dashed #D4B08C', background: 'transparent', color: '#854D27', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Icon name="Folder" size={18} style={{ color: '#7E57C2' }} /> {t('library')}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                style={{
+                  minHeight: '44px',
+                  padding: '8px 14px',
+                  border: '1.5px dashed #D4B08C',
+                  borderRadius: '8px',
+                  background: 'rgba(212, 176, 140, 0.12)',
+                  color: '#854D27',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name="Folder" size={18} style={{ color: '#854D27' }} /> {t('library')}
               </button>
-              <button type="button" onClick={() => { setCameraMode('photo'); setShowCamera(true) }}
-                style={{ padding: '8px 12px', border: '1px solid #D4B08C', background: '#854D27', color: '#FFF9F3', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Icon name="Camera" size={18} style={{ color: '#FFB300' }} /> {t('takePhoto')}
+              <button
+                type="button"
+                onClick={() => { setCameraMode('photo'); setShowCamera(true) }}
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                style={{
+                  minHeight: '44px',
+                  padding: '8px 14px',
+                  border: '1.5px solid #D4B08C',
+                  borderRadius: '8px',
+                  background: '#854D27',
+                  color: '#FFF9F3',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '1px 1px 0 #D4B08C',
+                }}
+              >
+                <Icon name="Camera" size={18} style={{ color: '#FFF9F3' }} /> {t('takePhoto')}
               </button>
-              <button type="button" onClick={() => { setCameraMode('video'); setShowCamera(true) }}
-                style={{ padding: '8px 12px', border: '1px solid #D4B08C', background: '#854D27', color: '#FFF9F3', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Icon name="Video" size={18} style={{ color: '#2D8CFF' }} /> {t('takeVideo')}
+              <button
+                type="button"
+                onClick={() => { setCameraMode('video'); setShowCamera(true) }}
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                style={{
+                  minHeight: '44px',
+                  padding: '8px 14px',
+                  border: '1.5px solid #D4B08C',
+                  borderRadius: '8px',
+                  background: '#854D27',
+                  color: '#FFF9F3',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '1px 1px 0 #D4B08C',
+                }}
+              >
+                <Icon name="Video" size={18} style={{ color: '#FFF9F3' }} /> {t('takeVideo')}
               </button>
             </div>
           ) : (
-            <div style={{ position: 'relative', border: '1px solid #D4B08C', borderRadius: '4px', padding: '8px', background: 'rgba(212,176,140,0.1)' }}>
+            <div style={{ position: 'relative', border: '1.5px solid #D4B08C', borderRadius: '8px', padding: '10px', background: 'rgba(212,176,140,0.15)' }}>
               {isVideo ? (
-                <video src={previewUrl || ''} style={{ width: '100%', maxHeight: '150px', objectFit: 'contain' }} controls />
+                <video src={previewUrl || ''} style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }} controls />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={previewUrl || ''} alt={t('preview')} style={{ width: '100%', maxHeight: '150px', objectFit: 'contain' }} />
+                <img src={previewUrl || ''} alt={t('preview')} style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }} />
               )}
-              <button type="button" onClick={removeFile}
+              <button
+                type="button"
+                onClick={removeFile}
                 aria-label={t('removeFile')}
-                style={{ position: 'absolute', top: '4px', right: '4px', width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(220,53,69,0.9)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                style={{
+                  position: 'absolute',
+                  top: '6px',
+                  right: '6px',
+                  width: '32px',
+                  height: '32px',
+                  minWidth: '32px',
+                  minHeight: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(220,53,69,0.95)',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 <Icon name="X" size={16} style={{ color: '#FFFFFF' }} />
               </button>
-              <p style={{ fontSize: '0.75rem', color: '#854D27', marginTop: '4px' }}>{selectedFile.name} ({(selectedFile.size/1024/1024).toFixed(1)}MB)</p>
+              <p style={{ fontSize: '0.78rem', color: '#854D27', marginTop: '6px', fontWeight: 500 }}>{selectedFile.name} ({(selectedFile.size/1024/1024).toFixed(1)}MB)</p>
             </div>
           )}
 
           {uploadProgress > 0 && uploadProgress < 100 && (
-            <div style={{ height: '3px', background: 'rgba(212,176,140,0.3)', borderRadius: '2px' }}>
-              <div style={{ height: '100%', width: `${uploadProgress}%`, background: '#854D27', transition: 'width 0.3s' }} />
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuenow={uploadProgress}
+              aria-valuemax={100}
+              style={{ height: '4px', background: 'rgba(212,176,140,0.3)', borderRadius: '2px', overflow: 'hidden' }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: '100%',
+                  background: '#854D27',
+                  transform: `scaleX(${uploadProgress / 100})`,
+                  transformOrigin: 'left',
+                  transition: 'transform 0.3s ease-out',
+                  willChange: 'transform',
+                }}
+              />
             </div>
           )}
 
-          {error && <p style={{ color: '#dc3545', fontSize: '0.85rem' }}>{error}</p>}
+          {error && <p role="alert" style={{ color: '#dc3545', fontSize: '0.85rem', fontWeight: 600 }}>{error}</p>}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               type="submit"
               disabled={submitting || !author.trim() || !content.trim()}
+              className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
               style={{
-                padding: '10px 20px',
+                minHeight: '44px',
+                padding: '10px 24px',
                 background: submitting ? '#999' : '#854D27',
                 color: '#FFF9F3',
                 border: '2px solid #D4B08C',
-                borderRadius: 0,
+                borderRadius: '8px',
                 cursor: submitting ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-body)',
-                fontSize: '0.9rem',
-                fontWeight: 600,
+                fontSize: '0.92rem',
+                fontWeight: 700,
                 boxShadow: '3px 3px 0 #D4B08C',
                 opacity: (!author.trim() || !content.trim()) ? 0.5 : 1,
+                transition: 'background 0.2s',
               }}
             >
               {submitting ? t('posting') : t('postMessage')}

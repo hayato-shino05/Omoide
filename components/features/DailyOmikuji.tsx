@@ -4,9 +4,11 @@ import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useToast } from '@/components/ui/Toast'
 import { Icon } from '@/components/ui/Icon'
 import { OMIKUJI_DATA, OMIKUJI_FORTUNES, type OmikujiFortune } from '@/data/omikujiData'
 import { useDailyFortunes } from '@/lib/hooks/useDailyFortunes'
+import { generateOmikujiCardImage } from '@/lib/export/keepsakeExporter'
 import { LANGUAGE_COOKIE_NAME } from '@/lib/i18n/cookie'
 import { DEFAULT_LOCALE, translate } from '@/lib/i18n/resolveLocale'
 import type { Locale } from '@/lib/i18n/types'
@@ -52,9 +54,11 @@ export interface DailyOmikujiProps {
 // 和風 3D 想い出みくじコンポーネント
 export function DailyOmikuji({ fortunes: propFortunes }: DailyOmikujiProps = {}) {
   const { t, language } = useLanguage()
+  const toast = useToast()
   const { fortunes: hookFortunes } = useDailyFortunes()
   const fortunes = propFortunes ?? hookFortunes ?? OMIKUJI_FORTUNES
   const [isShaking, setIsShaking] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const fortuneIds = useMemo(() => new Set(fortunes.map((fortune) => fortune.id)), [fortunes])
   const todayDateKey = useMemo(() => getOmikujiDateKey(), [])
   const todayKey = useMemo(() => `omikuji_${todayDateKey.replaceAll('-', '_')}`, [todayDateKey])
@@ -121,6 +125,26 @@ export function DailyOmikuji({ fortunes: propFortunes }: DailyOmikujiProps = {})
   }, [drawnFortune, history, todayDateKey, fortunes, todayKey])
 
   const streak = useMemo(() => getOmikujiStreak(history), [history])
+
+  // おみくじ結果画像（Retina高解像度カード）の保存処理
+  const handleSaveCard = async () => {
+    if (!result || isExporting) return
+    setIsExporting(true)
+    try {
+      const dataUrl = await generateOmikujiCardImage(result, {
+        language: language === 'ja' ? 'ja' : 'en',
+      })
+      if (dataUrl) {
+        toast.success(t('notificationSaveSuccess'))
+      } else {
+        toast.error(t('notificationSaveFailed'))
+      }
+    } catch {
+      toast.error(t('notificationSaveFailed'))
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   // おみくじを引くアニメーション処理
   const handleDraw = () => {
@@ -263,7 +287,7 @@ export function DailyOmikuji({ fortunes: propFortunes }: DailyOmikujiProps = {})
             </div>
 
             {/* 祝詠・和歌 / 俳句 */}
-            <div className="bg-[#854D27]/5 border-l-4 border-[#854D27] rounded-r-xl p-3.5 mb-4">
+            <div className="bg-[#854D27]/5 border border-[#D4B08C]/60 rounded-xl p-3.5 mb-4">
               <span className="text-[10px] font-bold text-[#854D27]/80 uppercase block mb-1">
                 📜 {t('omikujiPoemLabel')}
               </span>
@@ -350,6 +374,19 @@ export function DailyOmikuji({ fortunes: propFortunes }: DailyOmikujiProps = {})
                   {result.luckyNumber}
                 </span>
               </div>
+            </div>
+
+            {/* おみくじ画像保存ボタン */}
+            <div className="mt-4 pt-3 border-t border-[#D4B08C]/40">
+              <button
+                type="button"
+                onClick={handleSaveCard}
+                disabled={isExporting}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#854D27] via-[#A05D30] to-[#854D27] hover:brightness-110 disabled:opacity-50 text-[#FFF9F3] font-bold text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Icon name="Download" size={16} />
+                <span>{isExporting ? t('exportingImage') : t('omikujiSaveCard')}</span>
+              </button>
             </div>
           </motion.div>
         )}

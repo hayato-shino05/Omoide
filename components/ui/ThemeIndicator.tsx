@@ -69,9 +69,9 @@ export const ThemeIndicator = React.memo(function ThemeIndicator() {
       className="theme-indicator"
       suppressHydrationWarning
       style={{
-        padding: '6px 14px 6px 8px',
+        padding: '6px 14px 6px 10px',
         border: '2px solid #D4B08C',
-        borderRadius: '20px',
+        borderRadius: '22px',
         background: '#854D27',
         color: '#FFF9F3',
         fontFamily: 'var(--font-accent)',
@@ -83,24 +83,24 @@ export const ThemeIndicator = React.memo(function ThemeIndicator() {
         gap: '8px',
         whiteSpace: 'nowrap',
         userSelect: 'none',
-        height: '38px',
+        minHeight: '44px',
       }}
     >
       <span
         style={{
-          background: 'rgba(255, 255, 255, 0.92)',
+          background: 'rgba(255, 255, 255, 0.95)',
           borderRadius: '50%',
-          width: '24px',
-          height: '24px',
+          width: '26px',
+          height: '26px',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: iconColor,
           flexShrink: 0,
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.15)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <IconComponent size={15} strokeWidth={2.8} />
+        <IconComponent size={16} strokeWidth={2.8} aria-hidden="true" />
       </span>
       <span style={{ color: '#FBE8D3', fontSize: '0.9em', opacity: 0.95 }}>{t('themeLabel')}</span>
       <span style={{ color: '#FFF9F3', fontWeight: 700 }}>{displayName}</span>

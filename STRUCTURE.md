@@ -105,6 +105,16 @@ app/
     │   └── fortunes/
     │       └── route.ts    # GET（daily_fortunes テーブルから全運勢データ一覧を返却）
     │
+    ├── quizzes/            # バースデークイズ
+    │   └── route.ts        # GET（birthday_quizzes & quiz_questions 一覧を返却）
+    │
+    ├── games/              # ミニゲーム
+    │   └── memory-decks/
+    │       └── route.ts    # GET（memory_card_decks テーブルから神経衰弱デッキ一覧を返却）
+    │
+    ├── festivals/          # 祝祭日・四季テーマパック
+    │   └── route.ts        # GET（festival_packs テーブルから13祝祭日パック一覧を返却）
+    │
     └── internal/
         └── birthday-scheduler/route.ts # POST（誕生日スレッド定期生成。シークレット認証付き）
 ```
@@ -224,6 +234,7 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `PostDetail.tsx` | 返信を含む投稿詳細 |
 | `ContributorPromptButtons.tsx` | 投稿内容の提案ボタン群（メッセージ / 投稿フォーム用） |
 | `TimeCapsule.tsx` | 未来の指定日に届くタイムカプセル（手紙・写真・音声封入） |
+| `KeepsakeExportModal.tsx` | 想い出ポラロイド・記念メッセージカードの Retina 2x 高解像度 PNG エクスポートモーダル |
 
 **メディアメッセージ**
 
@@ -318,6 +329,7 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `Header.tsx` | ヘッダー |
 | `Footer.tsx` | フッター |
 | `FloatingNav.tsx` | 浮遊型ナビゲーション |
+| `ServiceWorkerRegister.tsx` | PWA サービスワーカー（`/sw.js`）の安全な登録・オフラインアセットキャッシュ初期化 |
 
 ---
 
@@ -340,6 +352,10 @@ Three.js WebGL を活用したリッチな 3D インタラクティブ体験を�
 | `useGifts.ts` | バーチャルギフトの取得・送信 |
 | `useMediaFiles.ts` | メディアファイル管理 |
 | `useUserName.ts` | ローカルストレージに保存したユーザー名の管理 |
+| `useDailyFortunes.ts` | Postgres おみくじ運勢データの取得とオフライン静的フォールバック |
+| `useBirthdayQuiz.ts` | Postgres クイズデータ（`birthday_quizzes` & `quiz_questions`）の動的取得とフォールバック |
+| `useMemoryDecks.ts` | Postgres 神経衰弱デッキ（`memory_card_decks`）の取得とフォールバック |
+| `useFestivalPacks.ts` | 13 祝祭日・季節テーマパック（`festival_packs`）の動的フェッチとフォールバック |
 
 **メディア系 Hooks**
 
@@ -466,6 +482,8 @@ React コンテキストや外部ライブラリのプロバイダをまとめ�
 
 | ディレクトリ | 説明 |
 |-------------|------|
+| `/lib/export/` | 記念カード画像エクスポート。`keepsakeExporter.ts`（HTML5 Canvas / Retina 2x 高解像度 PNG 生成） |
+| `/lib/games/` | ゲームデータサーバー処理。`server.ts`（Postgres クイズ & 神経衰弱デッキ取得） |
 | `/lib/supabase/` | Supabase クライアントとクエリ関連ユーティリティ |
 | `/lib/music/` | 厳選楽曲（Cloudflare R2 + Supabase / Jamendo / SoundCloud）。`types.ts`（provider / reference / TrackLyrics 型）、`reference.ts`（`provider:trackId` の parse / serialize）、`lyrics.ts`（LRC タイムスタンプ解析・リアルタイム同期歌詞ヘルパー）、`presets.ts`（Jamendo プリセット）、`server.ts`（server-only の検索・解決） |
 | `/lib/community/` | コミュニティ投稿のサーバー側処理。`server.ts`（投稿 + メディア + 楽曲）、`reply.ts`（誕生日スレッド返信） |

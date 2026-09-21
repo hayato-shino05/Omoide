@@ -48,12 +48,12 @@ export default function Loading({
 
       case 'dots':
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className={`${size === 'xs' ? 'w-1.5 h-1.5' : size === 'sm' ? 'w-2 h-2' : 'w-3 h-3'} rounded-full bg-[#D95D39] animate-bounce`}
-                style={{ animationDelay: `${i * 0.15}s` }}
+                className={`${size === 'xs' ? 'w-1.5 h-1.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5'} rounded-full bg-[#D95D39] animate-pulse`}
+                style={{ animationDelay: `${i * 0.2}s`, animationDuration: '1s' }}
               />
             ))}
           </div>
@@ -115,10 +115,17 @@ export default function Loading({
   }
 
   const content = (
-    <div className="flex flex-col items-center gap-4">
+    <div
+      className="flex flex-col items-center gap-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       {renderLoader()}
-      {text && (
+      {text ? (
         <p className={`text-[#854D27] dark:text-amber-100 font-medium ${sizeStyle.text}`}>{text}</p>
+      ) : (
+        <span className="sr-only">読み込み中...</span>
       )}
     </div>
   )

@@ -17,11 +17,11 @@ interface UseMemoryGameReturn {
   isPlaying: boolean
   timeElapsed: number
   flipCard: (id: number) => void
-  startGame: () => void
+  startGame: (customEmojis?: string[]) => void
   resetGame: () => void
 }
 
-const EMOJIS = ['🎂', '🎁', '🎈', '🎉', '🎊', '🎀', '🧁', '🍰']
+const DEFAULT_EMOJIS = ['🎂', '🎁', '🎈', '🎉', '🎊', '🎀', '🧁', '🍰']
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
@@ -32,8 +32,9 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-function createCards(): Card[] {
-  const pairs = [...EMOJIS, ...EMOJIS]
+function createCards(emojis: string[] = DEFAULT_EMOJIS): Card[] {
+  const source = emojis && emojis.length >= 8 ? emojis.slice(0, 8) : DEFAULT_EMOJIS
+  const pairs = [...source, ...source]
   const shuffled = shuffleArray(pairs)
   return shuffled.map((emoji, index) => ({
     id: index,
@@ -43,7 +44,8 @@ function createCards(): Card[] {
   }))
 }
 
-export function useMemoryGame(): UseMemoryGameReturn {
+export function useMemoryGame(initialEmojis?: string[]): UseMemoryGameReturn {
+  const [deckEmojis, setDeckEmojis] = useState<string[]>(initialEmojis || DEFAULT_EMOJIS)
   const [cards, setCards] = useState<Card[]>([])
   const [flippedIds, setFlippedIds] = useState<number[]>([])
   const [score, setScore] = useState(0)
@@ -53,7 +55,7 @@ export function useMemoryGame(): UseMemoryGameReturn {
 
   const isComplete = cards.length > 0 && cards.every((card) => card.isMatched)
 
-  // タイマー
+  // タイマーの更新
   useEffect(() => {
     if (!isPlaying || isComplete) return
 
@@ -64,14 +66,18 @@ export function useMemoryGame(): UseMemoryGameReturn {
     return () => clearInterval(timer)
   }, [isPlaying, isComplete])
 
-  const startGame = useCallback(() => {
-    setCards(createCards())
+  const startGame = useCallback((customEmojis?: string[]) => {
+    const targetEmojis = customEmojis || deckEmojis
+    if (customEmojis) {
+      setDeckEmojis(customEmojis)
+    }
+    setCards(createCards(targetEmojis))
     setFlippedIds([])
     setScore(0)
     setMoves(0)
     setTimeElapsed(0)
     setIsPlaying(true)
-  }, [])
+  }, [deckEmojis])
 
   const resetGame = useCallback(() => {
     setCards([])

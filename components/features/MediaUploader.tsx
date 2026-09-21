@@ -115,14 +115,15 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
 
         <label
           htmlFor="media-upload-input"
+          className="block w-full"
           style={{ cursor: isUploading ? 'not-allowed' : 'pointer' }}
         >
           {isUploading ? (
-            <div>
+            <div role="status" aria-live="polite">
               <div
                 style={{
-                  width: '60px',
-                  height: '60px',
+                  width: '52px',
+                  height: '52px',
                   border: '4px solid #D4B08C',
                   borderTopColor: '#854D27',
                   borderRadius: '50%',
@@ -130,36 +131,22 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
                   animation: 'spin 1s linear infinite',
                 }}
               />
-              <p style={{ color: '#854D27', fontSize: '1.1rem', margin: 0 }}>
+              <p className="text-[#854D27] font-bold text-base m-0">
                 {t('uploadProgress', { progress: uploadProgress })}
               </p>
             </div>
           ) : (
             <div>
-              <div style={{ marginBottom: '16px' }}>
-                <Icon name="FolderOpen" size={48} />
+              <div className="mb-3 text-[#854D27] flex justify-center">
+                <Icon name="FolderOpen" size={44} />
               </div>
-              <p
-                style={{
-                  color: '#854D27',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  margin: '0 0 8px',
-                }}
-              >
+              <p className="text-[#854D27] text-base font-bold mb-1.5">
                 {t('dropMediaHere')}
               </p>
-              <p style={{ color: '#854D27', opacity: 0.7, margin: 0 }}>
+              <p className="text-[#854D27]/80 text-xs sm:text-sm m-0">
                 {t('orChooseFile')}
               </p>
-              <p
-                style={{
-                  color: '#854D27',
-                  opacity: 0.5,
-                  fontSize: '0.85rem',
-                  marginTop: '12px',
-                }}
-              >
+              <p className="text-[#854D27]/60 text-xs mt-3">
                 {t('supportedMediaFormats')}
               </p>
             </div>
@@ -168,7 +155,7 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
       </motion.div>
 
       {error && (
-        <p style={{ color: '#dc3545', marginTop: '12px', textAlign: 'center' }}>
+        <p className="text-red-600 text-xs sm:text-sm font-bold mt-3 text-center" role="alert">
           {error}
         </p>
       )}
