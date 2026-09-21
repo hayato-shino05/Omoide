@@ -366,13 +366,26 @@ grant select, insert on public.chat_messages to anon, authenticated;
 grant select, insert on public.bulletin_posts to anon, authenticated;
 grant select, insert on public.post_replies to anon, authenticated;
 grant select on public.music_tracks to anon, authenticated;
-grant select on public.study_rooms to anon, authenticated;
-grant select on public.study_room_members to anon, authenticated;
 grant select on public.daily_fortunes to anon, authenticated;
 grant select on public.birthday_quizzes to anon, authenticated;
 grant select on public.quiz_questions to anon, authenticated;
 grant select on public.memory_card_decks to anon, authenticated;
 grant select on public.festival_packs to anon, authenticated;
+
+-- Study Room & Member Token Hash Column-Level Security (Exclude token hashes from public reads)
+revoke select on public.study_rooms from anon, authenticated;
+grant select (
+  id, name, description, host_id, current_track_id, theme_override,
+  playback_state, epoch_started_at, elapsed_seconds, queue,
+  current_track_index, is_shuffle, repeat_mode, is_private,
+  max_members, song_requests, created_at, updated_at
+) on public.study_rooms to anon, authenticated;
+
+revoke select on public.study_room_members from anon, authenticated;
+grant select (
+  id, room_id, user_identifier, display_name, avatar_url,
+  is_host, status, joined_at, last_heartbeat_at
+) on public.study_room_members to anon, authenticated;
 
 -- Revoke direct permissions for private auth/service tables and static masters
 revoke all on public.time_capsules from anon, authenticated;
@@ -398,9 +411,14 @@ create policy "allow_insert_virtual_gifts" on public.virtual_gifts for insert wi
 create policy "allow_select_chat_messages" on public.chat_messages for select using (true);
 create policy "allow_insert_chat_messages" on public.chat_messages for insert with check (true);
 create policy "allow_select_bulletin_posts" on public.bulletin_posts for select using (true);
-create policy "allow_insert_bulletin_posts" on public.bulletin_posts for insert with check (true);
+create policy "allow_insert_bulletin_posts" on public.bulletin_posts for insert with check (
+  coalesce(is_system_generated, false) = false
+  and coalesce(likes, 0) = 0
+);
 create policy "allow_select_post_replies" on public.post_replies for select using (true);
-create policy "allow_insert_post_replies" on public.post_replies for insert with check (true);
+create policy "allow_insert_post_replies" on public.post_replies for insert with check (
+  coalesce(moderation_status, 'visible') = 'visible'
+);
 create policy "allow_select_music_tracks" on public.music_tracks for select using (true);
 create policy "allow_select_study_rooms" on public.study_rooms for select using (true);
 create policy "allow_select_study_room_members" on public.study_room_members for select using (true);

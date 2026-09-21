@@ -26,7 +26,132 @@ export interface ExportElementOptions {
 }
 
 /**
+ * 外部CSS / Tailwind CSS スタイルシートの文字列を収集する
+ */
+export function collectDocumentStyles(): string {
+  if (typeof document === 'undefined') return ''
+  let cssText = ''
+  try {
+    const styleElements = document.querySelectorAll('style')
+    styleElements.forEach((style) => {
+      if (style.textContent) {
+        cssText += style.textContent + '\n'
+      }
+    })
+
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        const rules = sheet.cssRules
+        if (rules) {
+          for (const rule of Array.from(rules)) {
+            cssText += rule.cssText + '\n'
+          }
+        }
+      } catch {
+        // CORSによる外部スタイルシートのアクセス拒否は安全にスキップ
+      }
+    }
+  } catch {
+    // スタイル収集エラー時の安全なフォールバック
+  }
+  return cssText
+}
+
+const STYLES_TO_COPY = [
+  'background-color',
+  'background-image',
+  'color',
+  'font-family',
+  'font-size',
+  'font-weight',
+  'font-style',
+  'letter-spacing',
+  'line-height',
+  'text-align',
+  'text-decoration',
+  'text-transform',
+  'border-top-color',
+  'border-right-color',
+  'border-bottom-color',
+  'border-left-color',
+  'border-top-width',
+  'border-right-width',
+  'border-bottom-width',
+  'border-left-width',
+  'border-top-style',
+  'border-right-style',
+  'border-bottom-style',
+  'border-left-style',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-left-radius',
+  'border-bottom-right-radius',
+  'box-shadow',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'display',
+  'flex-direction',
+  'justify-content',
+  'align-items',
+  'align-self',
+  'flex-wrap',
+  'flex-grow',
+  'flex-shrink',
+  'flex-basis',
+  'gap',
+  'grid-template-columns',
+  'grid-template-rows',
+  'width',
+  'height',
+  'min-width',
+  'min-height',
+  'max-width',
+  'max-height',
+  'opacity',
+  'overflow',
+  'position',
+  'top',
+  'right',
+  'bottom',
+  'left',
+  'box-sizing',
+] as const
+
+/**
+ * 元 DOM ツリーの計算済みスタイル（Computed Styles）をクローン DOM ノードへ再帰的にインライン注入
+ */
+export function applyComputedStylesRecursively(source: Element, target: HTMLElement): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const computed = window.getComputedStyle(source)
+    for (const prop of STYLES_TO_COPY) {
+      const value = computed.getPropertyValue(prop)
+      if (value && value !== 'none' && value !== 'normal' && value !== 'auto' && value !== '0px') {
+        target.style.setProperty(prop, value)
+      }
+    }
+
+    const sourceChildren = Array.from(source.children)
+    const targetChildren = Array.from(target.children) as HTMLElement[]
+
+    for (let i = 0; i < Math.min(sourceChildren.length, targetChildren.length); i++) {
+      applyComputedStylesRecursively(sourceChildren[i], targetChildren[i])
+    }
+  } catch {
+    // スタイル算出時の安全なフォールバック
+  }
+}
+
+/**
  * 指定した DOM 要素を高解像度 PNG 画像としてエクスポートする関数
+ * Tailwind CSS スタイルおよびインライン計算スタイルを完全保持
  * @param elementIdOrElement 要素または要素ID
  * @param filename ダウンロードファイル名
  */
@@ -68,15 +193,24 @@ export async function exportElementAsPng(
     ctx.fillStyle = options.backgroundColor || '#FFFDF9'
     ctx.fillRect(0, 0, width, height)
 
-    // DOM のクローンと SVG ForeignObject によるレンダリング
+    // DOM のクローンと Computed Style の再帰的インライン適用
     const clone = element.cloneNode(true) as HTMLElement
     clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml')
+    applyComputedStylesRecursively(element, clone)
 
-    // SVG データURI の構築
+    // ドキュメントスタイルシートの収集
+    const documentCss = collectDocumentStyles()
+
+    // SVG データURI の構築（Tailwind とフォントスタイルを埋め込み）
     const svgData = `
       <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+        <style type="text/css">
+          <![CDATA[
+            ${documentCss}
+          ]]>
+        </style>
         <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: system-ui, -apple-system, sans-serif; background: transparent;">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width: 100%; height: 100%; font-family: system-ui, -apple-system, sans-serif; background: transparent;">
             ${new XMLSerializer().serializeToString(clone)}
           </div>
         </foreignObject>
