@@ -3,6 +3,8 @@ import {
   downloadDataUrl,
   exportElementAsPng,
   generateOmikujiCardImage,
+  collectDocumentStyles,
+  applyComputedStylesRecursively,
 } from '@/lib/export/keepsakeExporter'
 import type { OmikujiFortune } from '@/data/omikujiData'
 
@@ -33,6 +35,36 @@ describe('keepsakeExporter', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+  })
+
+  describe('collectDocumentStyles', () => {
+    it('styleタグのCSSテキストを収集できること', () => {
+      const style = document.createElement('style')
+      style.textContent = '.test-class { color: #854D27; }'
+      document.head.appendChild(style)
+
+      const css = collectDocumentStyles()
+      expect(css).toContain('.test-class { color: #854D27; }')
+
+      document.head.removeChild(style)
+    })
+  })
+
+  describe('applyComputedStylesRecursively', () => {
+    it('要素の計算済みスタイルをターゲットノードにインライン適用すること', () => {
+      const source = document.createElement('div')
+      const target = document.createElement('div')
+      source.style.color = 'rgb(133, 77, 39)'
+      source.style.backgroundColor = 'rgb(255, 253, 249)'
+      document.body.appendChild(source)
+
+      applyComputedStylesRecursively(source, target)
+
+      expect(target.style.color).toBe('rgb(133, 77, 39)')
+      expect(target.style.backgroundColor).toBe('rgb(255, 253, 249)')
+
+      document.body.removeChild(source)
+    })
   })
 
   describe('downloadDataUrl', () => {
@@ -108,7 +140,6 @@ describe('keepsakeExporter', () => {
       )
       vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue(mockDataUrl)
 
-      // exportElementAsPng は非同期 SVG レンダリングを行うため Promise の解決を検証
       const exportPromise = exportElementAsPng(div, 'test-keepsake.png')
       expect(exportPromise).toBeInstanceOf(Promise)
 
