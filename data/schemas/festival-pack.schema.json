@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://happy-birthday-website.example/schemas/festival-pack.schema.json",
+  "title": "FestivalPack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "country", "locale", "category", "name", "dateRule", "enabled", "status", "priority"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "country": {"type": "string", "pattern": "^[a-z]{2,3}$"},
+    "region": {"type": "string", "minLength": 1},
+    "locale": {"enum": ["en", "ja"]},
+    "category": {"enum": ["festival", "public-holiday", "season"]},
+    "name": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "dateRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["calendar", "recurrence", "ranges", "timeZone"],
+          "properties": {
+            "calendar": {"const": "gregorian"},
+            "recurrence": {"const": "yearly"},
+            "ranges": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["month", "startDay", "endDay"],
+                "properties": {
+                  "month": {"type": "integer", "minimum": 1, "maximum": 12},
+                  "startDay": {"type": "integer", "minimum": 1, "maximum": 31},
+                  "endDay": {"type": "integer", "minimum": 1, "maximum": 31}
+                },
+                "allOf": [
+                  {"if": {"properties": {"startDay": {"const": 1}}}, "then": {"properties": {"endDay": {"minimum": 1}}}},
+                  {"if": {"properties": {"startDay": {"const": 2}}}, "then": {"properties": {"endDay": {"minimum": 2}}}},
+                  {"if": {"properties": {"startDay": {"const": 3}}}, "then": {"properties": {"endDay": {"minimum": 3}}}},
+                  {"if": {"properties": {"startDay": {"const": 4}}}, "then": {"properties": {"endDay": {"minimum": 4}}}},
+                  {"if": {"properties": {"startDay": {"const": 5}}}, "then": {"properties": {"endDay": {"minimum": 5}}}},
+                  {"if": {"properties": {"startDay": {"const": 6}}}, "then": {"properties": {"endDay": {"minimum": 6}}}},
+                  {"if": {"properties": {"startDay": {"const": 7}}}, "then": {"properties": {"endDay": {"minimum": 7}}}},
+                  {"if": {"properties": {"startDay": {"const": 8}}}, "then": {"properties": {"endDay": {"minimum": 8}}}},
+                  {"if": {"properties": {"startDay": {"const": 9}}}, "then": {"properties": {"endDay": {"minimum": 9}}}},
+                  {"if": {"properties": {"startDay": {"const": 10}}}, "then": {"properties": {"endDay": {"minimum": 10}}}},
+                  {"if": {"properties": {"startDay": {"const": 11}}}, "then": {"properties": {"endDay": {"minimum": 11}}}},
+                  {"if": {"properties": {"startDay": {"const": 12}}}, "then": {"properties": {"endDay": {"minimum": 12}}}},
+                  {"if": {"properties": {"startDay": {"const": 13}}}, "then": {"properties": {"endDay": {"minimum": 13}}}},
+                  {"if": {"properties": {"startDay": {"const": 14}}}, "then": {"properties": {"endDay": {"minimum": 14}}}},
+                  {"if": {"properties": {"startDay": {"const": 15}}}, "then": {"properties": {"endDay": {"minimum": 15}}}},
+                  {"if": {"properties": {"startDay": {"const": 16}}}, "then": {"properties": {"endDay": {"minimum": 16}}}},
+                  {"if": {"properties": {"startDay": {"const": 17}}}, "then": {"properties": {"endDay": {"minimum": 17}}}},
+                  {"if": {"properties": {"startDay": {"const": 18}}}, "then": {"properties": {"endDay": {"minimum": 18}}}},
+                  {"if": {"properties": {"startDay": {"const": 19}}}, "then": {"properties": {"endDay": {"minimum": 19}}}},
+                  {"if": {"properties": {"startDay": {"const": 20}}}, "then": {"properties": {"endDay": {"minimum": 20}}}},
+                  {"if": {"properties": {"startDay": {"const": 21}}}, "then": {"properties": {"endDay": {"minimum": 21}}}},
+                  {"if": {"properties": {"startDay": {"const": 22}}}, "then": {"properties": {"endDay": {"minimum": 22}}}},
+                  {"if": {"properties": {"startDay": {"const": 23}}}, "then": {"properties": {"endDay": {"minimum": 23}}}},
+                  {"if": {"properties": {"startDay": {"const": 24}}}, "then": {"properties": {"endDay": {"minimum": 24}}}},
+                  {"if": {"properties": {"startDay": {"const": 25}}}, "then": {"properties": {"endDay": {"minimum": 25}}}},
+                  {"if": {"properties": {"startDay": {"const": 26}}}, "then": {"properties": {"endDay": {"minimum": 26}}}},
+                  {"if": {"properties": {"startDay": {"const": 27}}}, "then": {"properties": {"endDay": {"minimum": 27}}}},
+                  {"if": {"properties": {"startDay": {"const": 28}}}, "then": {"properties": {"endDay": {"minimum": 28}}}},
+                  {"if": {"properties": {"startDay": {"const": 29}}}, "then": {"properties": {"endDay": {"minimum": 29}}}},
+                  {"if": {"properties": {"startDay": {"const": 30}}}, "then": {"properties": {"endDay": {"minimum": 30}}}},
+                  {"if": {"properties": {"startDay": {"const": 31}}}, "then": {"properties": {"endDay": {"minimum": 31}}}},
+                  {"if": {"properties": {"month": {"const": 2}}}, "then": {"properties": {"startDay": {"maximum": 28}, "endDay": {"maximum": 28}}}},
+                  {"if": {"properties": {"month": {"const": 4}}}, "then": {"properties": {"startDay": {"maximum": 30}, "endDay": {"maximum": 30}}}},
+                  {"if": {"properties": {"month": {"const": 6}}}, "then": {"properties": {"startDay": {"maximum": 30}, "endDay": {"maximum": 30}}}},
+                  {"if": {"properties": {"month": {"const": 9}}}, "then": {"properties": {"startDay": {"maximum": 30}, "endDay": {"maximum": 30}}}},
+                  {"if": {"properties": {"month": {"const": 11}}}, "then": {"properties": {"startDay": {"maximum": 30}, "endDay": {"maximum": 30}}}}
+                ]
+              }
+            },
+            "timeZone": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["calendar", "recurrence", "dates", "timeZone"],
+          "properties": {
+            "calendar": {"const": "gregorian"},
+            "recurrence": {"const": "year-specific"},
+            "dates": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {"pattern": "^\\d{4}$"},
+              "additionalProperties": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["month", "day"],
+                  "properties": {
+                    "month": {"type": "integer", "minimum": 1, "maximum": 12},
+                    "day": {"type": "integer", "minimum": 1, "maximum": 31}
+                  },
+                  "allOf": [
+                    {"if": {"properties": {"month": {"const": 2}}}, "then": {"properties": {"day": {"maximum": 29}}}},
+                    {"if": {"properties": {"month": {"const": 4}}}, "then": {"properties": {"day": {"maximum": 30}}}},
+                    {"if": {"properties": {"month": {"const": 6}}}, "then": {"properties": {"day": {"maximum": 30}}}},
+                    {"if": {"properties": {"month": {"const": 9}}}, "then": {"properties": {"day": {"maximum": 30}}}},
+                    {"if": {"properties": {"month": {"const": 11}}}, "then": {"properties": {"day": {"maximum": 30}}}}
+                  ]
+                }
+              }
+            },
+            "timeZone": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["calendar", "recurrence", "payload", "timeZone", "status"],
+          "properties": {
+            "calendar": {"const": "lunar"},
+            "recurrence": {"const": "year-specific"},
+            "payload": {},
+            "timeZone": {"type": "string", "minLength": 1},
+            "status": {"const": "unsupported-calendar"}
+          }
+        }
+      ]
+    },
+    "enabled": {"type": "boolean"},
+    "status": {"enum": ["enabled", "disabled", "unsupported-calendar"]},
+    "priority": {"type": "integer", "minimum": 0},
+    "themeKey": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "unsupported-calendar"}
+        }
+      },
+      "then": {
+        "properties": {
+          "dateRule": {
+            "properties": {
+              "calendar": {"const": "lunar"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "dateRule": {
+            "properties": {
+              "calendar": {"const": "lunar"}
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status": {"const": "unsupported-calendar"}
+        }
+      }
+    }
+  ]
+}

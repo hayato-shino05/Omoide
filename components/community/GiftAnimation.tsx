@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface GiftAnimationProps {
   emoji: string
@@ -9,19 +10,18 @@ interface GiftAnimationProps {
   onComplete?: () => void
 }
 
+// 浮遊パーティクル（決定論的配置：x は均等分散、delay は 0〜0.45 秒）
+const GIFT_PARTICLES = Array.from({ length: 20 }, (_, i) => ({
+  id: i,
+  x: (i * 37) % 100,
+  delay: ((i * 7) % 10) * 0.05,
+}))
+
 export default function GiftAnimation({ emoji, giftName, sender, onComplete }: GiftAnimationProps) {
+  const { t } = useLanguage()
   const [isVisible, setIsVisible] = useState(true)
-  const [particles, setParticles] = useState<Array<{ id: number; x: number; delay: number }>>([])
 
   useEffect(() => {
-    // パーティクルを生成
-    const newParticles = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      delay: Math.random() * 0.5,
-    }))
-    setParticles(newParticles)
-
     // アニメーション終了後に自動で非表示にする
     const timer = setTimeout(() => {
       setIsVisible(false)
@@ -34,12 +34,15 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+      style={{ contain: 'layout style paint' }}
+    >
       {/* 背景オーバーレイ */}
       <div className="absolute inset-0 bg-black/30 animate-fade-in" />
 
       {/* パーティクル */}
-      {particles.map((particle) => (
+      {GIFT_PARTICLES.map((particle) => (
         <div
           key={particle.id}
           className="absolute text-2xl animate-float-up"
@@ -54,33 +57,17 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
       ))}
 
       {/* メインのギフト表示 */}
-      <div className="relative z-10 flex flex-col items-center animate-bounce-in">
-        {/* ギフトの絵文字 */}
-        <div className="text-8xl mb-4 animate-pulse-scale">
+      <div className="relative z-10 flex flex-col items-center animate-scale-fade-in">
+        <div className="text-8xl mb-4">
           {emoji}
         </div>
 
         {/* ギフト情報 */}
-        <div className="bg-white/20 backdrop-blur-md rounded-2xl px-8 py-4 text-center">
-          <p className="text-2xl font-bold text-white mb-1">{giftName}</p>
-          <p className="text-white/80">
-            <span className="font-semibold">{sender}</span> さんから
+        <div className="bg-[#FFF9F3] text-[#2C1810] border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C] rounded-2xl px-8 py-5 text-center">
+          <p className="text-2xl font-bold text-[#854D27] mb-1 font-serif">{giftName}</p>
+          <p className="text-[#854D27]/90 font-medium text-sm">
+            <span className="font-bold text-[#2C1810]">{sender}</span> {t('giftFrom')}
           </p>
-        </div>
-
-        {/* きらめきエフェクト */}
-        <div className="absolute -inset-8">
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-yellow-300 rounded-full animate-sparkle"
-              style={{
-                top: `${20 + Math.random() * 60}%`,
-                left: `${20 + Math.random() * 60}%`,
-                animationDelay: `${i * 0.1}s`,
-              }}
-            />
-          ))}
         </div>
       </div>
 
@@ -89,46 +76,40 @@ export default function GiftAnimation({ emoji, giftName, sender, onComplete }: G
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        
-        @keyframes bounce-in {
-          0% { transform: scale(0) rotate(-10deg); opacity: 0; }
-          50% { transform: scale(1.2) rotate(5deg); }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+
+        @keyframes scale-fade-in {
+          0% { transform: scale3d(0.85, 0.85, 1); opacity: 0; }
+          100% { transform: scale3d(1, 1, 1); opacity: 1; }
         }
-        
-        @keyframes pulse-scale {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
-        
+
         @keyframes float-up {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(-300px) rotate(360deg); opacity: 0; }
+          0% { transform: translate3d(0, 0, 0); opacity: 1; }
+          100% { transform: translate3d(0, -200px, 0); opacity: 0; }
         }
-        
-        @keyframes sparkle {
-          0%, 100% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1); opacity: 1; }
-        }
-        
+
         .animate-fade-in {
           animation: fade-in 0.3s ease-out forwards;
+          will-change: opacity;
         }
-        
-        .animate-bounce-in {
-          animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+
+        .animate-scale-fade-in {
+          animation: scale-fade-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+          will-change: transform, opacity;
         }
-        
-        .animate-pulse-scale {
-          animation: pulse-scale 1s ease-in-out infinite;
-        }
-        
+
         .animate-float-up {
           animation: float-up 2s ease-out forwards;
+          will-change: transform, opacity;
         }
-        
-        .animate-sparkle {
-          animation: sparkle 0.8s ease-in-out infinite;
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fade-in,
+          .animate-scale-fade-in,
+          .animate-float-up {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+          }
         }
       `}</style>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePrefersReducedMotion } from '@/lib/hooks/useMediaQuery'
 
 interface BatsProps {
   active: boolean
@@ -21,6 +22,7 @@ interface Bat {
 
 export function Bats({ active, count = 8 }: BatsProps) {
   const [bats, setBats] = useState<Bat[]>([])
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   const createBat = useCallback((): Bat => {
     const direction = Math.random() > 0.5 ? 'left' : 'right'
@@ -39,9 +41,9 @@ export function Bats({ active, count = 8 }: BatsProps) {
   }, [])
 
   useEffect(() => {
-    if (!active) {
-      setBats([])
-      return
+    if (!active || prefersReducedMotion) {
+      const raf = requestAnimationFrame(() => setBats([]))
+      return () => cancelAnimationFrame(raf)
     }
 
     const spawnBat = () => {
@@ -51,8 +53,10 @@ export function Bats({ active, count = 8 }: BatsProps) {
       })
     }
 
+    const initialTimers: NodeJS.Timeout[] = []
     for (let i = 0; i < Math.min(3, count); i++) {
-      setTimeout(() => spawnBat(), i * 800)
+      const timer = setTimeout(() => spawnBat(), i * 800)
+      initialTimers.push(timer)
     }
 
     const interval = setInterval(spawnBat, 2000 + Math.random() * 2000)
@@ -62,32 +66,36 @@ export function Bats({ active, count = 8 }: BatsProps) {
     }, 3000)
 
     return () => {
+      initialTimers.forEach((t) => clearTimeout(t))
       clearInterval(interval)
       clearInterval(cleanup)
     }
-  }, [active, count, createBat])
+  }, [active, count, createBat, prefersReducedMotion])
+
+  // reduced-motion 時は描画もループも停止
+  if (prefersReducedMotion) return null
 
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-35 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {bats.map(bat => (
           <motion.div
             key={bat.id}
             initial={{
-              left: `${bat.startX}%`,
-              top: `${bat.startY}%`,
+              x: `${bat.startX}vw`,
+              y: `${bat.startY}vh`,
               opacity: 0,
             }}
             animate={{
-              left: `${bat.endX}%`,
-              top: [
-                `${bat.startY}%`,
-                `${bat.startY - 8}%`,
-                `${bat.startY + 5}%`,
-                `${bat.startY - 5}%`,
-                `${bat.endY}%`,
+              x: `${bat.endX}vw`,
+              y: [
+                `${bat.startY}vh`,
+                `${bat.startY - 8}vh`,
+                `${bat.startY + 5}vh`,
+                `${bat.startY - 5}vh`,
+                `${bat.endY}vh`,
               ],
               opacity: [0, 1, 1, 1, 0],
             }}
@@ -95,14 +103,15 @@ export function Bats({ active, count = 8 }: BatsProps) {
             transition={{
               duration: bat.duration,
               ease: 'linear',
-              top: {
+              y: {
                 duration: bat.duration,
                 times: [0, 0.25, 0.5, 0.75, 1],
               },
             }}
-            className="absolute"
+            className="absolute top-0 left-0"
             style={{
               transform: bat.direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+              willChange: 'transform, opacity',
             }}
           >
             <svg

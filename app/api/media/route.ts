@@ -1,41 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/client'
 
-// GET /api/media - メディアファイル一覧を取得
+const MAX_MEDIA_LIMIT = 100
+const DEFAULT_MEDIA_LIMIT = 20
+const MAX_MEDIA_OFFSET = 1_000_000
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase()
     const { searchParams } = new URL(request.url)
-    
-    const type = searchParams.get('type') // 'image' | 'video' のいずれか
+    const type = searchParams.get('type')
     const tag = searchParams.get('tag')
     const limit = searchParams.get('limit')
     const offset = searchParams.get('offset')
     const search = searchParams.get('search')
 
+    if (tag) {
+      return NextResponse.json({ error: 'タグ検索はサポートされていません' }, { status: 400 })
+    }
+
     let query = supabase
-      .from('media_files')
+      .from('media_submissions')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (type) {
-      query = query.eq('file_type', type)
-    }
-
-    if (tag) {
-      query = query.contains('tags', [tag])
+      query = query.eq('media_kind', type)
     }
 
     if (search) {
-      query = query.or(`file_name.ilike.%${search}%,description.ilike.%${search}%`)
+      query = query.or(`original_name.ilike.%${search}%,description.ilike.%${search}%`)
     }
 
-    if (limit) {
-      query = query.limit(parseInt(limit))
-    }
+    const requestedLimit = limit ? Number(limit) : DEFAULT_MEDIA_LIMIT
+    const validLimit = Number.isSafeInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_MEDIA_LIMIT)
+      : DEFAULT_MEDIA_LIMIT
+    query = query.limit(validLimit)
 
-    if (offset) {
-      query = query.range(parseInt(offset), parseInt(offset) + parseInt(limit || '20') - 1)
+    const requestedOffset = offset ? Number(offset) : 0
+    const validOffset = Number.isSafeInteger(requestedOffset) && requestedOffset >= 0
+      ? Math.min(requestedOffset, MAX_MEDIA_OFFSET)
+      : 0
+    if (validOffset > 0) {
+      query = query.range(validOffset, validOffset + validLimit - 1)
     }
 
     const { data, error, count } = await query
@@ -47,11 +55,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 統計情報を計算
     const stats = {
       total: count || 0,
-      images: data?.filter(m => m.file_type === 'image').length || 0,
-      videos: data?.filter(m => m.file_type === 'video').length || 0,
+      images: data?.filter(media => media.media_kind === 'image').length || 0,
+      videos: data?.filter(media => media.media_kind === 'video').length || 0,
     }
 
     return NextResponse.json({ data, count, stats })

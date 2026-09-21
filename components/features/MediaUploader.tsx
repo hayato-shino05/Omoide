@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useMediaFiles } from '@/lib/hooks/useMediaFiles'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
-import { validateFile, formatFileSize } from '@/lib/utils/media'
+import { validateFile } from '@/lib/utils/media'
+import { Icon } from '@/components/ui/Icon'
 
 interface MediaUploaderProps {
   onUploadComplete?: () => void
@@ -32,7 +33,11 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
       for (const file of Array.from(files)) {
         const validation = validateFile(file)
         if (!validation.valid) {
-          setError(validation.error || 'Invalid file')
+          setError(
+            file.size > 50 * 1024 * 1024
+              ? t('fileTooLargeWithLimit', { size: 50 })
+              : t('fileTypeError')
+          )
           continue
         }
 
@@ -50,7 +55,7 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
         onUploadComplete()
       }
     },
-    [uploadFile, onUploadComplete]
+    [uploadFile, onUploadComplete, t]
   )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -110,14 +115,15 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
 
         <label
           htmlFor="media-upload-input"
+          className="block w-full"
           style={{ cursor: isUploading ? 'not-allowed' : 'pointer' }}
         >
           {isUploading ? (
-            <div>
+            <div role="status" aria-live="polite">
               <div
                 style={{
-                  width: '60px',
-                  height: '60px',
+                  width: '52px',
+                  height: '52px',
                   border: '4px solid #D4B08C',
                   borderTopColor: '#854D27',
                   borderRadius: '50%',
@@ -125,42 +131,23 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
                   animation: 'spin 1s linear infinite',
                 }}
               />
-              <p style={{ color: '#854D27', fontSize: '1.1rem', margin: 0 }}>
-                アップロード中... {uploadProgress}%
+              <p className="text-[#854D27] font-bold text-base m-0">
+                {t('uploadProgress', { progress: uploadProgress })}
               </p>
             </div>
           ) : (
             <div>
-              <div
-                style={{
-                  fontSize: '3rem',
-                  marginBottom: '16px',
-                }}
-              >
-                📁
+              <div className="mb-3 text-[#854D27] flex justify-center">
+                <Icon name="FolderOpen" size={44} />
               </div>
-              <p
-                style={{
-                  color: '#854D27',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  margin: '0 0 8px',
-                }}
-              >
-                ここに画像・動画ファイルをドラッグ＆ドロップしてください
+              <p className="text-[#854D27] text-base font-bold mb-1.5">
+                {t('dropMediaHere')}
               </p>
-              <p style={{ color: '#854D27', opacity: 0.7, margin: 0 }}>
-                またはクリックしてファイルを選択
+              <p className="text-[#854D27]/80 text-xs sm:text-sm m-0">
+                {t('orChooseFile')}
               </p>
-              <p
-                style={{
-                  color: '#854D27',
-                  opacity: 0.5,
-                  fontSize: '0.85rem',
-                  marginTop: '12px',
-                }}
-              >
-                対応形式: JPG, PNG, GIF, MP4, WebM（最大50MB）
+              <p className="text-[#854D27]/60 text-xs mt-3">
+                {t('supportedMediaFormats')}
               </p>
             </div>
           )}
@@ -168,7 +155,7 @@ export function MediaUploader({ onUploadComplete }: MediaUploaderProps) {
       </motion.div>
 
       {error && (
-        <p style={{ color: '#dc3545', marginTop: '12px', textAlign: 'center' }}>
+        <p className="text-red-600 text-xs sm:text-sm font-bold mt-3 text-center" role="alert">
           {error}
         </p>
       )}

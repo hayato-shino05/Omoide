@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { getTimeUntilBirthday } from '@/lib/utils/birthday'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 
@@ -10,15 +10,24 @@ interface CountdownTimerProps {
   onComplete?: () => void
 }
 
+// ポラロイド風ミニフォトカードによるカウントダウンタイマーコンポーネント（モバイルコンパクト最適化版）
 export function CountdownTimer({ targetDate, onComplete }: CountdownTimerProps) {
-  const [mounted, setMounted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false })
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  // クライアント側でのみ時間計算を実行（SSR ではゼロ値）
+  const [timeLeft, setTimeLeft] = useState(() =>
+    typeof window === 'undefined'
+      ? { days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false }
+      : getTimeUntilBirthday(targetDate)
+  )
   const { t } = useLanguage()
 
-  // ハイドレーションの不整合を防ぐため、時間計算はクライアント側でのみ行う
   useEffect(() => {
-    setMounted(true)
-    setTimeLeft(getTimeUntilBirthday(targetDate))
+    const raf = requestAnimationFrame(() => setTimeLeft(getTimeUntilBirthday(targetDate)))
+    return () => cancelAnimationFrame(raf)
   }, [targetDate])
 
   useEffect(() => {
@@ -38,13 +47,12 @@ export function CountdownTimer({ targetDate, onComplete }: CountdownTimerProps) 
   }, [targetDate, onComplete, mounted])
 
   if (!mounted) {
-    // SSR 中はプレースホルダーを返す
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <TimeUnitPlaceholder label={t('days')} />
-        <TimeUnitPlaceholder label={t('hours')} />
-        <TimeUnitPlaceholder label={t('minutes')} />
-        <TimeUnitPlaceholder label={t('seconds')} />
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-3 md:gap-5 justify-items-center max-w-[620px] mx-auto">
+        <PolaroidPlaceholder label={t('days')} tapeStyle="tape-1" />
+        <PolaroidPlaceholder label={t('hours')} tapeStyle="tape-2" />
+        <PolaroidPlaceholder label={t('minutes')} tapeStyle="tape-3" />
+        <PolaroidPlaceholder label={t('seconds')} tapeStyle="tape-4" />
       </div>
     )
   }
@@ -54,124 +62,174 @@ export function CountdownTimer({ targetDate, onComplete }: CountdownTimerProps) 
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '12px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <TimeUnit value={timeLeft.days} label={t('days')} delay={0} />
-      <TimeUnit value={timeLeft.hours} label={t('hours')} delay={0.1} />
-      <TimeUnit value={timeLeft.minutes} label={t('minutes')} delay={0.2} />
-      <TimeUnit value={timeLeft.seconds} label={t('seconds')} delay={0.3} />
+    <div className="grid grid-cols-4 gap-1.5 sm:gap-3 md:gap-5 justify-items-center max-w-[620px] mx-auto">
+      <PolaroidUnit
+        value={timeLeft.days}
+        label={t('days')}
+        tapeStyle="tape-1"
+        hoverRotate={1.5}
+      />
+      <PolaroidUnit
+        value={timeLeft.hours}
+        label={t('hours')}
+        tapeStyle="tape-2"
+        hoverRotate={-1.5}
+      />
+      <PolaroidUnit
+        value={timeLeft.minutes}
+        label={t('minutes')}
+        tapeStyle="tape-3"
+        hoverRotate={2}
+      />
+      <PolaroidUnit
+        value={timeLeft.seconds}
+        label={t('seconds')}
+        tapeStyle="tape-4"
+        hoverRotate={-2}
+        isSeconds
+      />
     </div>
   )
 }
 
-function TimeUnit({ value, label, delay }: { value: number; label: string; delay: number }) {
+interface PolaroidUnitProps {
+  value: number
+  label: string
+  tapeStyle: 'tape-1' | 'tape-2' | 'tape-3' | 'tape-4'
+  hoverRotate: number
+  isSeconds?: boolean
+}
+
+const PolaroidUnit = React.memo(function PolaroidUnit({ value, label, tapeStyle, hoverRotate, isSeconds = false }: PolaroidUnitProps) {
+  const formattedValue = String(value).padStart(2, '0')
+
+  // 和紙テープのスタイルバリエーション（モバイル対応の比率）
+  const getTapeStyle = () => {
+    switch (tapeStyle) {
+      case 'tape-1':
+        return {
+          background: 'rgba(215, 195, 181, 0.9)',
+          transform: 'rotate(-12deg)',
+          top: '-6px',
+          left: '-4px',
+        }
+      case 'tape-2':
+        return {
+          background: 'rgba(202, 178, 86, 0.8)',
+          transform: 'rotate(10deg)',
+          top: '-6px',
+          right: '-4px',
+        }
+      case 'tape-3':
+        return {
+          background: 'rgba(215, 195, 181, 0.9)',
+          transform: 'rotate(15deg)',
+          top: '-6px',
+          left: '-3px',
+        }
+      case 'tape-4':
+        return {
+          background: 'rgba(202, 178, 86, 0.8)',
+          transform: 'rotate(-10deg)',
+          top: '-6px',
+          right: '-3px',
+        }
+    }
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-      }}
+      whileHover={{ y: -4, rotate: hoverRotate }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="relative group w-full max-w-[76px] sm:max-w-[110px] md:max-w-[130px] flex flex-col items-center"
     >
+      {/* 和紙テープ装飾 */}
       <div
+        className="absolute z-20 pointer-events-none rounded-2xs shadow-2xs w-6 sm:w-9 md:w-10 h-2.5 sm:h-3.5"
+        style={getTapeStyle()}
+      />
+
+      {/* ポラロイド写真風カード */}
+      <div
+        className="w-full bg-white/95 backdrop-blur-md p-1.5 pb-2 sm:p-2.5 sm:pb-3.5 md:p-3 md:pb-4 rounded-xs flex flex-col items-center transition-all duration-300"
         style={{
-          background: 'var(--theme-primary)',
-          color: '#fff',
-          padding: '14px 18px',
-          borderRadius: '12px',
-          minWidth: '60px',
-          textAlign: 'center',
-          fontFamily: 'var(--font-heading)',
-          fontSize: '1.8rem',
-          fontWeight: 700,
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.2)',
-          position: 'relative',
-          overflow: 'hidden',
+          boxShadow: '0 6px 18px -3px rgba(44, 24, 16, 0.2), 0 2px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.9)',
         }}
       >
-        <span style={{ position: 'relative', zIndex: 1 }}>{value}</span>
-        {/* ハイライトエフェクト */}
+        {/* 写真スロット */}
         <div
+          className="w-full aspect-square flex items-center justify-center rounded-2xs mb-1 sm:mb-2"
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '50%',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%)',
-            borderRadius: '12px 12px 0 0',
+            background: 'linear-gradient(145deg, #FAF5E4 0%, #F5ECCB 100%)',
+            border: '1px dashed rgba(109, 94, 0, 0.35)',
+            boxShadow: 'inset 0 1px 3px rgba(74, 36, 0, 0.08)',
           }}
-        />
+        >
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={formattedValue}
+              initial={false}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: isSeconds ? 3 : 0, scale: 0.96 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="font-black text-[#2C1400] tracking-tight select-none"
+              style={{
+                fontFamily: 'var(--font-heading), ui-sans-serif, system-ui',
+                fontSize: 'clamp(1.15rem, 4.2vw, 2.3rem)',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1,
+              }}
+            >
+              {formattedValue}
+            </motion.span>
+          </AnimatePresence>
+        </div>
+
+        {/* ラベル */}
+        <span
+          className="text-[9px] sm:text-xs md:text-sm font-black tracking-wider sm:tracking-widest text-[#522500] uppercase"
+          style={{
+            fontFamily: 'var(--font-body), sans-serif',
+          }}
+        >
+          {label}
+        </span>
       </div>
-      <span
-        style={{
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          color: '#fff',
-          fontFamily: 'var(--font-body)',
-          textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-        }}
-      >
-        {label}
-      </span>
     </motion.div>
   )
-}
+})
 
-
-function TimeUnitPlaceholder({ label }: { label: string }) {
+const PolaroidPlaceholder = React.memo(function PolaroidPlaceholder({ label, tapeStyle }: { label: string; tapeStyle: 'tape-1' | 'tape-2' | 'tape-3' | 'tape-4' }) {
+  void tapeStyle
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-      }}
-    >
+    <div className="relative w-full max-w-[76px] sm:max-w-[110px] md:max-w-[130px] flex flex-col items-center">
       <div
+        className="w-full bg-white p-1.5 pb-2 sm:p-2.5 sm:pb-3.5 md:p-3 md:pb-4 rounded-xs flex flex-col items-center"
         style={{
-          background: 'var(--theme-primary)',
-          color: '#fff',
-          padding: '14px 18px',
-          borderRadius: '12px',
-          minWidth: '60px',
-          textAlign: 'center',
-          fontFamily: 'var(--font-heading)',
-          fontSize: '1.8rem',
-          fontWeight: 700,
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255,255,255,0.2)',
-          position: 'relative',
-          overflow: 'hidden',
+          boxShadow: '0 6px 18px -3px rgba(44, 24, 16, 0.16)',
         }}
       >
-        <span style={{ position: 'relative', zIndex: 1 }}>--</span>
+        <div
+          className="w-full aspect-square flex items-center justify-center rounded-2xs mb-1 sm:mb-2"
+          style={{
+            background: '#FAF5E4',
+            border: '1px dashed rgba(109, 94, 0, 0.35)',
+          }}
+        >
+          <span
+            className="font-black text-[#2C1400]/30"
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontSize: 'clamp(1.15rem, 4.2vw, 2.3rem)',
+            }}
+          >
+            --
+          </span>
+        </div>
+        <span className="text-[9px] sm:text-xs md:text-sm font-black text-[#522500]">
+          {label}
+        </span>
       </div>
-      <span
-        style={{
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          color: '#fff',
-          fontFamily: 'var(--font-body)',
-          textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-        }}
-      >
-        {label}
-      </span>
     </div>
   )
-}
+})

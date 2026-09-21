@@ -1,112 +1,159 @@
-# コントリビューションガイドライン
+﻿# コントリビューションガイド
 
-このリポジトリへのコントリビューションに関心を持っていただき、ありがとうございます。
-ここでは、バグ報告・機能提案・コードやドキュメントの修正を行う際の基本ルールをまとめます。
+`Omoide`（想い出箱）への貢献に関心をお寄せいただき、ありがとうございます。
+バグ報告、機能提案、コードおよびドキュメントの改善を行う際の手順と規約をまとめます。
 
----
+## 目次
 
-## 1. 想定するコントリビューション
+1. [参加方法](#参加方法)
+2. [開発環境の構築](#開発環境の構築)
+3. [開発ワークフロー](#開発ワークフロー)
+4. [コーディング規約](#コーディング規約)
+5. [コミット規約](#コミット規約)
+6. [Pull Request の作成](#pull-request-の作成)
+7. [行動規範](#行動規範)
 
-- バグ報告（Issue の作成）
-- 新機能・改善提案
-- バグ修正・リファクタリング
-- ドキュメント整備（README / STRUCTURE / DATABASE など）
-- テストコードの追加・改善
+## 参加方法
 
-大きな変更（仕様追加・デザイン変更など）の場合は、いきなり PR を送るのではなく、
-まず Issue で方向性を相談してから進めてもらえると助かります。
+- **バグ報告**: 不具合の再現手順、環境情報、期待される動作を明記して Issue を作成します。
+- **機能提案**: 大きな機能追加や UI の変更を行う場合は、実装前に Issue で方針を相談します。
+- **ドキュメント改善**: 誤字脱字の修正、説明の追加、英語/日本語の表記ゆれの修正を歓迎します。
+- **テストの追加**: 新機能やエッジケースに対する Vitest テストコードの追加を歓迎します。
 
----
+## 開発環境の構築
 
-## 2. 開発環境のセットアップ
+### 前提条件
 
-基本的なセットアップ手順は `README.md` の「はじめ方（ローカル環境）」を参照してください。概要は以下です。
+- Node.js 20.9.0 以上
+- npm（Node.js に同梱されるバージョン）
+- Supabase プロジェクト（ローカルまたはクラウド）
 
-1. リポジトリを Fork して clone
-2. 依存パッケージをインストール
+### 手順
+
+1. リポジトリを Fork してローカルに clone します。
+
+   ```bash
+   git clone https://github.com/<your-username>/happy-birthday-website.git
+   cd happy-birthday-website
+   ```
+
+2. 依存パッケージをインストールします。
+
    ```bash
    npm install
-   # または
-   yarn install
    ```
-3. `.env.local` を作成し、Supabase の接続情報を設定
-4. `npm run dev` で開発サーバーを起動
 
-Supabase 側のテーブルやポリシーについては `DATABASE.md` を参照してください。
+3. 環境変数を設定します。
 
----
+   ```bash
+   cp .env.example .env.local
+   ```
 
-## 3. ブランチ戦略
+   `.env.local` を開き、Supabase の接続情報を設定します。
 
-- `main` : 安定したブランチ（直接 push しない）
-- 作業用ブランチ例:
-  - `feature/xxx-new-feature`
-  - `fix/xxx-bug-description`
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+   NEXT_PUBLIC_BASE_URL=http://localhost:3000
+   ```
 
-Pull Request は必ず専用ブランチから作成してください。
+4. 静的データマニフェストを生成します。
 
----
+   ```bash
+   npm run generate:data
+   ```
 
-## 4. コーディングスタイル
+5. 開発サーバーを起動します。
+   ```bash
+   npm run dev
+   ```
+   ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
 
-このプロジェクトでは、以下の方針で実装しています。
+## 開発ワークフロー
 
-- 言語: **TypeScript**
-  - `any` の多用は避け、できる限り型を明示
-  - 型定義は `types/` にまとめる
-- フロントエンド: **React + Next.js App Router**
-  - ビジネスロジックは可能な限り `lib/hooks` や `lib/stores` に切り出す
-  - ページコンポーネントは表示ロジックに集中させる
-- スタイリング: **Tailwind CSS + CSS 変数**
-  - レイアウト・見た目は Tailwind クラスを優先
-  - テーマカラーなどは CSS カスタムプロパティを利用
-- 状態管理: **Zustand**
-  - グローバル state は store に集約し、コンポーネントでは hook を経由して参照
-- 多言語対応: **英語 / 日本語**
-  - 文言は原則 `lib/i18n` に集約し、コンポーネント内でハードコードしない
+### ブランチ規約
 
-既存コードとスタイルを合わせることを意識してもらえると、レビューがスムーズになります。
+`main` ブランチに直接 push せず、目的ごとの作業ブランチを作成して作業します。
 
----
+| 種類             | 命名規則        | 例                            |
+| ---------------- | --------------- | ----------------------------- |
+| 新機能           | `feat/機能名`   | `feat/interactive-3d-omikuji` |
+| バグ修正         | `fix/内容`      | `fix/mobile-dock-zindex`      |
+| ドキュメント     | `docs/内容`     | `docs/update-architecture`    |
+| リファクタリング | `refactor/内容` | `refactor/music-store`        |
 
-## 5. コミットメッセージ
+### データベースとマイグレーション
 
-厳密なルールはありませんが、以下のような形式を推奨します。
+データベーススキーマの変更は、直接 Supabase ダッシュボードで行わず、`supabase/migrations/` に SQL マイグレーションファイルとして追加します。詳細は [DATABASE.md](./DATABASE.md) を参照してください。
 
-- 日本語または英語で「何をしたか」が分かる短い文
-- 例:
-  - `fix: 誕生日一覧のページネーションバグを修正`
-  - `feat: add audio message waveform visualization`
-  - `docs: update DATABASE.md for new index`
+### 多言語（i18n）データの更新
 
-複数の変更を 1 つのコミットにまとめすぎないように注意してください。
+UI のテキストや祝祭日データを追加・修正した場合は、以下の手順を実行します。
 
----
+1. `data/i18n/en.json` および `data/i18n/ja.json` にキーと翻訳を追加します。
+2. `npm run generate:data` を実行し、`data/generated/locales.ts` を再生成します。
 
-## 6. Pull Request の流れ
+## コーディング規約
 
-1. `main` から作業用ブランチを作成
-2. 変更を実装し、ローカルで動作確認
-   - `npm run lint`
-   - `npm run test`（必要に応じて）
-3. GitHub 上で Pull Request を作成
-   - 変更内容の概要
-   - 背景 / 動機（関連 Issue があればリンク）
-   - 動作確認方法（スクリーンショットや手順など）があるととても助かります
-4. レビューコメントがあれば対応し、必要に応じて修正コミットを追加
+### TypeScript / React
 
----
+- `any` の使用を避け、厳格な型定義（`types/` 配下）を作成します。
+- UI コンポーネントは表示責務に集中させ、ビジネスロジックはカスタムフック（`lib/hooks/`）または Zustand ストア（`lib/stores/`）に切り離します。
+- ユーザーに表示されるすべての文言は `useLanguage()` を通して多言語対応します。
 
-## 7. 行動規範
+### 3D / WebGL（Three.js）
 
-このプロジェクトでは、すべての参加者に対して敬意と配慮のあるコミュニケーションを期待しています。 
-詳細は **[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)** を参照してください。
+- コンポーネントのアンマウント時に、Geometries、Materials、Textures、Controls、PMREMGenerator などの WebGL リソースを確実に dispose します。
+- リサイズ処理およびポインターイベント（ドラッグとクリックの閾値判定）を実装します。
 
----
+### スタイリング
 
-## 8. 質問や相談
+- Tailwind CSS 4 のユーティリティクラスを優先します。
+- テーマカラー、surface、text、border、shadow、font は `app/globals.css` の CSS 変数および `@theme` トークンを使用します。
+- 既存の inline style と固定値は一括置換せず、変更対象の機能やアクセシビリティ修正に触れる範囲で段階的に token 化します。
+- 色の意味やコントラストを変える広範な visual redesign は、個別 Issue で方針を確認してから実施します。
 
-Issue での質問・提案は歓迎です。 
-「こういう使い方をしたい」「ここが分かりにくい」といったフィードバックも、プロジェクト改善の大きなヒントになります。
+## コミット規約
 
-一緒に、誕生日をもっと楽しくするツールを育てていきましょう。 🎂🎉
+Conventional Commits に準拠した明確なメッセージを推奨します。
+
+```text
+feat(fortune): 3D おみくじ筒のシェイク演出と運勢データセットを追加
+fix(ui): モバイルドックの z-index 重なりを修正
+docs: STRUCTURE.md に 3D コンポーネント構成を追加
+test: omikujiData の整合性テストケースを追加
+```
+
+## Pull Request の作成
+
+1. 変更を実装し、ローカルでテストとビルドを実行します。
+
+   ```bash
+   # リントチェック
+   npm run lint
+
+   # 型検査
+   npm run typecheck
+
+   # テスト実行
+   npm run test
+
+   # 本番ビルド検証
+   npm run build
+   ```
+
+2. 変更をコミットしてリモートブランチに push します。
+
+   ```bash
+   git push origin feat/your-feature-name
+   ```
+
+3. GitHub 上で Pull Request を作成します。
+   - 変更内容の概要と背景（関連する Issue 番号を `Closes #123` 形式で記載）
+   - 動作確認手順とスクリーンショット
+
+4. CI チェックの通過を確認し、レビューに対応します。
+
+## 行動規範
+
+本プロジェクトでは、すべての参加者が安心して協力できる環境を重視しています。詳細は [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) を確認してください。

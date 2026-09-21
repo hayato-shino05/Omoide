@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { MediaFile } from '@/types'
+import { Icon } from '@/components/ui/Icon'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 const SLIDESHOW_INTERVAL = 3000
 
@@ -16,6 +18,36 @@ interface MediaViewerProps {
   onToggleSlideshow?: () => void
 }
 
+function findVisibleFallback(): HTMLElement | null {
+  if (typeof document === 'undefined') return null
+  const candidates = document.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )
+  for (const el of candidates) {
+    if (
+      !el.isConnected ||
+      el.hasAttribute('inert') ||
+      el.closest('[inert]') ||
+      el.getAttribute('aria-hidden') === 'true' ||
+      el.closest('[aria-hidden="true"]')
+    ) {
+      continue
+    }
+    const style = window.getComputedStyle(el)
+    if (style.display === 'none' || style.visibility === 'hidden') {
+      continue
+    }
+    const rect = el.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) {
+      return el
+    }
+    if (el.offsetWidth > 0 || el.offsetHeight > 0) {
+      return el
+    }
+  }
+  return null
+}
+
 export function MediaViewer({ 
   media, 
   allMedia, 
@@ -24,6 +56,7 @@ export function MediaViewer({
   slideshowMode = false,
   onToggleSlideshow,
 }: MediaViewerProps) {
+  const { t } = useLanguage()
   const [isPlaying, setIsPlaying] = useState(slideshowMode)
   const [mounted, setMounted] = useState(false)
   const currentIndex = allMedia.findIndex((m) => m.id === media.id)
@@ -98,9 +131,111 @@ export function MediaViewer({
     onToggleSlideshow?.()
   }
 
+  const viewerRef = useRef<HTMLDivElement>(null)
+  const lastFocusedRef = useRef<Element | null>(null)
+
+  // ダイアログとしてのフォーカス lifecycle（portal mount 後にフォーカスを奪い、閉じたら返す）
+  useEffect(() => {
+    if (!mounted) return
+    lastFocusedRef.current = document.activeElement
+    viewerRef.current?.focus()
+
+    // viewerRef.current 以外のすべての body 直下要素（背景・親モーダル・動的ポータル）を inert / aria-hidden 化
+    const viewerElement = viewerRef.current
+    const modifiedElements = new Map<HTMLElement, { originalInert: string | null; originalAriaHidden: string | null }>()
+
+    const isolateNode = (node: Node) => {
+      if (
+        node instanceof HTMLElement &&
+        node !== viewerElement &&
+        !node.contains(viewerElement) &&
+        !['SCRIPT', 'STYLE', 'LINK'].includes(node.tagName)
+      ) {
+        if (!modifiedElements.has(node)) {
+          modifiedElements.set(node, {
+            originalInert: node.getAttribute('inert'),
+            originalAriaHidden: node.getAttribute('aria-hidden'),
+          })
+          node.setAttribute('inert', '')
+          node.setAttribute('aria-hidden', 'true')
+        }
+      }
+    }
+
+    // 初期 body 直下要素を隔離
+    const bodyChildren = Array.from(document.body.children)
+    for (const child of bodyChildren) {
+      isolateNode(child)
+    }
+
+    // viewer マウント後に追加されたポータル／兄弟要素も動的に隔離
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const addedNode of Array.from(mutation.addedNodes)) {
+          isolateNode(addedNode)
+        }
+      }
+    })
+    observer.observe(document.body, { childList: true })
+
+    return () => {
+      observer.disconnect()
+      for (const [element, { originalInert, originalAriaHidden }] of modifiedElements) {
+        if (originalInert !== null) {
+          element.setAttribute('inert', originalInert)
+        } else {
+          element.removeAttribute('inert')
+        }
+        if (originalAriaHidden !== null) {
+          element.setAttribute('aria-hidden', originalAriaHidden)
+        } else {
+          element.removeAttribute('aria-hidden')
+        }
+      }
+      const saved = lastFocusedRef.current
+      if (saved instanceof HTMLElement && saved.isConnected) {
+        saved.focus()
+      } else {
+        const fallback = findVisibleFallback()
+        fallback?.focus()
+      }
+    }
+  }, [mounted])
+
+  // Tab キーによるダイアログ内のフォーカストラップ
+  useEffect(() => {
+    if (!mounted) return
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !viewerRef.current) return
+      const focusableElements = viewerRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), video[controls], [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusableElements.length === 0) return
+      const firstElement = focusableElements[0] as HTMLElement
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
+
+      if (e.shiftKey && (document.activeElement === firstElement || document.activeElement === viewerRef.current)) {
+        e.preventDefault()
+        lastElement?.focus()
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault()
+        firstElement?.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleTab)
+    return () => document.removeEventListener('keydown', handleTab)
+  }, [mounted])
+
   const viewerContent = (
     <AnimatePresence>
       <motion.div
+        ref={viewerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={media.file_name}
+        tabIndex={-1}
+        className="focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4B08C] focus:outline-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -163,17 +298,8 @@ export function MediaViewer({
               transition: 'all 0.2s',
             }}
           >
-            {isPlaying ? (
-              <>
-                <span>⏸</span>
-                <span>一時停止</span>
-              </>
-            ) : (
-              <>
-                <span>▶</span>
-                <span>スライドショー</span>
-              </>
-            )}
+            <Icon name={isPlaying ? 'Pause' : 'Play'} size={18} />
+            <span>{isPlaying ? t('pause') : t('slideshow')}</span>
           </button>
         </div>
 
@@ -183,6 +309,7 @@ export function MediaViewer({
             e.stopPropagation()
             onClose()
           }}
+          aria-label={t('close')}
           style={{
             position: 'absolute',
             top: '20px',
@@ -208,7 +335,7 @@ export function MediaViewer({
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
           }}
         >
-          ✕
+          <Icon name="X" size={28} />
         </button>
 
         {/* 前へボタン */}
@@ -218,6 +345,7 @@ export function MediaViewer({
             setIsPlaying(false)
             goToPrev()
           }}
+          aria-label={t('previousMedia')}
           style={{
             position: 'absolute',
             left: '30px',
@@ -244,7 +372,7 @@ export function MediaViewer({
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
           }}
         >
-          ‹
+          <Icon name="ArrowLeft" size={34} />
         </button>
 
         {/* 次へボタン */}
@@ -254,6 +382,7 @@ export function MediaViewer({
             setIsPlaying(false)
             goToNext()
           }}
+          aria-label={t('nextMedia')}
           style={{
             position: 'absolute',
             right: '30px',
@@ -280,7 +409,7 @@ export function MediaViewer({
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'
           }}
         >
-          ›
+          <Icon name="ArrowRight" size={34} />
         </button>
 
         {/* メディア表示エリア（フルスクリーン） */}
@@ -314,6 +443,8 @@ export function MediaViewer({
               onPlay={() => setIsPlaying(false)}
             />
           ) : (
+            // Media paths may be private or signed URLs and are not statically allowlisted.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={media.file_path}
               alt={media.file_name}

@@ -1,648 +1,244 @@
-# 🗄️ データベーススキーマ
+# データベース
 
-> Supabase (PostgreSQL) を利用した誕生日お祝いサイトのためのデータベース設計ドキュメントです。
->
-> Next.js 側の API ルートや hooks は、ここで定義しているテーブル・ストレージ・ポリシーを前提に実装されています。
+## 正本
+
+データベーススキーマ、RLS、Storage、Realtime の正本は次のマイグレーションです。`supabase/migrations/` 配下の SQL ファイルをバージョン管理の正本とし、`database/database.sql` は全テーブル・関数・RLS を一括定義した統合スキーマファイルです。
+
+- [`supabase/migrations/20260812163000_reset_and_create_anonymous_community.sql`](./supabase/migrations/20260812163000_reset_and_create_anonymous_community.sql)
+- [`supabase/migrations/20260817000000_add_bulletin_post_likes.sql`](./supabase/migrations/20260817000000_add_bulletin_post_likes.sql)
+- [`supabase/migrations/20260820000000_add_full_storage_buckets.sql`](./supabase/migrations/20260820000000_add_full_storage_buckets.sql)
+- [`supabase/migrations/20260820000001_add_photo_album_storage.sql`](./supabase/migrations/20260820000001_add_photo_album_storage.sql)
+- [`supabase/migrations/20260821000000_add_time_capsules_table.sql`](./supabase/migrations/20260821000000_add_time_capsules_table.sql)
+- [`supabase/migrations/20260823000000_harden_avatar_storage_mime_types.sql`](./supabase/migrations/20260823000000_harden_avatar_storage_mime_types.sql)
+- [`supabase/migrations/20260824000000_expand_time_capsule_security.sql`](./supabase/migrations/20260824000000_expand_time_capsule_security.sql)
+- [`supabase/migrations/20260824000001_contract_time_capsule_security.sql`](./supabase/migrations/20260824000001_contract_time_capsule_security.sql)
+- [`supabase/migrations/20260824000002_rename_time_capsule_photo_constraint.sql`](./supabase/migrations/20260824000002_rename_time_capsule_photo_constraint.sql)
+- [`supabase/migrations/20260824000003_remove_direct_time_capsule_access.sql`](./supabase/migrations/20260824000003_remove_direct_time_capsule_access.sql)
+- [`supabase/migrations/20260825000000_limit_time_capsule_uploads.sql`](./supabase/migrations/20260825000000_limit_time_capsule_uploads.sql)
+- [`supabase/migrations/20260825000001_add_time_capsule_access_codes.sql`](./supabase/migrations/20260825000001_add_time_capsule_access_codes.sql)
+- [`supabase/migrations/20260825235454_add_time_capsule_private_access_boundary.sql`](./supabase/migrations/20260825235454_add_time_capsule_private_access_boundary.sql)
+- [`supabase/migrations/20260825235535_harden_time_capsule_rpc_execute_privileges.sql`](./supabase/migrations/20260825235535_harden_time_capsule_rpc_execute_privileges.sql)
+- [`supabase/migrations/20260826000000_add_time_capsule_access_attempt_buckets.sql`](./supabase/migrations/20260826000000_add_time_capsule_access_attempt_buckets.sql)
+- [`supabase/migrations/20260826000001_add_time_capsule_private_access_boundary.sql`](./supabase/migrations/20260826000001_add_time_capsule_private_access_boundary.sql)
+- [`supabase/migrations/20260826000002_harden_time_capsule_rpc_execute_privileges.sql`](./supabase/migrations/20260826000002_harden_time_capsule_rpc_execute_privileges.sql)
+- [`supabase/migrations/20260827000000_add_time_capsule_open_tracking.sql`](./supabase/migrations/20260827000000_add_time_capsule_open_tracking.sql)
+- [`supabase/migrations/20260827000002_remove_private_time_capsule_deny_policies.sql`](./supabase/migrations/20260827000002_remove_private_time_capsule_deny_policies.sql)
+- [`supabase/migrations/20260827000003_add_notification_logs.sql`](./supabase/migrations/20260827000003_add_notification_logs.sql)
+- [`supabase/migrations/20260827000004_harden_notification_claims.sql`](./supabase/migrations/20260827000004_harden_notification_claims.sql)
+- [`supabase/migrations/20260831000000_restore_anonymous_public_privileges.sql`](./supabase/migrations/20260831000000_restore_anonymous_public_privileges.sql)
+- [`supabase/migrations/20260901000000_add_community_submission_rpc.sql`](./supabase/migrations/20260901000000_add_community_submission_rpc.sql)
+- [`supabase/migrations/20260902000000_add_curated_music_track_to_messages.sql`](./supabase/migrations/20260902000000_add_curated_music_track_to_messages.sql)
+- [`supabase/migrations/20260904000000_add_music_track_to_community_submission_rpc.sql`](./supabase/migrations/20260904000000_add_music_track_to_community_submission_rpc.sql)
+- [`supabase/migrations/20260904000001_revoke_anonymous_music_upload.sql`](./supabase/migrations/20260904000001_revoke_anonymous_music_upload.sql)
+- [`supabase/migrations/20260905000000_add_birthday_thread_and_reply_music.sql`](./supabase/migrations/20260905000000_add_birthday_thread_and_reply_music.sql)
+- [`supabase/migrations/20260914000000_add_metadata_and_lyrics_to_music_tracks.sql`](./supabase/migrations/20260914000000_add_metadata_and_lyrics_to_music_tracks.sql)
+- [`supabase/migrations/20260917000000_create_study_rooms_and_members.sql`](./supabase/migrations/20260917000000_create_study_rooms_and_members.sql)
+- [`supabase/migrations/20260919000000_harden_study_room_security.sql`](./supabase/migrations/20260919000000_harden_study_room_security.sql)
+- [`supabase/migrations/20260920000000_study_room_requests_and_lifecycle.sql`](./supabase/migrations/20260920000000_study_room_requests_and_lifecycle.sql)
+- [`supabase/migrations/20260920100000_daily_fortunes_table.sql`](./supabase/migrations/20260920100000_daily_fortunes_table.sql)
+- [`supabase/migrations/20260920200000_quizzes_memory_and_festivals.sql`](./supabase/migrations/20260920200000_quizzes_memory_and_festivals.sql)
+- 初期データ: [`supabase/seed.sql`](./supabase/seed.sql) / [`database/seed.sql`](./database/seed.sql)
+- 統合 SQL スキーマ: [`database/database.sql`](./database/database.sql)
+
+## 適用時の注意
+
+正本 migration は `auth.users` を削除し、`public` スキーマを `CASCADE` で再作成します。既存のユーザー、テーブル、データを消去するため、開発用または明示的に初期化してよい環境だけで実行してください。
+
+migration の適用後に `supabase/seed.sql`（または `database/seed.sql`）を実行すると、誕生日、メッセージ、ギフト、チャット、掲示板、および LRC 歌詞付きキュレーション楽曲のサンプルデータを投入できます。
+
+## public スキーマ一覧
+
+| テーブル | 用途 | 主な列 |
+|---|---|---|
+| `birthdays` | 誕生日情報 | `name`, `month`, `day`, `year`, `message` |
+| `messages` | お祝いメッセージ | `sender`, `message`, `birthday_person`, `media_object_path`, `music_track_id` |
+| `media_submissions` | Storage 上のメディア投稿メタデータ | `object_path`, `media_kind`, `mime_type`, `size_bytes`, `original_name` |
+| `virtual_gifts` | バーチャルギフト | `sender`, `gift_emoji`, `gift_name`, `birthday_person` |
+| `chat_messages` | コミュニティチャット | `sender`, `message` |
+| `bulletin_posts` | 掲示板投稿・システム生成の誕生日スレッド | `sender`, `message`, `media_object_path`, `birthday_person`, `likes`, `celebration_date`, `timezone`, `is_system_generated` |
+| `post_replies` | 掲示板への返信（誕生日スレッドへの返信を含む） | `post_id`, `sender`, `message`, `music_track_id`, `moderation_status` |
+| `music_tracks` | キュレーション済み & カスタム音楽トラック | `name`, `title`, `artist`, `duration`, `url`, `file_name`, `file_size`, `cover_url`, `lyrics_url`, `lyrics_lrc`, `is_preset`, `sort_order` |
+| `time_capsules` | タイムカプセル本体 | `sender`, `recipient`, `message`, `photo_url`, `photo_object_path`, `unlock_date`, `owner_id`, `idempotency_key`, `invite_token_hash`, `invite_token_expires_at`, `invite_revoked_at`, `opened_at`, `created_at` |
+| `time_capsule_access_codes` | 招待コードのハッシュ・派生情報 | `capsule_id`, `code_hash`, `derivation_attempt`, `revoked_at`, `failed_attempts`, `locked_until`, `last_used_at` |
+| `time_capsule_access_attempt_buckets` | 招待コード入力のレート制限バケット | `bucket_fingerprint`, `failed_attempts`, `locked_until` |
+| `notification_logs` | 通知ワーカーが処理するジョブ | `id`, `event_id`, `event_type`, `recipient_ref`, `channel`, `scheduled_at`, `timezone`, `idempotency_key`, `opted_in`, `status`, `attempt_count`, `last_error_code`, `next_attempt_at`, `expires_at`, `sent_at`, `leased_by`, `lease_until`, `created_at`, `updated_at` |
+| `study_rooms` | 勉強部屋（コワーキング）ルーム本体 | `id`, `name`, `description`, `host_id`, `host_token_hash`, `current_track_id`, `playback_state`, `epoch_started_at`, `is_private`, `passcode_hash`, `queue`, `current_index`, `is_shuffled`, `repeat_mode`, `song_requests`, `created_at`, `updated_at` |
+| `study_room_members` | 勉強部屋の参加者ステータス | `id`, `room_id`, `user_identifier`, `member_token_hash`, `display_name`, `avatar_url`, `status`, `streak_minutes`, `joined_at`, `last_heartbeat_at` |
+| `daily_fortunes` | おみくじ運勢データ（静的マスタ） | `id`, `rank`, `rank_name_ja`, `rank_name_en`, `poem_ja`, `poem_en`, `general_ja`, `general_en`, `bond_ja`, `bond_en`, `health_ja`, `health_en`, `wish_ja`, `wish_en`, `blessing_ja`, `blessing_en`, `lucky_color_ja`, `lucky_color_en`, `lucky_item_ja`, `lucky_item_en`, `lucky_number` |
+| `birthday_quizzes` | バースデークイズセット定義 | `id`, `title`, `description`, `celebrant_name`, `is_default`, `created_at` |
+| `quiz_questions` | クイズの出題問題・選択肢 | `id`, `quiz_id`, `question`, `options`, `correct_index`, `explanation`, `sort_order` |
+| `memory_card_decks` | 神経衰弱ゲームのカードデッキ | `id`, `title`, `theme`, `cards`, `is_default`, `created_at` |
+| `festival_packs` | 年中行事・13祝祭日パック | `id`, `season`, `month_range`, `name_ja`, `name_en`, `greeting_ja`, `greeting_en`, `icon`, `theme_keys`, `metadata`, `created_at` |
+
+すべての ID は `bigint generated always as identity`（`time_capsule_access_codes` のみ `generated by default as identity`、`study_rooms` は `uuid default gen_random_uuid()`、`study_room_members` は `uuid default gen_random_uuid()`）です。日時は `timestamptz` で保存します（`time_capsules.unlock_date` と `bulletin_posts.celebration_date` のみ `date`）。`daily_fortunes` は静的マスタテーブルであり、日時カラムはありません。
+
+`post_replies.post_id` は `bulletin_posts.id` を参照し、親投稿を削除すると返信も削除されます。`time_capsule_access_codes.capsule_id` は `time_capsules.id` を参照し、親カプセルを削除するとコード行も削除されます。`bulletin_posts.likes` は `0` 以上を `CHECK` 制約で強制し、直接の `UPDATE` を許可せず `increment_bulletin_post_likes` 経由でのみ加算します。
+
+楽曲参照（`messages.music_track_id`, `post_replies.music_track_id`）は `<provider>:<trackId>` 形式の文字列です。provider は `jamendo`、`soundcloud`、または `omoide` で、それぞれ正規の保存形式は `jamendo:<id>` / `soundcloud:<id>` / `omoide:<id>` です。
 
 ---
 
-## 概要
+## 音楽と歌詞の追加・管理手順
 
-このプロジェクトでは BaaS として **Supabase** を利用し、次の機能を組み合わせて構成しています。
+Omoide の音楽システムは、Cloudflare R2（オーディオ・カバーアート・LRC ファイルのホスティング）と Supabase `music_tracks` テーブルを連携して動作します。
 
-- PostgreSQL データベース
-- Realtime サブスクリプション
-- メディアファイル用ストレージ
-- Row Level Security (RLS)
+### 1. 音楽・歌詞データの仕様
 
-アプリケーションからは Supabase の JavaScript クライアントを通して CRUD / サブスク / ストレージ操作を行います。
+- **オーディオファイル**: MP3 形式（320kbps 推奨）、WAV、FLAC、OGG
+- **カバーアート**: JPEG / PNG / WebP（300×300px 正方形推奨）
+- **歌詞データ（LRC）**: 標準タイムタグ付き LRC 形式（例: `[00:12.34]歌詞テキスト`）。ミリ秒または秒単位のタイムスタンプに対応。
 
----
+### 2. スクリプトを使った自動一括同期
 
-## テーブル定義（public スキーマ）
+ローカルディレクトリに楽曲・カバー画像・`.lrc` 歌詞を配置し、スクリプトを実行して Cloudflare R2 と Supabase へ一括登録できます。
 
-### `birthdays`
+1. `.env` に以下の環境変数を設定します:
+   ```env
+   LOCAL_MUSIC_DIR="D:\\Music\\shino.hayato05"
+   CLOUDFLARE_R2_BUCKET_NAME="omoide-music"
+   CLOUDFLARE_R2_PUBLIC_DOMAIN="https://pub-xxxx.r2.dev"
+   CLOUDFLARE_R2_ACCOUNT_ID="your_account_id"
+   CLOUDFLARE_R2_ACCESS_KEY_ID="your_access_key"
+   CLOUDFLARE_R2_SECRET_ACCESS_KEY="your_secret_key"
+   NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+   SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+   ```
 
-誕生日の基本情報を保持するメインテーブルです。カレンダー表示や次の誕生日計算のベースになります。
+2. 楽曲と歌詞の一括同期スクリプトを実行します:
+   ```bash
+   node scripts/sync-local-music-to-r2-and-supabase.mjs
+   ```
+   - FLAC を自動的に MP3 (320kbps) に変換
+   - 音声、カバー画像、`.lrc` を R2 へアップロード
+   - `music_tracks` テーブルへ `title`, `artist`, `duration`, `cover_url`, `lyrics_lrc` を登録
+
+3. 表示順序を更新する場合:
+   ```bash
+   node scripts/reorder-music-tracks.mjs
+   ```
+
+### 3. SQL による手動登録例
 
 ```sql
-CREATE TABLE birthdays (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  month INTEGER NOT NULL CHECK (month >= 1 AND month <= 12),
-  day INTEGER NOT NULL CHECK (day >= 1 AND day <= 31),
-  year INTEGER,
-  message TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+insert into public.music_tracks (
+  name, title, artist, duration, url, file_name, file_size, cover_url, lyrics_lrc, is_preset, sort_order
+) values (
+  'Birthday Celebration - Happy Birthday Accordion',
+  'Happy Birthday Accordion',
+  'Birthday Celebration',
+  64,
+  'https://pub-xxx.r2.dev/audio/happy_birthday.mp3',
+  'happy_birthday.mp3',
+  1024000,
+  'https://pub-xxx.r2.dev/covers/happy_birthday.jpg',
+  '[00:00.00]Happy Birthday to You♪\n[00:06.00]Happy Birthday to You♪\n[00:12.00]Happy Birthday Dear Friend♪\n[00:18.00]Happy Birthday to You♪',
+  true,
+  1
 );
-
-CREATE INDEX idx_birthdays_month_day ON birthdays(month, day);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `name` | VARCHAR(255) | 誕生日の本人の名前 |
-| `month` | INTEGER | 誕生月（1〜12） |
-| `day` | INTEGER | 誕生日（1〜31） |
-| `year` | INTEGER | 生年（任意） |
-| `message` | TEXT | カスタムメッセージ（任意） |
-| `created_at` | TIMESTAMPTZ | レコード作成日時 |
-| `updated_at` | TIMESTAMPTZ | 最終更新日時 |
-
----
-
-### `custom_messages`
-
-ゲストから送信されるお祝いメッセージを保存するテーブルです。テキストと任意のメディア URL を紐付けます。
-
-```sql
-CREATE TABLE custom_messages (
-  id SERIAL PRIMARY KEY,
-  sender VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  birthday_person VARCHAR(255),
-  media_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_messages_birthday_person ON custom_messages(birthday_person);
-CREATE INDEX idx_messages_created_at ON custom_messages(created_at DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `sender` | VARCHAR(255) | 送信者名 |
-| `message` | TEXT | メッセージ本文（最大 1000 文字を想定） |
-| `birthday_person` | VARCHAR(255) | メッセージの宛先（誕生日の本人） |
-| `media_url` | TEXT | 添付メディアの URL |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-
----
-
-### `media_files`
-
-アップロードされた写真・動画を管理するテーブルです。Supabase Storage 上の実体へのパスと、メタ情報を持ちます。
-
-```sql
-CREATE TABLE media_files (
-  id SERIAL PRIMARY KEY,
-  file_name VARCHAR(255) NOT NULL,
-  file_path TEXT NOT NULL,
-  file_type VARCHAR(50) NOT NULL CHECK (file_type IN ('image', 'video')),
-  file_size INTEGER,
-  width INTEGER,
-  height INTEGER,
-  duration INTEGER,
-  thumbnail_url TEXT,
-  tags TEXT[],
-  description TEXT,
-  uploaded_by VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_media_file_type ON media_files(file_type);
-CREATE INDEX idx_media_tags ON media_files USING GIN(tags);
-CREATE INDEX idx_media_created_at ON media_files(created_at DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `file_name` | VARCHAR(255) | 元ファイル名 |
-| `file_path` | TEXT | Storage 上のパス（公開 URL に変換可能） |
-| `file_type` | VARCHAR(50) | `image` / `video` |
-| `file_size` | INTEGER | ファイルサイズ（byte） |
-| `width` | INTEGER | 画像 / 動画の幅 |
-| `height` | INTEGER | 画像 / 動画の高さ |
-| `duration` | INTEGER | 動画の長さ（秒） |
-| `thumbnail_url` | TEXT | サムネイル画像の URL |
-| `tags` | TEXT[] | タグ配列 |
-| `description` | TEXT | 説明文 |
-| `uploaded_by` | VARCHAR(255) | アップロードしたユーザー名 |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-| `updated_at` | TIMESTAMPTZ | 最終更新日時 |
-
----
-
-### `virtual_gifts`
-
-バーチャルギフト（絵文字＋名称）を送り合うためのテーブルです。
-
-```sql
-CREATE TABLE virtual_gifts (
-  id SERIAL PRIMARY KEY,
-  sender VARCHAR(255) NOT NULL,
-  gift_emoji VARCHAR(10) NOT NULL,
-  gift_name VARCHAR(100) NOT NULL,
-  birthday_person VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_gifts_birthday_person ON virtual_gifts(birthday_person);
-CREATE INDEX idx_gifts_created_at ON virtual_gifts(created_at DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `sender` | VARCHAR(255) | 送信者名 |
-| `gift_emoji` | VARCHAR(10) | ギフトを表す絵文字 |
-| `gift_name` | VARCHAR(100) | ギフト名 |
-| `birthday_person` | VARCHAR(255) | 受け取り側の名前 |
-| `created_at` | TIMESTAMPTZ | 送信日時 |
-
-**デフォルトのギフト一覧（アプリ側で使用）**
-
-| Emoji | 名称 |
-|-------|------|
-| 🎂 | バースデーケーキ |
-| 💐 | 花束 |
-| 🎈 | 風船 |
-| 🎁 | ギフトボックス |
-| 🎊 | 紙吹雪 |
-| 🎉 | パーティーハット |
-| 🧸 | ぬいぐるみ |
-| 💝 | ハートのギフト |
-
----
-
-### `audio_messages`
-
-音声メッセージを管理するテーブルです。実体のファイルは Storage に保存され、その URL を保持します。
-
-```sql
-CREATE TABLE audio_messages (
-  id SERIAL PRIMARY KEY,
-  sender VARCHAR(255) NOT NULL,
-  audio_url TEXT NOT NULL,
-  duration INTEGER DEFAULT 0,
-  birthday_person VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_audio_birthday_person ON audio_messages(birthday_person);
-CREATE INDEX idx_audio_created_at ON audio_messages(created_at DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `sender` | VARCHAR(255) | 送信者名 |
-| `audio_url` | TEXT | 音声ファイルの URL（Storage 上） |
-| `duration` | INTEGER | 長さ（秒） |
-| `birthday_person` | VARCHAR(255) | 宛先名 |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-
----
-
-### `video_messages`
-
-動画メッセージを管理するテーブルです。サムネイル URL も保持します。
-
-```sql
-CREATE TABLE video_messages (
-  id SERIAL PRIMARY KEY,
-  sender VARCHAR(255) NOT NULL,
-  video_url TEXT NOT NULL,
-  thumbnail_url TEXT,
-  duration INTEGER DEFAULT 0,
-  birthday_person VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_video_birthday_person ON video_messages(birthday_person);
-CREATE INDEX idx_video_created_at ON video_messages(created_at DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `sender` | VARCHAR(255) | 送信者名 |
-| `video_url` | TEXT | 動画ファイルの URL |
-| `thumbnail_url` | TEXT | サムネイル画像の URL |
-| `duration` | INTEGER | 長さ（秒） |
-| `birthday_person` | VARCHAR(255) | 宛先名 |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-
----
-
-### `bulletin_posts`
-
-お祝い用のソーシャル投稿（掲示板）のメインテーブルです。いいね数もここで管理します。
-
-```sql
-CREATE TABLE bulletin_posts (
-  id SERIAL PRIMARY KEY,
-  author VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  image_url TEXT,
-  likes INTEGER DEFAULT 0,
-  birthday_person VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_posts_created_at ON bulletin_posts(created_at DESC);
-CREATE INDEX idx_posts_likes ON bulletin_posts(likes DESC);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `author` | VARCHAR(255) | 投稿者名 |
-| `content` | TEXT | 投稿内容 |
-| `image_url` | TEXT | 添付画像の URL |
-| `likes` | INTEGER | いいね数 |
-| `birthday_person` | VARCHAR(255) | 誕生日の本人 |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-
----
-
-### `bulletin_replies`
-
-掲示板投稿に対する返信を保存するテーブルです。親投稿が削除された場合は CASCADE で一緒に削除されます。
-
-```sql
-CREATE TABLE bulletin_replies (
-  id SERIAL PRIMARY KEY,
-  post_id INTEGER NOT NULL REFERENCES bulletin_posts(id) ON DELETE CASCADE,
-  author VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_replies_post_id ON bulletin_replies(post_id);
-```
-
-| 列名 | 型 | 説明 |
-|------|----|------|
-| `id` | SERIAL | 主キー |
-| `post_id` | INTEGER | 親投稿の ID（`bulletin_posts.id`） |
-| `author` | VARCHAR(255) | 返信者名 |
-| `content` | TEXT | 返信内容 |
-| `created_at` | TIMESTAMPTZ | 作成日時 |
-
----
-
-## ストレージバケット
-
-### `media` バケット
-
-すべてのアップロードファイルを保存するメインバケットです。画像・動画・音声・サムネイルを同じバケット内でパスを分けて管理します。
-
-```sql
--- バケット作成
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('media', 'media', true);
-
--- 公開読み取りポリシー
-CREATE POLICY "Public Access" ON storage.objects
-FOR SELECT USING (bucket_id = 'media');
-
--- アップロード用ポリシー（匿名/認証いずれも可）
-CREATE POLICY "Upload Access" ON storage.objects
-FOR INSERT WITH CHECK (bucket_id = 'media');
-```
-
-**ディレクトリ構成（推奨）**
-
-```text
-media/
-├── uploads/           # 汎用アップロード
-├── photos/            # ギャラリー用写真
-├── videos/            # 動画ファイル
-├── audio/             # 音声メッセージ
-└── thumbnails/        # 動画サムネイル
-```
-
-**サポートするファイル種別（目安）**
-
-| 種別 | 拡張子 | 最大サイズ |
-|------|--------|------------|
-| 画像 | jpg, png, gif, webp | 50MB |
-| 動画 | mp4, webm, ogg | 50MB |
-| 音声 | mp3, wav, ogg | 20MB |
-
----
-
-## API エンドポイント（Next.js App Router）
-
-アプリケーション側の `/app/api/**` ルートと DB スキーマの対応関係です。詳細な実装は各 `route.ts` を参照してください。
-
-### Birthdays
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/birthdays` | 誕生日レコード一覧を取得 |
-| POST | `/api/birthdays` | 誕生日レコードを新規作成 |
-| GET | `/api/birthdays/[id]` | ID 指定で 1 件取得 |
-| PUT | `/api/birthdays/[id]` | 誕生日レコードを更新 |
-| DELETE | `/api/birthdays/[id]` | 誕生日レコードを削除 |
-| GET | `/api/birthdays/check` | 今日が誰かの誕生日かどうかをチェック |
-| GET | `/api/birthdays/next` | 次に来る誕生日を 1 件取得 |
-
-**主なクエリパラメータ**
-
-- `month` — 月でフィルタ
-- `limit` — 取得件数の上限
-- `orderBy` — ソート対象カラム
-- `order` — `asc` / `desc`
-
----
-
-### Messages
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/messages` | メッセージ一覧を取得 |
-| POST | `/api/messages` | 新しいメッセージを作成 |
-| GET | `/api/messages/[id]` | ID 指定で 1 件取得 |
-| DELETE | `/api/messages/[id]` | メッセージを削除 |
-| GET | `/api/messages/latest` | 最新メッセージを数件取得 |
-
-**主なクエリパラメータ**
-
-- `birthdayPerson` — 宛先名でフィルタ
-- `limit` — 取得件数の上限
-- `offset` — ページング用オフセット
-
----
-
-### Media
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/media` | メディア一覧を取得 |
-| GET | `/api/media/[id]` | ID 指定で 1 件取得 |
-| DELETE | `/api/media/[id]` | メディアを削除 |
-| GET | `/api/media/tags` | 使用中のタグ一覧を取得 |
-| POST | `/api/upload` | ファイルをアップロードし、`media_files` にレコードを作成 |
-
-**主なクエリパラメータ**
-
-- `type` — `image` / `video`
-- `tag` — タグでフィルタ
-- `search` — ファイル名・説明文を部分一致検索
-- `limit` — 取得件数の上限
-
----
-
-### Gifts
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/gifts` | ギフト一覧を取得 |
-| POST | `/api/gifts` | ギフトを送信（レコード作成） |
-| GET | `/api/gifts/[id]` | ID 指定で 1 件取得 |
-| DELETE | `/api/gifts/[id]` | ギフトを削除 |
-
----
-
-### Audio Messages
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/audio` | 音声メッセージ一覧を取得 |
-| POST | `/api/audio` | 新しい音声メッセージのレコードを作成 |
-
-**主なクエリパラメータ**
-
-- `birthdayPerson` — 宛先名でフィルタ
-- `limit` — 取得件数の上限
-
----
-
-### Video Messages
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| GET | `/api/video` | 動画メッセージ一覧を取得 |
-| POST | `/api/video` | 新しい動画メッセージのレコードを作成 |
-
-**主なクエリパラメータ**
-
-- `birthdayPerson` — 宛先名でフィルタ
-- `limit` — 取得件数の上限
-
----
-
-### File Upload
-
-| Method | Endpoint | 説明 |
-|--------|----------|------|
-| POST | `/api/upload` | Supabase Storage にファイルをアップロード |
-
-**Request Body**: `multipart/form-data` 形式、フィールド名は `file`
-
-**Response 例**:
-
-```json
-{
-  "success": true,
-  "data": { /* media_files レコード */ },
-  "url": "https://..."
-}
 ```
 
 ---
 
-## Realtime サブスクリプション
+## 匿名アクセスと RLS
 
-Supabase の Realtime 機能を利用して、特定のテーブルの変更をフロントエンドに push 通知します。
+すべての `public` テーブルで RLS を有効にしています。`anon` ロールは次の表を閲覧できます。`birthdays` と `music_tracks` は SELECT 専用で、それ以外は匿名 INSERT も許可されています。
 
-```sql
--- Realtime を有効化するテーブル
-ALTER PUBLICATION supabase_realtime ADD TABLE custom_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE bulletin_posts;
-ALTER PUBLICATION supabase_realtime ADD TABLE bulletin_replies;
-ALTER PUBLICATION supabase_realtime ADD TABLE virtual_gifts;
-```
+- `birthdays` (SELECT のみ)
+- `messages`
+- `media_submissions`
+- `virtual_gifts`
+- `chat_messages`
+- `bulletin_posts`
+- `post_replies`
+- `music_tracks` (SELECT のみ)
+- `daily_fortunes` (SELECT のみ)
 
-**クライアント側での購読例（TypeScript）**
+匿名の更新・削除ポリシーは定義していません。`music_tracks` と Storage `music` バケットへの匿名 INSERT は `20260904000001_revoke_anonymous_music_upload.sql` で取り消し、キュレーション楽曲は管理者またはシード経由で登録します。`daily_fortunes` は INSERT / UPDATE / DELETE をすべてのロールに対して禁止し、シードデータのみを正本として扱います。
 
-```typescript
-const subscription = supabase
-  .channel('messages')
-  .on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'custom_messages',
-  }, (payload) => {
-    // Realtime 更新をここで処理
-  })
-  .subscribe()
-```
+### 認証必須・所有者境界のテーブル
 
----
+次のテーブルは `anon` および `authenticated` ロールからすべての権限を剥奪し、`service_role` のみが操作します。
 
-## Row Level Security (RLS)
+- `time_capsules`
+- `time_capsule_access_codes`
+- `time_capsule_access_attempt_buckets`
+- `notification_logs`
 
-このプロジェクトでは、基本的に「誰でも読み取り・挿入可能」なパブリック向けサービスとして設計しています。そのため RLS を有効化した上で、公開ポリシーを明示的に定義しています。
+### RPC 一覧
 
-```sql
--- RLS を有効化
-ALTER TABLE birthdays ENABLE ROW LEVEL SECURITY;
-ALTER TABLE custom_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE media_files ENABLE ROW LEVEL SECURITY;
-ALTER TABLE virtual_gifts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audio_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE video_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bulletin_posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bulletin_replies ENABLE ROW LEVEL SECURITY;
+- `public.increment_bulletin_post_likes(post_id bigint)` — 掲示板投稿のいいね数を原子的に 1 加算し、最新件数を返却。`anon`, `authenticated` 実行可。
+- `public.create_community_submission(...)` — メッセージまたは掲示板投稿をメディア添付とともに 1 トランザクションで作成。`service_role` 専用。
+- `public.create_birthday_reply(...)` — 誕生日スレッドへの返信（楽曲参照対応）を作成。`service_role` 専用。
+- `public.create_time_capsule_with_access_code(...)` — タイムカプセルと招待アクセスコードを作成。`service_role` 専用。
+- `public.consume_time_capsule_access_code(...)` — 招待コードを検証しカプセル ID を返却。`service_role` 専用。
+- `public.claim_notification_logs(...)` — 通知ワーカー向けジョブリース関数。`service_role` 専用。
+- `public.create_study_room(...)` — 勉強部屋を新規作成し、ホスト参加者レコードおよびセキュリティハッシュトークンを発行。`service_role` 専用。
+- `public.join_study_room(...)` — 勉強部屋へメンバーとして参加し、メンバー認証トークンを発行。`service_role` 専用。
+- `public.verify_study_room_passcode(...)` — 非公開勉強部屋のパスコード（bcrypt / sha256）を検証。`service_role` 専用。
+- `public.update_study_room_playback(...)` — ホスト認証トークンを検証の上、楽曲再生タイムライン（曲ID・エポック・キュー・シャッフル・リピート状態）をアトミックに同期更新。`service_role` 専用。
+- `public.update_study_room_member_status(...)` — メンバーの集中状態（`focus` / `break` / `idle`）・Streak 分数・ハートビートを更新。`service_role` 専用。
+- `public.leave_study_room(...)` / `public.leave_study_room_with_migration(...)` — 部屋退出処理。ホスト退出時は最も古く参加したアクティブメンバーへホスト権限を自動移譲。`service_role` 専用。
+- `public.request_study_room_song(...)` — メンバーからの楽曲リクエストを部屋の `song_requests` JSONB キュー（上限10件）へ追加。`service_role` 専用。
+- `public.respond_study_room_song_request(...)` — ホストが楽曲リクエストを承認（部屋の再生キューへ追加）または却下。`service_role` 専用。
+- `public.cleanup_stale_study_rooms()` — 24時間以上更新のない放置部屋や無人部屋を自動パージ。`service_role` 専用。
 
--- 公開読み取りポリシー
-CREATE POLICY "Public read" ON birthdays FOR SELECT USING (true);
-CREATE POLICY "Public read" ON custom_messages FOR SELECT USING (true);
-CREATE POLICY "Public read" ON media_files FOR SELECT USING (true);
-CREATE POLICY "Public read" ON virtual_gifts FOR SELECT USING (true);
-CREATE POLICY "Public read" ON bulletin_posts FOR SELECT USING (true);
-CREATE POLICY "Public read" ON bulletin_replies FOR SELECT USING (true);
+## `daily_fortunes` テーブル
 
--- 公開挿入ポリシー
-CREATE POLICY "Public insert" ON custom_messages FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public insert" ON media_files FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public insert" ON virtual_gifts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public insert" ON bulletin_posts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public insert" ON bulletin_replies FOR INSERT WITH CHECK (true);
-```
+`20260920100000_daily_fortunes_table.sql` で作成された静的マスタテーブルです。おみくじの運勢データを Postgres に永続化し、クライアントへ `/api/omikuji/fortunes` 経由で提供します。
 
----
+### カラム定義
 
-## データベース関数
+| カラム名 | 型 | 説明 |
+|---|---|---|
+| `id` | `bigint generated always as identity` | 主キー（1〜12） |
+| `rank` | `text` | 運勢ランクのキー（`daikichi` / `chukichi` / `shokichi` / `kichi` / `suekichi` / `hankichi`） |
+| `rank_name_ja` | `text` | 運勢ランク名（日本語。例: `大吉`） |
+| `rank_name_en` | `text` | 運勢ランク名（英語。例: `Great Blessing`） |
+| `poem_ja` | `text` | 和歌・俳句（日本語） |
+| `poem_en` | `text` | 和歌・俳句（英語訳） |
+| `general_ja` | `text` | 総合運（日本語） |
+| `general_en` | `text` | 総合運（英語） |
+| `bond_ja` | `text` | 縁（人間関係）運（日本語） |
+| `bond_en` | `text` | 縁（人間関係）運（英語） |
+| `health_ja` | `text` | 健康運（日本語） |
+| `health_en` | `text` | 健康運（英語） |
+| `wish_ja` | `text` | 願望・目標運（日本語） |
+| `wish_en` | `text` | 願望・目標運（英語） |
+| `blessing_ja` | `text` | 誕生日へのメッセージ（日本語） |
+| `blessing_en` | `text` | 誕生日へのメッセージ（英語） |
+| `lucky_color_ja` | `text` | ラッキーカラー（日本語） |
+| `lucky_color_en` | `text` | ラッキーカラー（英語） |
+| `lucky_item_ja` | `text` | ラッキーアイテム（日本語） |
+| `lucky_item_en` | `text` | ラッキーアイテム（英語） |
+| `lucky_number` | `integer` | ラッキーナンバー |
 
-### 次の誕生日を取得する関数 `get_next_birthday`
+### RLS ポリシー
 
-アプリの「次の誕生日」表示で利用するヘルパー関数です。単純化のため、月ごとの日数は 30 日として近似しています。
+RLS を有効にしています。`anon` および `authenticated` ロールは SELECT のみ許可し、INSERT / UPDATE / DELETE は禁止します（`service_role` も通常操作しません）。運勢データはシードで投入した 12 件を正本とし、アプリケーション側から書き込みは行いません。
 
-```sql
-CREATE OR REPLACE FUNCTION get_next_birthday()
-RETURNS TABLE (
-  id INTEGER,
-  name VARCHAR,
-  month INTEGER,
-  day INTEGER,
-  days_until INTEGER
-) AS $
-DECLARE
-  today_month INTEGER := EXTRACT(MONTH FROM CURRENT_DATE);
-  today_day INTEGER := EXTRACT(DAY FROM CURRENT_DATE);
-BEGIN
-  RETURN QUERY
-  SELECT 
-    b.id,
-    b.name,
-    b.month,
-    b.day,
-    CASE 
-      WHEN b.month > today_month OR (b.month = today_month AND b.day >= today_day)
-      THEN (b.month - today_month) * 30 + (b.day - today_day)
-      ELSE (12 - today_month + b.month) * 30 + (b.day - today_day)
-    END AS days_until
-  FROM birthdays b
-  ORDER BY days_until ASC
-  LIMIT 1;
-END;
-$ LANGUAGE plpgsql;
-```
+### シードデータ概要
 
-### いいね数をインクリメントする関数 `increment_likes`
-
-掲示板投稿の `likes` を 1 増やし、その結果の値を返すシンプルな関数です。
-
-```sql
-CREATE OR REPLACE FUNCTION increment_likes(post_id INTEGER)
-RETURNS INTEGER AS $
-DECLARE
-  new_likes INTEGER;
-BEGIN
-  UPDATE bulletin_posts 
-  SET likes = likes + 1 
-  WHERE id = post_id
-  RETURNING likes INTO new_likes;
-  
-  RETURN new_likes;
-END;
-$ LANGUAGE plpgsql;
-```
+`supabase/seed.sql` に 12 件の運勢データを定義しています。ランク別の内訳は `大吉` 3 件・`中吉` 2 件・`小吉` 2 件・`吉` 2 件・`末吉` 2 件・`半吉` 1 件です。各レコードは和歌または俳句・総合運・縁・健康・願望・誕生日メッセージ・ラッキーカラー・ラッキーアイテム・ラッキーナンバーを含みます。データは `data/omikujiData.ts` のフロントエンド静的定義と対応しています。
 
 ---
 
-## セットアップ手順
+## Storage バケット
 
-### 1. Supabase プロジェクトの作成
+| バケット名 | 用途 | 公開 | 1 ファイル上限 | 許可する MIME type |
+|---|---|---|---|---|
+| `photo-album` | フォトアルバム・思い出ギャラリー写真/動画 | public | 50 MiB | 画像全般 (HEIC/HEIF 含む), MP4, WebM, QuickTime |
+| `community-media` | 掲示板・チャットの写真・動画・音声メッセージ | public | 50 MiB | 画像, MP4, WebM, 音声各種 |
+| `music` | カスタム BGM 音楽トラック | public | 15 MiB | MP3, WAV, OGG, WebM, FLAC, AAC |
+| `avatars` | アバター・スタンプ画像 | public | 5 MiB | JPEG, PNG, WebP, GIF |
+| `time-capsules` | タイムカプセル添付メディア (後方互換) | private | 50 MiB | 画像, MP4, WebM, 音声各種 |
+| `time-capsules-private` | 認証ユーザー所有のタイムカプセル添付 | private | 50 MiB | `time-capsules` 設定を継承 |
 
-1. [https://supabase.com](https://supabase.com) にアクセス
-2. 新しいプロジェクトを作成
-3. プロジェクトの URL と anon key を控えておく
+## Realtime
 
-### 2. マイグレーションの適用
+Realtime publication (`supabase_realtime`) に登録されているテーブル:
+- `public.chat_messages`: コミュニティチャットのリアルタイム送受信
+- `public.study_rooms`: 勉強部屋の楽曲再生・キュー・ホスト変更の同期
+- `public.study_room_members`: 勉強部屋の参加者一覧・集中状態・ハートビート同期
 
-Supabase の SQL Editor から、以下の順番でスクリプトを実行します。
-
-1. テーブル定義の作成
-2. インデックスの作成
-3. RLS の有効化
-4. ポリシーの作成
-5. 関数の作成
-6. ストレージバケットの作成
-
-### 3. 環境変数の設定
-
-Next.js 側の `.env.local` などに Supabase の接続情報を設定します。
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
-
----
-
-## エンティティ関係図（ERD）
-
-概念的な ERD は以下の通りです。実際の制約は SQL 定義を参照してください。
-
-```text
-┌─────────────┐     ┌──────────────────┐
-│  birthdays  │     │  custom_messages │
-├─────────────┤     ├──────────────────┤
-│ id          │     │ id               │
-│ name        │◄────│ birthday_person  │
-│ month       │     │ sender           │
-│ day         │     │ message          │
-│ year        │     │ media_url        │
-│ message     │     │ created_at       │
-└─────────────┘     └──────────────────┘
-       │
-       │            ┌──────────────────┐
-       │            │  virtual_gifts   │
-       │            ├──────────────────┤
-       └───────────►│ birthday_person  │
-                    │ sender           │
-                    │ gift_emoji       │
-                    │ gift_name        │
-                    └──────────────────┘
-
-┌─────────────────┐     ┌───────────────────┐
-│ bulletin_posts  │     │ bulletin_replies  │
-├─────────────────┤     ├───────────────────┤
-│ id              │◄────│ post_id           │
-│ author          │     │ author            │
-│ content         │     │ content           │
-│ image_url       │     │ created_at        │
-│ likes           │     └───────────────────┘
-│ created_at      │
-└─────────────────┘
-
-┌─────────────────┐     ┌─────────────────┐
-│  media_files    │     │ audio_messages  │
-├─────────────────┤     ├─────────────────┤
-│ id              │     │ id              │
-│ file_name       │     │ sender          │
-│ file_path       │     │ audio_url       │
-│ file_type       │     │ duration        │
-│ tags[]          │     │ birthday_person │
-└─────────────────┘     └─────────────────┘
-```
+Realtime Broadcast チャンネル:
+- `study_room:{roomId}`: 非言語応援（Silent Cheer: ☕, 🔥, ✨, 📖）のリアルタイムブロードキャスト

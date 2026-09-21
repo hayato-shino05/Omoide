@@ -10,7 +10,7 @@ export function MoonGlow({ active }: MoonGlowProps) {
   if (!active) return null
 
   return (
-    <div className="fixed top-8 right-12 pointer-events-none z-25">
+    <div className="fixed top-8 right-12 pointer-events-none z-25" style={{ contain: 'layout style paint' }}>
       <motion.div
         className="absolute rounded-full"
         style={{
@@ -19,6 +19,7 @@ export function MoonGlow({ active }: MoonGlowProps) {
           background: 'radial-gradient(circle, rgba(255,255,200,0.3) 0%, rgba(255,255,200,0.1) 40%, transparent 70%)',
           top: -50,
           left: -50,
+          willChange: 'transform, opacity',
         }}
         animate={{
           scale: [1, 1.1, 1],
@@ -77,6 +78,7 @@ export function MoonGlow({ active }: MoonGlowProps) {
           height: 40,
           top: 30,
           left: -80,
+          willChange: 'transform, opacity',
         }}
         animate={{
           x: [0, 250, 0],

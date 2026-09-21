@@ -1,11 +1,23 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { uploadCommunityMedia } from '@/lib/supabase/communityMedia'
 import type { MediaFile, MediaStats } from '@/types'
 
-const MEDIA_BUCKET = 'media'
-const CACHE_EXPIRY_TIME = 60000 // 1分
+const CACHE_EXPIRY_TIME = 60000
+
+interface MediaSubmission {
+  id: number
+  sender: string
+  object_path: string
+  media_kind: 'image' | 'video' | 'audio'
+  original_name: string
+  size_bytes: number
+  description: string | null
+  created_at: string
+}
 
 interface UseMediaFilesReturn {
   files: MediaFile[]
@@ -14,186 +26,94 @@ interface UseMediaFilesReturn {
   stats: MediaStats | null
   refetch: () => Promise<void>
   uploadFile: (file: File) => Promise<MediaFile | null>
-  deleteFile: (id: number) => Promise<boolean>
-  updateTags: (id: number, tags: string[]) => Promise<boolean>
 }
 
-// ファイル名から種別を判定するヘルパー
-function getFileType(fileName: string): 'image' | 'video' {
-  const videoExtensions = /\.(mp4|webm|mov|avi|mkv)$/i
-  return videoExtensions.test(fileName) ? 'video' : 'image'
-}
+function toMediaFile(submission: MediaSubmission): MediaFile {
+  const { data } = getSupabase().storage.from('community-media').getPublicUrl(submission.object_path)
 
-// メディアとして有効なファイルか判定するヘルパー
-function isValidMediaFile(fileName: string): boolean {
-  const mediaExtensions = /\.(jpg|jpeg|png|gif|webp|mp4|webm|mov|avi|mkv)$/i
-  return mediaExtensions.test(fileName) && fileName !== '.emptyFolderPlaceholder'
+  return {
+    id: submission.id,
+    file_name: submission.original_name,
+    file_path: data.publicUrl,
+    file_type: submission.media_kind,
+    file_size: submission.size_bytes,
+    description: submission.description ?? undefined,
+    uploaded_by: submission.sender,
+    created_at: submission.created_at,
+  }
 }
 
 export function useMediaFiles(): UseMediaFilesReturn {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  const cacheTimeRef = useRef(0)
+  const filesLengthRef = useRef(0)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [files, setFiles] = useState<MediaFile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<MediaStats | null>(null)
   const [cacheTime, setCacheTime] = useState(0)
 
+  cacheTimeRef.current = cacheTime
+  filesLengthRef.current = files.length
+
   const fetchFiles = useCallback(async (forceRefresh = false) => {
-    // キャッシュを確認
     const now = Date.now()
-    if (!forceRefresh && cacheTime > 0 && (now - cacheTime < CACHE_EXPIRY_TIME) && files.length > 0) {
-      return
-    }
+    if (!forceRefresh && cacheTimeRef.current > 0 && now - cacheTimeRef.current < CACHE_EXPIRY_TIME && filesLengthRef.current > 0) return
 
     setIsLoading(true)
     setError(null)
 
     try {
-      const supabase = getSupabase()
-      
-      // Supabase Storage から一覧を取得（元データ相当）
-      const { data, error: listError } = await supabase
-        .storage
-        .from(MEDIA_BUCKET)
-        .list('', {
-          limit: 100,
-          sortBy: { column: 'name', order: 'asc' }
-        })
+      const { data, error: queryError } = await getSupabase()
+        .from('media_submissions')
+        .select('id, sender, object_path, media_kind, original_name, size_bytes, description, created_at')
+        .order('created_at', { ascending: false })
 
-      if (listError) {
-        // If bucket doesn't exist or no access, return empty
-        console.warn('Storage error:', listError.message)
-        setFiles([])
-        setStats({ totalFiles: 0, totalImages: 0, totalVideos: 0, totalSize: 0, recentUploads: [] })
-        return
-      }
+      if (queryError) throw queryError
 
-      // 有効なメディアファイルだけを抽出
-      const validFiles = (data || []).filter(file => isValidMediaFile(file.name))
+      const mediaFiles = (data as MediaSubmission[]).map(toMediaFile)
+      const albumFiles = mediaFiles.filter((file) => file.file_type !== 'audio')
+      const totalImages = albumFiles.filter((file) => file.file_type === 'image').length
+      const totalVideos = albumFiles.filter((file) => file.file_type === 'video').length
 
-      // 公開 URL を取得し MediaFile 形式に変換
-      const mediaFiles: MediaFile[] = validFiles.map((file, index) => {
-        const { data: urlData } = supabase.storage
-          .from(MEDIA_BUCKET)
-          .getPublicUrl(file.name)
-
-        return {
-          id: index + 1,
-          file_name: file.name,
-          file_path: urlData.publicUrl,
-          file_type: getFileType(file.name),
-          file_size: file.metadata?.size || 0,
-          tags: [],
-          created_at: file.created_at || new Date().toISOString(),
-          updated_at: file.updated_at || new Date().toISOString(),
-        }
-      })
-
-      setFiles(mediaFiles)
-      setCacheTime(now)
-
-      // 統計情報を計算
-      const totalImages = mediaFiles.filter(f => f.file_type === 'image').length
-      const totalVideos = mediaFiles.filter(f => f.file_type === 'video').length
-      const totalSize = mediaFiles.reduce((sum, f) => sum + (f.file_size || 0), 0)
-
+      setFiles(albumFiles)
       setStats({
-        totalFiles: mediaFiles.length,
+        totalFiles: albumFiles.length,
         totalImages,
         totalVideos,
-        totalSize,
-        recentUploads: mediaFiles.slice(0, 5),
+        totalSize: albumFiles.reduce((sum, file) => sum + file.file_size, 0),
+        recentUploads: albumFiles.slice(0, 5),
       })
+      setCacheTime(now)
     } catch (err) {
-      console.error('メディア取得エラー:', err)
-      setError(err instanceof Error ? err.message : 'メディアを読み込めませんでした')
+      setError(err instanceof Error ? err.message : tRef.current('mediaLoadError'))
       setFiles([])
       setStats({ totalFiles: 0, totalImages: 0, totalVideos: 0, totalSize: 0, recentUploads: [] })
     } finally {
       setIsLoading(false)
     }
-  }, [cacheTime, files.length])
+  }, [])
 
   useEffect(() => {
-    fetchFiles()
-  }, []) // マウント時に一度だけ実行
+    void fetchFiles()
+  }, [fetchFiles])
 
   const uploadFile = useCallback(async (file: File): Promise<MediaFile | null> => {
     try {
-      const supabase = getSupabase()
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      const data = await uploadCommunityMedia({ file, sender: 'Guest' })
 
-      // Supabase Storage にアップロード
-      const { error: uploadError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .upload(fileName, file)
-
-      if (uploadError) throw uploadError
-
-      // 公開 URL を取得
-      const { data: urlData } = supabase.storage
-        .from(MEDIA_BUCKET)
-        .getPublicUrl(fileName)
-
-      const newFile: MediaFile = {
-        id: Date.now(),
-        file_name: fileName,
-        file_path: urlData.publicUrl,
-        file_type: getFileType(fileName),
-        file_size: file.size,
-        tags: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-
-      // キャッシュを無効化して再取得
       setCacheTime(0)
       await fetchFiles(true)
-      
-      return newFile
+      return toMediaFile(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ファイルをアップロードできませんでした')
+      setError(err instanceof Error ? err.message : tRef.current('uploadFileFailed'))
       return null
     }
   }, [fetchFiles])
 
-  const deleteFile = useCallback(async (id: number): Promise<boolean> => {
-    try {
-      const fileToDelete = files.find(f => f.id === id)
-      if (!fileToDelete) return false
-
-      const supabase = getSupabase()
-      const { error: deleteError } = await supabase.storage
-        .from(MEDIA_BUCKET)
-        .remove([fileToDelete.file_name])
-
-      if (deleteError) throw deleteError
-
-      // Invalidate cache and refetch
-      setCacheTime(0)
-      await fetchFiles(true)
-      
-      return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'ファイルを削除できませんでした')
-      return false
-    }
-  }, [files, fetchFiles])
-
-  const updateTags = useCallback(async (_id: number, _tags: string[]): Promise<boolean> => {
-    // 現在はタグをローカルにのみ保持（Supabase Storage はメタデータタグを直接サポートしていない）
-    // 本番では別テーブルなどにタグ情報を保存する想定
-    return true
-  }, [])
-
-  return {
-    files,
-    isLoading,
-    error,
-    stats,
-    refetch: () => fetchFiles(true),
-    uploadFile,
-    deleteFile,
-    updateTags,
-  }
+  return { files, isLoading, error, stats, refetch: () => fetchFiles(true), uploadFile }
 }

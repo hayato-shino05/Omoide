@@ -1,209 +1,363 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect, useCallback, type KeyboardEvent } from 'react'
+import dynamic from 'next/dynamic'
+import {
+  Music,
+  Disc3,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  Volume2,
+  VolumeX,
+  LoaderCircle,
+} from 'lucide-react'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { useMusicPlayer } from '@/lib/hooks/useMusicPlayer'
-import { Icon } from './Icon'
+import { useToast } from '@/components/ui/Toast'
 
-export function MusicPlayer() {
+const SongPickerModal = dynamic(() => import('@/components/community/SongPickerModal'), { ssr: false })
+const LyricsDrawer = dynamic(() => import('@/components/ui/LyricsDrawer'), { ssr: false })
+
+const formatTime = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+const isSafeHttpsUrl = (value: unknown): value is string => {
+  if (typeof value !== 'string') return false
+  try {
+    return new URL(value).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export const MusicPlayer = React.memo(function MusicPlayer() {
   const { t } = useLanguage()
-  const { isPlaying, currentTrack, tracks, toggle, selectTrack, nextTrack, prevTrack } = useMusicPlayer()
-  const [showSelector, setShowSelector] = useState(false)
+  const toast = useToast()
+  const {
+    isPlaying,
+    currentTrack,
+    tracks,
+    toggle,
+    selectTrack,
+    commitReference,
+    nextTrack,
+    prevTrack,
+    currentTime,
+    duration,
+    volume,
+    setVolume,
+    seekTo,
+    isLoading,
+    playbackError,
+    isShuffle,
+    repeatMode,
+    toggleShuffle,
+    toggleRepeat,
+  } = useMusicPlayer()
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isLyricsOpen, setIsLyricsOpen] = useState(false)
+  const [isCommitting, setIsCommitting] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [lastAudibleVolume, setLastAudibleVolume] = useState(0.5)
+  const [artworkFailedFor, setArtworkFailedFor] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (playbackError) {
+      toast.error(playbackError, { title: t('soundPlaybackError') })
+    }
+  }, [playbackError, t, toast])
+
+  const handleConfirmTrack = useCallback((reference: string) => {
+    const existingTrack = tracks.find((track) => track.reference === reference || `jamendo:${track.id}` === reference)
+    if (existingTrack) {
+      selectTrack(existingTrack.id)
+      setIsPickerOpen(false)
+      return
+    }
+
+    setIsCommitting(true)
+    void commitReference(reference).then((committed) => {
+      if (committed) setIsPickerOpen(false)
+    }).finally(() => setIsCommitting(false))
+  }, [tracks, selectTrack, commitReference])
+
+  const handleMuteToggle = useCallback(() => {
+    if (isMuted || volume === 0) {
+      setVolume(lastAudibleVolume > 0 ? lastAudibleVolume : 0.5)
+      setIsMuted(false)
+      return
+    }
+    setLastAudibleVolume(volume)
+    setVolume(0)
+    setIsMuted(true)
+  }, [isMuted, volume, lastAudibleVolume, setVolume])
+
+  const currentReference = currentTrack?.reference ?? (currentTrack ? `jamendo:${currentTrack.id}` : '')
+  const progressMax = duration > 0 ? duration : currentTrack?.duration ?? 0
+  const artworkUrl = currentTrack && 'albumImage' in currentTrack && typeof currentTrack.albumImage === 'string'
+    ? currentTrack.albumImage
+    : undefined
+  const progressValue = Math.min(currentTime, progressMax || 0)
+  const progressPercent = progressMax > 0 ? Math.min(100, Math.max(0, (progressValue / progressMax) * 100)) : 0
+  const volumePercent = Math.min(100, Math.max(0, volume * 100))
+
+  const trackTitle = currentTrack?.name || t('birthdaySong') || t('chooseSong')
+  const trackArtist = currentTrack?.artistName || currentTrack?.category || t('music')
+
+  const handleSeekKeyDown = useCallback((event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault()
+      const direction = event.key === 'ArrowLeft' ? -1 : 1
+      const delta = event.shiftKey ? 1 : 5
+      seekTo(Math.max(0, Math.min(progressMax, currentTime + direction * delta)))
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      seekTo(0)
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      seekTo(progressMax)
+    } else if (event.key === ' ' || event.key.toLowerCase() === 'k') {
+      event.preventDefault()
+      toggle()
+    }
+  }, [progressMax, currentTime, seekTo, toggle])
 
   return (
-    <div
-      className="music-player"
-      style={{
-        background: 'rgba(255, 249, 243, 0.95)',
-        border: '2px solid #D4B08C',
-        borderRadius: 0,
-        padding: '10px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '15px',
-        boxShadow: '4px 4px 0 #D4B08C',
-        fontFamily: 'var(--font-body)',
-        position: 'relative',
-      }}
-    >
-      {/* 前の曲ボタン */}
-      <button
-        onClick={prevTrack}
-        style={{
-          width: '30px',
-          height: '30px',
-          background: 'transparent',
-          color: '#854D27',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '1rem',
-        }}
-      >
-        ⏮️
-      </button>
+    <div className="relative w-full max-w-6xl">
+      {/* 歌詞スライドパネル（MusicPlayerの背面から上へせり上がる） */}
+      <LyricsDrawer
+        isOpen={isLyricsOpen}
+        onClose={() => setIsLyricsOpen(false)}
+        onToggle={() => setIsLyricsOpen((prev) => !prev)}
+      />
 
-      {/* 再生/一時停止ボタン */}
-      <button
-        onClick={toggle}
-        style={{
-          width: '40px',
-          height: '40px',
-          background: '#854D27',
-          color: '#FFF9F3',
-          border: '2px solid #D4B08C',
-          borderRadius: 0,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.2em',
-          boxShadow: '2px 2px 0 #D4B08C',
-          transition: 'transform 0.3s, box-shadow 0.3s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translate(-2px, -2px)'
-          e.currentTarget.style.boxShadow = '4px 4px 0 #D4B08C'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translate(0, 0)'
-          e.currentTarget.style.boxShadow = '2px 2px 0 #D4B08C'
-        }}
+      {/* メイン音楽プレイヤー（前面 z-30） */}
+      <section
+        className="relative z-30 w-full rounded-2xl transition-all duration-200 ease-out pointer-events-auto opacity-100 scale-100 translate-y-0 min-h-[84px] px-5 py-3.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-[var(--music-text)] border border-amber-950/10 dark:border-amber-100/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] font-body flex flex-wrap items-center justify-between gap-4"
+        aria-label={t('selectMusic')}
       >
-        {isPlaying ? '⏸️' : '▶️'}
-      </button>
 
-      {/* 次の曲ボタン */}
-      <button
-        onClick={nextTrack}
-        style={{
-          width: '30px',
-          height: '30px',
-          background: 'transparent',
-          color: '#854D27',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '1rem',
-        }}
-      >
-        ⏭️
-      </button>
+        {/* 左ゾーン: アートワーク ＋ 音波インジケーター ＋ 楽曲情報 */}
+        <div className="flex items-center gap-3.5 min-w-0 flex-1 basis-64 max-w-xs lg:max-w-sm">
+          <div
+            className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-amber-950/10 dark:border-amber-100/10 bg-amber-50/50 dark:bg-slate-800/80 flex items-center justify-center text-[#D95D39] shadow-inner"
+            aria-hidden="true"
+          >
+            {isSafeHttpsUrl(artworkUrl) && artworkFailedFor !== currentTrack?.id ? (
+              <img
+                src={artworkUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setArtworkFailedFor(currentTrack?.id ?? null)}
+              />
+            ) : isPlaying ? (
+              <Disc3 className="w-7 h-7 text-[#D95D39] motion-safe:animate-[spin_8s_linear_infinite]" />
+            ) : (
+              <Music className="w-6 h-6 text-[#D95D39]/80" />
+            )}
+          </div>
 
-      <span
-        className="song-title"
-        style={{
-          color: '#854D27',
-          fontSize: '0.95em',
-          fontWeight: 500,
-          maxWidth: '150px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {currentTrack?.name || t('birthdaySong') || '曲を選択'}
-      </span>
-
-      <button
-        onClick={() => setShowSelector(!showSelector)}
-        style={{
-          padding: '8px 15px',
-          background: showSelector ? 'rgba(212, 176, 140, 0.3)' : 'transparent',
-          color: '#854D27',
-          border: '2px solid #D4B08C',
-          borderRadius: 0,
-          cursor: 'pointer',
-          fontFamily: 'var(--font-body)',
-          fontSize: '0.85em',
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-          transition: 'background 0.3s',
-        }}
-      >
-        <Icon name="Music" size={16} />
-        <span>{t('selectMusic') || '音楽を選択'}</span>
-      </button>
-
-      {/* トラック選択ドロップダウン（プレイヤーの上に絶対配置） */}
-      {showSelector && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            right: 0,
-            marginBottom: '4px',
-            minWidth: '200px',
-            background: '#FFF9F3',
-            border: '2px solid #D4B08C',
-            borderRadius: '6px',
-            padding: '6px',
-            boxShadow: '0 -2px 8px rgba(0,0,0,0.15)',
-            maxHeight: '150px',
-            overflowY: 'auto',
-            zIndex: 10002,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            <span style={{ color: '#854D27', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Icon name="Music" size={12} /> 音楽
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-[#D95D39] tracking-wider uppercase select-none">
+                {t('nowPlaying')}
+              </span>
+              {/* 和風音波アニメーション */}
+              <div className="flex items-end gap-0.5 h-3" aria-hidden="true">
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-1' : 'h-1 opacity-35'}`} />
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-2' : 'h-2 opacity-35'}`} />
+                <span className={`w-0.5 bg-[#D95D39] rounded-full transition-all ${isPlaying ? 'motion-safe:animate-soundbar-3' : 'h-1.5 opacity-35'}`} />
+              </div>
+            </div>
+            <strong className="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5 leading-snug">
+              {trackTitle}
+            </strong>
+            <span className="block text-xs text-slate-500 dark:text-slate-400 truncate leading-tight mt-0.5">
+              {trackArtist}
             </span>
+          </div>
+        </div>
+
+        {/* 中央ゾーン: コントロールボタン群 ＋ シークバー */}
+        <div className="flex flex-col items-center justify-center gap-2 flex-1 basis-80 max-w-md mx-auto min-w-[220px]">
+          {/* コントロールボタン群 */}
+          <div className="flex items-center gap-3" aria-label={t('selectMusic')}>
+            {/* シャッフル（再生コントローラー左側） */}
             <button
-              onClick={() => setShowSelector(false)}
-              style={{
-                background: '#854D27',
-                border: 'none',
-                color: '#FFF9F3',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                padding: '2px 5px',
-                borderRadius: '3px',
-                lineHeight: 1,
-              }}
+              type="button"
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden ${
+                isShuffle
+                  ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
+                  : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
+              }`}
+              onClick={toggleShuffle}
+              aria-label={isShuffle ? t('shuffleOn') : t('shuffleOff')}
+              aria-pressed={isShuffle}
+              title={isShuffle ? t('shuffleOn') : t('shuffleOff')}
             >
-              ✕
+              <Shuffle className="w-4 h-4" aria-hidden="true" />
+            </button>
+
+            {/* 前の曲 */}
+            <button
+              type="button"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              onClick={prevTrack}
+              aria-label={t('previousTrack')}
+            >
+              <SkipBack className="w-4 h-4" aria-hidden="true" />
+            </button>
+
+            {/* メイン再生 / 一時停止ボタン */}
+            <button
+              type="button"
+              className="w-12 h-12 min-w-[48px] min-h-[48px] rounded-full bg-[#D95D39] hover:bg-[#c44e2b] text-white shadow-md hover:shadow-lg active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#D95D39]/60 focus-visible:ring-offset-2 focus-visible:outline-hidden"
+              onClick={toggle}
+              aria-label={isPlaying ? t('pause') : t('play')}
+              aria-pressed={isPlaying}
+              aria-busy={isLoading}
+              disabled={!currentTrack || isLoading}
+            >
+              {isLoading ? (
+                <LoaderCircle className="w-5 h-5 motion-safe:animate-spin text-white" aria-hidden="true" />
+              ) : isPlaying ? (
+                <Pause className="w-5 h-5 fill-current" aria-hidden="true" />
+              ) : (
+                <Play className="w-5 h-5 fill-current ml-0.5" aria-hidden="true" />
+              )}
+            </button>
+
+            {/* 次の曲 */}
+            <button
+              type="button"
+              className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              onClick={nextTrack}
+              aria-label={t('nextTrack')}
+            >
+              <SkipForward className="w-4 h-4" aria-hidden="true" />
+            </button>
+
+            {/* リピート（再生コントローラー右側） */}
+            <button
+              type="button"
+              className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full flex items-center justify-center transition-all active:scale-[0.96] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden relative ${
+                repeatMode !== 'off'
+                  ? 'text-[#D95D39] bg-amber-500/15 border border-[#D95D39]/30 shadow-xs'
+                  : 'text-stone-400 dark:text-stone-500 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100/80 dark:hover:bg-stone-800/80 border border-transparent'
+              }`}
+              onClick={toggleRepeat}
+              aria-label={repeatMode === 'one' ? t('repeatOne') : repeatMode === 'all' ? t('repeatAll') : t('repeatOff')}
+              aria-pressed={repeatMode !== 'off'}
+              title={repeatMode === 'one' ? t('repeatOne') : repeatMode === 'all' ? t('repeatAll') : t('repeatOff')}
+            >
+              {repeatMode === 'one' ? (
+                <Repeat1 className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Repeat className="w-4 h-4" aria-hidden="true" />
+              )}
             </button>
           </div>
-          {tracks.length === 0 ? (
-            <p style={{ color: '#854D27', opacity: 0.6, fontSize: '0.65rem', textAlign: 'center', margin: '6px 0' }}>
-              まだ曲がありません
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {tracks.map((track) => (
-                <button
-                  key={track.id}
-                  onClick={() => {
-                    selectTrack(track.id)
-                    setShowSelector(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '4px 6px',
-                    background: currentTrack?.id === track.id ? 'rgba(212, 176, 140, 0.4)' : 'transparent',
-                    border: currentTrack?.id === track.id ? '1px solid #854D27' : '1px solid #D4B08C',
-                    borderRadius: '3px',
-                    cursor: 'pointer',
-                    color: '#854D27',
-                    fontSize: '0.65rem',
-                    fontFamily: 'var(--font-body)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Icon name={currentTrack?.id === track.id && isPlaying ? 'Volume' : 'Music'} size={12} />
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {track.name}
-                  </span>
-                </button>
-              ))}
+
+          {/* シークバー ＆ タイム表示 */}
+          <div className="w-full flex items-center gap-2.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+            <span className="w-9 text-right flex-shrink-0 select-none">{formatTime(currentTime)}</span>
+            <div className="relative flex-1 flex items-center py-1 group cursor-pointer">
+              <input
+                type="range"
+                min={0}
+                max={progressMax || 1}
+                step={0.1}
+                value={progressValue}
+                onChange={(event) => seekTo(Number(event.target.value))}
+                onKeyDown={handleSeekKeyDown}
+                aria-label={t('seekPosition')}
+                aria-valuetext={`${formatTime(progressValue)} / ${formatTime(progressMax)}`}
+                disabled={!currentTrack || !progressMax}
+                style={{
+                  background: `linear-gradient(to right, #D95D39 0%, #D95D39 ${progressPercent}%, rgba(159, 179, 200, 0.25) ${progressPercent}%, rgba(159, 179, 200, 0.25) 100%)`,
+                }}
+                className="w-full h-1 group-hover:h-1.5 rounded-full appearance-none transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D95D39] [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:group-hover:scale-125 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D95D39] [&::-moz-range-thumb]:border-0"
+              />
             </div>
-          )}
+            <span className="w-9 text-left flex-shrink-0 select-none">{formatTime(progressMax)}</span>
+          </div>
         </div>
-      )}
+
+        {/* 右ゾーン: 音量調整 ＋ 楽曲選択ボタン */}
+        <div className="flex items-center justify-end gap-3 min-w-0 flex-1 basis-48">
+          {/* 音量ミュート/調整 */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full border border-stone-200/80 dark:border-stone-700/80 bg-stone-100/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 hover:text-[#D95D39] hover:border-[#D95D39]/30 hover:bg-stone-200/80 dark:hover:bg-stone-700/80 active:scale-[0.96] flex items-center justify-center cursor-pointer transition-all focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden"
+              onClick={handleMuteToggle}
+              aria-label={isMuted || volume === 0 ? t('unmute') : t('mute')}
+              aria-pressed={isMuted || volume === 0}
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Volume2 className="w-4 h-4" aria-hidden="true" />
+              )}
+            </button>
+
+            <div className="hidden lg:flex items-center">
+              <label htmlFor="music-player-volume" className="sr-only">{t('volume')}</label>
+              <input
+                id="music-player-volume"
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={volume}
+                onChange={(event) => {
+                  const nextVolume = Number(event.target.value)
+                  setVolume(nextVolume)
+                  if (nextVolume > 0) {
+                    setLastAudibleVolume(nextVolume)
+                    setIsMuted(false)
+                  }
+                }}
+                aria-label={t('volume')}
+                aria-valuetext={`${Math.round(volume * 100)}%`}
+                style={{
+                  background: `linear-gradient(to right, #D95D39 0%, #D95D39 ${volumePercent}%, rgba(159, 179, 200, 0.25) ${volumePercent}%, rgba(159, 179, 200, 0.25) 100%)`,
+                }}
+                className="w-16 h-1 hover:h-1.5 rounded-full appearance-none transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D95D39] [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D95D39] [&::-moz-range-thumb]:border-0"
+              />
+            </div>
+          </div>
+
+          {/* 楽曲選択モーダル起動ボタン */}
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen(true)}
+            disabled={isCommitting}
+            aria-label={t('selectMusic')}
+            className="min-h-[44px] px-4 py-2 inline-flex items-center gap-2 rounded-xl bg-amber-50/60 dark:bg-slate-800/80 border border-amber-950/15 dark:border-amber-100/15 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-[#D95D39]/10 hover:border-[#D95D39]/40 hover:text-[#D95D39] dark:hover:text-[#D95D39] active:scale-[0.96] cursor-pointer transition-all shadow-xs disabled:opacity-60 disabled:cursor-wait focus-visible:ring-2 focus-visible:ring-[#D95D39]/50 focus-visible:outline-hidden whitespace-nowrap"
+          >
+            <Disc3 className="w-4 h-4 text-[#D95D39] shrink-0" aria-hidden="true" />
+            <span>{isCommitting ? t('loading') : t('selectMusic')}</span>
+          </button>
+        </div>
+
+        <SongPickerModal
+          isOpen={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          onConfirm={handleConfirmTrack}
+          initialValue={currentReference}
+          isConfirming={isCommitting}
+        />
+      </section>
     </div>
   )
-}
+})

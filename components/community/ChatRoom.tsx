@@ -1,13 +1,98 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Icon } from '@/components/ui/Icon'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
-interface ChatMessage {
+export interface ChatMessage {
   id: number
   sender: string
-  text: string
+  message: string
   created_at: string
+  pending?: boolean
+}
+
+export function appendRealtimeChatMessage(
+  messages: readonly ChatMessage[],
+  message: ChatMessage,
+): ChatMessage[] {
+  if (messages.some((item) => item.id === message.id)) return [...messages]
+  return [...messages, message]
+}
+
+export function mergeLoadedChatMessages(
+  loadedMessages: readonly ChatMessage[],
+  currentMessages: readonly ChatMessage[],
+): ChatMessage[] {
+  const messagesById = new Map<number, ChatMessage>()
+  for (const message of loadedMessages) messagesById.set(message.id, message)
+  for (const message of currentMessages) messagesById.set(message.id, message)
+
+  return [...messagesById.values()].sort((left, right) => {
+    const leftTime = Date.parse(left.created_at)
+    const rightTime = Date.parse(right.created_at)
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) return left.id - right.id
+    if (Number.isNaN(leftTime)) return 1
+    if (Number.isNaN(rightTime)) return -1
+    return leftTime - rightTime || left.id - right.id
+  })
+}
+
+export function reconcileInsertedChatMessage(
+  messages: readonly ChatMessage[],
+  optimisticId: number,
+  insertedMessage: ChatMessage,
+): ChatMessage[] {
+  const hasInsertedMessage = messages.some((item) => item.id === insertedMessage.id && !item.pending)
+  let replacedOptimistic = false
+
+  const reconciled = messages.flatMap((item) => {
+    if (item.id !== optimisticId) return [item]
+    replacedOptimistic = true
+    return hasInsertedMessage ? [] : [insertedMessage]
+  })
+
+  if (replacedOptimistic || hasInsertedMessage) return reconciled
+  return [...reconciled, insertedMessage]
+}
+
+function parseChatMessage(value: unknown): ChatMessage | null {
+  if (typeof value !== 'object' || value === null) return null
+  const record = value as Record<string, unknown>
+  const message = typeof record.message === 'string'
+    ? record.message
+    : typeof record.text === 'string'
+      ? record.text
+      : null
+
+  if (
+    typeof record.id !== 'number' ||
+    typeof record.sender !== 'string' ||
+    message === null ||
+    typeof record.created_at !== 'string'
+  ) return null
+
+  return {
+    id: record.id,
+    sender: record.sender,
+    message,
+    created_at: record.created_at,
+  }
+}
+
+function persistFallbackChatMessage(message: ChatMessage): void {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('birthdayChatMessages') || '[]') as unknown
+    const storedMessages = Array.isArray(parsed)
+      ? parsed.map(parseChatMessage).filter((item): item is ChatMessage => item !== null)
+      : []
+
+    if (storedMessages.some((item) => item.id === message.id)) return
+    localStorage.setItem('birthdayChatMessages', JSON.stringify([...storedMessages, message]))
+  } catch {
+    return
+  }
 }
 
 interface ChatRoomProps {
@@ -15,6 +100,7 @@ interface ChatRoomProps {
 }
 
 export function ChatRoom({ onClose }: ChatRoomProps) {
+  const { locale, t } = useLanguage()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [userName, setUserName] = useState('')
@@ -22,18 +108,41 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
   const [isMinimized, setIsMinimized] = useState(false)
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const mountedRef = useRef(false)
+  const messagesRef = useRef<ChatMessage[]>([])
+  const fallbackTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>())
+
+  useEffect(() => {
+    mountedRef.current = true
+    const fallbackTimers = fallbackTimersRef.current
+    return () => {
+      mountedRef.current = false
+      for (const [messageId, timer] of fallbackTimers) {
+        clearTimeout(timer)
+        const current = messagesRef.current.find((message) => message.id === messageId)
+        if (current?.pending) {
+          persistFallbackChatMessage({ ...current, pending: false })
+        }
+        fallbackTimers.delete(messageId)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   // 共有ストレージから保存済みのユーザー名を読み込む
   useEffect(() => {
-    // まず共有ストレージを確認し、その後チャット専用ストレージを確認する
+    // 共有ストレージを優先し、次にチャット専用領域を確認する
     const sharedName = localStorage.getItem('birthday_user_name')
     const chatName = localStorage.getItem('birthdayChatUserName')
     const saved = sharedName || chatName
-    
+
     if (saved) {
       setUserName(saved)
       setIsJoined(true)
-      // Sync to shared storage
+      // 共有ストレージへ同期する
       if (!sharedName && chatName) {
         localStorage.setItem('birthday_user_name', chatName)
       }
@@ -54,17 +163,30 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
         if (error.code === '42P01') return
         throw error
       }
-      setMessages(data || [])
+      const loadedMessages =
+        data?.map(parseChatMessage).filter((message): message is ChatMessage => message !== null) ?? []
+      if (!mountedRef.current) return
+      setMessages((prev) => mergeLoadedChatMessages(loadedMessages, prev))
     } catch {
-      // 取得に失敗した場合は localStorage から読み込む
-      const messagesData = localStorage.getItem('birthdayChatMessages')
-      if (messagesData) {
-        setMessages(JSON.parse(messagesData))
+      // フォールバックとしてlocalStorageから読み込む
+      try {
+        const messagesData = localStorage.getItem('birthdayChatMessages')
+        if (messagesData && mountedRef.current) {
+          const parsed = JSON.parse(messagesData) as unknown
+          if (Array.isArray(parsed)) {
+            const loadedMessages = parsed
+              .map(parseChatMessage)
+              .filter((message): message is ChatMessage => message !== null)
+            setMessages((prev) => mergeLoadedChatMessages(loadedMessages, prev))
+          }
+        }
+      } catch {
+        return
       }
     }
   }, [])
 
-  // Realtime に購読する
+  // リアルタイム更新を購読する
   useEffect(() => {
     if (!isJoined) return
 
@@ -80,11 +202,13 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
           schema: 'public',
           table: 'chat_messages',
         }, (payload) => {
-          setMessages(prev => [...prev, payload.new as ChatMessage])
+          const message = parseChatMessage(payload.new)
+          if (!message || !mountedRef.current) return
+          setMessages((prev) => appendRealtimeChatMessage(prev, message))
         })
         .subscribe()
     } catch {
-      // Realtime が利用できない場合
+      // リアルタイム更新が利用できない
     }
 
     return () => {
@@ -92,62 +216,92 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
         try {
           getSupabase().removeChannel(channel)
         } catch {
-          // Ignore
+          // このエラーは無視する
         }
       }
     }
   }, [isJoined, loadMessages])
 
-  // 自動スクロール
+  // 最新メッセージへ自動スクロールする（描画フレームに合わせてスムーズに実行）
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const frameId = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(frameId)
   }, [messages])
 
   const handleJoin = () => {
     if (!userName.trim()) return
-    // 互換性のため、両方のストレージに保存する
+    // 互換性のため両方のストレージへ保存する
     localStorage.setItem('birthdayChatUserName', userName.trim())
     localStorage.setItem('birthday_user_name', userName.trim())
     setIsJoined(true)
   }
 
   const handleSend = async () => {
-    if (!newMessage.trim() || loading) return
+    const trimmedMessage = newMessage.trim()
+    if (!trimmedMessage || loading) return
 
     const messageData: ChatMessage = {
-      id: Date.now(),
+      id: -Date.now(),
       sender: userName,
-      text: newMessage.trim(),
+      message: trimmedMessage,
       created_at: new Date().toISOString(),
+      pending: true,
     }
 
-    // 楽観的更新（先に画面だけ更新する）
     setMessages(prev => [...prev, messageData])
     setNewMessage('')
     setLoading(true)
 
     try {
       const supabase = getSupabase()
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
         .insert({
           sender: userName,
-          text: newMessage.trim(),
+          message: trimmedMessage,
         })
+        .select('*')
+        .single()
 
       if (error) throw error
+      const insertedMessage = parseChatMessage(data)
+      if (!insertedMessage) throw new Error('Supabase returned an invalid chat message')
+      const fallbackTimer = fallbackTimersRef.current.get(messageData.id)
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer)
+        fallbackTimersRef.current.delete(messageData.id)
+      }
+      if (mountedRef.current) {
+        setMessages((prev) => reconcileInsertedChatMessage(prev, messageData.id, insertedMessage))
+      }
     } catch {
-      // 失敗した場合は localStorage に保存してフォールバックする
-      const chatMessages = JSON.parse(localStorage.getItem('birthdayChatMessages') || '[]')
-      chatMessages.push(messageData)
-      localStorage.setItem('birthdayChatMessages', JSON.stringify(chatMessages))
+      if (!mountedRef.current) {
+        persistFallbackChatMessage({ ...messageData, pending: false })
+        return
+      }
+
+      const fallbackTimer = setTimeout(() => {
+        fallbackTimersRef.current.delete(messageData.id)
+        const current = messagesRef.current.find((item) => item.id === messageData.id)
+        if (!current || !current.pending) return
+
+        const fallbackMessage = { ...messageData, pending: false }
+        persistFallbackChatMessage(fallbackMessage)
+        messagesRef.current = messagesRef.current.map((item) => item.id === messageData.id ? fallbackMessage : item)
+        if (mountedRef.current) {
+          setMessages((prev) => prev.map((item) => item.id === messageData.id ? fallbackMessage : item))
+        }
+      }, 3000)
+      fallbackTimersRef.current.set(messageData.id, fallbackTimer)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
   }
 
   const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('ja-JP', {
+    return new Date(dateStr).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     })
@@ -156,34 +310,48 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
   // 参加画面
   if (!isJoined) {
     return (
-      <div className="chat-modal show">
+      <div className="chat-modal show" role="dialog" aria-modal="true" aria-label={t('groupChat')}>
         <div className="chat-header">
-          <h3 className="chat-title">誕生日グループチャット</h3>
+          <h3 className="chat-title">{t('groupChat')}</h3>
           <div className="chat-controls">
-            <span className="chat-btn" onClick={onClose}>×</span>
+            <button
+              type="button"
+              className="chat-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={onClose}
+              aria-label={t('close')}
+            >
+              <Icon name="X" size={18} />
+            </button>
           </div>
         </div>
         <div className="chat-content" style={{ justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <h4 style={{ marginBottom: '15px', color: 'var(--community-primary)' }}>
-              チャットに参加するには名前を入力してください
+              {t('enterNameToChat')}
             </h4>
             <input
               type="text"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
-              placeholder="お名前..."
-              onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
-              className="chat-message-input"
-              style={{ marginBottom: '15px', width: '100%' }}
+              placeholder={`${t('yourName')}...`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleJoin()
+                }
+              }}
+              className="chat-message-input focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ marginBottom: '15px', width: '100%', minHeight: '44px' }}
             />
             <button
+              type="button"
               onClick={handleJoin}
               disabled={!userName.trim()}
-              className="chat-send-btn"
-              style={{ width: '100%', opacity: userName.trim() ? 1 : 0.5 }}
+              className="chat-send-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ width: '100%', minHeight: '44px', opacity: userName.trim() ? 1 : 0.5 }}
             >
-              チャットに参加
+              {t('joinChat')}
             </button>
           </div>
         </div>
@@ -192,28 +360,38 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
   }
 
   return (
-    <div className={`chat-modal show ${isMinimized ? '' : 'chat-modal-expanded'}`}>
-      {/* ヘッダー */}
+    <div className={`chat-modal show ${isMinimized ? '' : 'chat-modal-expanded'}`} role="region" aria-label={t('groupChat')}>
       <div className="chat-header">
-        <h3 className="chat-title">グループチャット</h3>
+        <h3 className="chat-title">{t('groupChat')}</h3>
         <div className="chat-controls">
-          <span 
-            className="chat-btn chat-minimize" 
+          <button
+            type="button"
+            className="chat-btn chat-minimize focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+            style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setIsMinimized(!isMinimized)}
+            aria-label={isMinimized ? t('expandChat') : t('minimizeChat')}
+            aria-expanded={!isMinimized}
           >
-            _
-          </span>
-          <span className="chat-btn" onClick={onClose}>×</span>
+            <Icon name="Minus" size={18} />
+          </button>
+          <button
+            type="button"
+            className="chat-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+            style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={onClose}
+            aria-label={t('close')}
+          >
+            <Icon name="X" size={18} />
+          </button>
         </div>
       </div>
 
-      {/* メッセージ一覧 */}
       {!isMinimized && (
         <>
-          <div className="chat-content">
+          <div className="chat-content" tabIndex={0} aria-label={t('groupChat')}>
             {messages.length === 0 ? (
               <p style={{ textAlign: 'center', opacity: 0.6 }}>
-                まだメッセージがありません。会話を始めましょう！
+                {t('startConversation')}
               </p>
             ) : (
               messages.map((msg) => {
@@ -224,7 +402,7 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
                     className={`chat-message ${isMe ? 'chat-message--sender' : 'chat-message--receiver'}`}
                   >
                     <div className="chat-message__sender">{msg.sender}</div>
-                    {msg.text}
+                    {msg.message}
                     <div className="chat-message__time">{formatTime(msg.created_at)}</div>
                   </div>
                 )
@@ -233,24 +411,30 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* 入力エリア */}
           <div className="chat-input-area">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="メッセージを入力..."
-              className="chat-message-input"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
+              placeholder={t('typeMessage')}
+              className="chat-message-input focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minHeight: '44px' }}
             />
             <button
+              type="button"
               onClick={handleSend}
               disabled={!newMessage.trim() || loading}
-              className="chat-send-btn"
+              className="chat-send-btn focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+              style={{ minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label={t('sendMessage')}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
+              <Icon name="Send" size={16} />
             </button>
           </div>
         </>

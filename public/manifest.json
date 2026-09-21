@@ -1,11 +1,11 @@
 {
-  "name": "Happy Birthday",
-  "short_name": "Birthday",
-  "description": "Website chúc mừng sinh nhật với nhiều tính năng thú vị",
+  "name": "Omoide",
+  "short_name": "Omoide",
+  "description": "想い出箱（Omoide Bako）— 大切な記念日と思い出を分かち合う空間",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#ec4899",
+  "background_color": "#F3E5D8",
+  "theme_color": "#854D27",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -22,6 +22,6 @@
     }
   ],
   "categories": ["entertainment", "social"],
-  "lang": "vi",
+  "lang": "ja",
   "dir": "ltr"
 }

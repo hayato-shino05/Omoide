@@ -24,7 +24,7 @@ export function useRealtimeMessages({
   const subscribe = useCallback(() => {
     const supabase = getSupabase()
     
-    let channel: RealtimeChannel = supabase
+    const channel: RealtimeChannel = supabase
       .channel(`${table}_changes`)
       .on(
         'postgres_changes',

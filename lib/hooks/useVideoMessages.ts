@@ -1,19 +1,33 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 export interface VideoMessage {
   id: number
   sender: string
   video_url: string
-  thumbnail_url?: string
   duration: number
   birthday_person?: string
   created_at: string
 }
 
+interface VideoSubmission {
+  id: number
+  sender: string
+  object_path: string
+  duration_seconds: number | null
+  birthday_person: string | null
+  created_at: string
+}
+
 export function useVideoMessages(birthdayPerson?: string) {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [messages, setMessages] = useState<VideoMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,50 +39,34 @@ export function useVideoMessages(birthdayPerson?: string) {
     try {
       const supabase = getSupabase()
       let query = supabase
-        .from('video_messages')
-        .select('*')
+        .from('media_submissions')
+        .select('id, sender, object_path, duration_seconds, birthday_person, created_at')
+        .eq('media_kind', 'video')
         .order('created_at', { ascending: false })
 
-      if (birthdayPerson) {
-        query = query.eq('birthday_person', birthdayPerson)
-      }
+      if (birthdayPerson) query = query.eq('birthday_person', birthdayPerson)
 
       const { data, error: fetchError } = await query
-
       if (fetchError) throw fetchError
-      setMessages(data || [])
+
+      setMessages(((data || []) as VideoSubmission[]).map((message) => ({
+        id: message.id,
+        sender: message.sender,
+        video_url: supabase.storage.from('community-media').getPublicUrl(message.object_path).data.publicUrl,
+        duration: message.duration_seconds ?? 0,
+        birthday_person: message.birthday_person ?? undefined,
+        created_at: message.created_at,
+      })))
     } catch {
-      setError('ビデオを読み込めません')
+      setError(tRef.current('videoMessagesLoadError'))
     } finally {
       setLoading(false)
     }
   }, [birthdayPerson])
 
-  const deleteMessage = useCallback(async (id: number) => {
-    try {
-      const supabase = getSupabase()
-      const { error: deleteError } = await supabase
-        .from('video_messages')
-        .delete()
-        .eq('id', id)
-
-      if (deleteError) throw deleteError
-      setMessages(prev => prev.filter(m => m.id !== id))
-      return true
-    } catch {
-      return false
-    }
-  }, [])
-
   useEffect(() => {
-    fetchMessages()
+    void fetchMessages()
   }, [fetchMessages])
 
-  return {
-    messages,
-    loading,
-    error,
-    refetch: fetchMessages,
-    deleteMessage,
-  }
+  return { messages, loading, error, refetch: fetchMessages }
 }

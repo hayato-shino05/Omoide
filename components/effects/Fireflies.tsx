@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePrefersReducedMotion } from '@/lib/hooks/useMediaQuery'
 
 interface FirefliesProps {
   active: boolean
@@ -19,6 +20,7 @@ interface Firefly {
 
 export function Fireflies({ active, count = 25 }: FirefliesProps) {
   const [fireflies, setFireflies] = useState<Firefly[]>([])
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   const createFirefly = useCallback((): Firefly => {
     return {
@@ -32,13 +34,14 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
   }, [])
 
   useEffect(() => {
-    if (!active) {
-      setFireflies([])
-      return
+    if (!active || prefersReducedMotion) {
+      const raf = requestAnimationFrame(() => setFireflies([]))
+      return () => cancelAnimationFrame(raf)
     }
 
-    const initial = Array.from({ length: count }, createFirefly)
-    setFireflies(initial)
+    const initialRaf = requestAnimationFrame(() => {
+      setFireflies(Array.from({ length: count }, createFirefly))
+    })
 
     const interval = setInterval(() => {
       setFireflies(prev => {
@@ -49,13 +52,19 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
       })
     }, 1000)
 
-    return () => clearInterval(interval)
-  }, [active, count, createFirefly])
+    return () => {
+      cancelAnimationFrame(initialRaf)
+      clearInterval(interval)
+    }
+  }, [active, count, createFirefly, prefersReducedMotion])
+
+  // reduced-motion 時は描画もループも停止
+  if (prefersReducedMotion) return null
 
   if (!active) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-30 overflow-hidden" style={{ contain: 'layout style paint' }}>
       <AnimatePresence>
         {fireflies.map(firefly => (
           <motion.div
@@ -76,6 +85,7 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
             style={{
               left: `${firefly.x}%`,
               top: `${firefly.y}%`,
+              willChange: 'transform, opacity',
             }}
           >
             <motion.div
@@ -98,6 +108,7 @@ export function Fireflies({ active, count = 25 }: FirefliesProps) {
                   0 0 ${firefly.size * 4}px #FFD700,
                   0 0 ${firefly.size * 6}px #FFA500
                 `,
+                willChange: 'transform, opacity',
               }}
             />
           </motion.div>

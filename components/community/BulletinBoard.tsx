@@ -1,13 +1,65 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { usePosts, Post } from '@/lib/hooks/usePosts'
+import { Icon } from '@/components/ui/Icon'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import { useUIStore } from '@/lib/stores/uiStore'
 import BulletinPost from './BulletinPost'
-import PostDetail from './PostDetail'
+
+const PostDetail = dynamic(() => import('./PostDetail'), { ssr: false })
+
+interface BirthdayThread {
+  id: string
+  sender: string
+  message: string
+  birthday_person: string | null
+  celebration_date: string | null
+  timezone: string | null
+  created_at: string
+  coverUrl: string | null
+}
+
+function toPost(thread: BirthdayThread): Post {
+  return {
+    id: thread.id,
+    sender: thread.sender,
+    message: thread.message,
+    media_object_path: null,
+    birthday_person: thread.birthday_person,
+    celebration_date: thread.celebration_date,
+    timezone: thread.timezone,
+    is_system_generated: true,
+    created_at: thread.created_at,
+    likes: 0,
+    replies_count: 0,
+  }
+}
 
 export default function BulletinBoard() {
+  const { t } = useLanguage()
+  const openModal = useUIStore((state) => state.openModal)
   const { posts, loading, error, refetch, likePost } = usePosts()
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+  const [birthdayThreads, setBirthdayThreads] = useState<BirthdayThread[]>([])
+  const [threadsLoading, setThreadsLoading] = useState(true)
+
+  const fetchBirthdayThreads = useCallback(async () => {
+    try {
+      const response = await fetch('/api/community/birthday-threads')
+      const payload = (await response.json().catch(() => null)) as { data?: BirthdayThread[] } | null
+      setBirthdayThreads(response.ok && payload?.data ? payload.data : [])
+    } catch {
+      setBirthdayThreads([])
+    } finally {
+      setThreadsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void fetchBirthdayThreads()
+  }, [fetchBirthdayThreads])
 
   if (loading) {
     return (
@@ -23,7 +75,7 @@ export default function BulletinBoard() {
             margin: '0 auto',
           }}
         />
-        <p style={{ marginTop: '16px', color: '#854D27' }}>読み込み中...</p>
+        <p style={{ marginTop: '16px', color: '#854D27' }}>{t('loading')}</p>
       </div>
     )
   }
@@ -31,27 +83,30 @@ export default function BulletinBoard() {
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '40px' }}>
-        <p style={{ color: '#dc3545', marginBottom: '16px' }}>{error}</p>
+        <p style={{ color: '#dc3545', marginBottom: '16px', fontWeight: 600 }}>{error}</p>
         <button
+          type="button"
           onClick={refetch}
+          className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
           style={{
-            padding: '10px 20px',
+            minHeight: '44px',
+            padding: '10px 24px',
             background: '#854D27',
             color: '#FFF9F3',
             border: '2px solid #D4B08C',
-            borderRadius: 0,
+            borderRadius: '8px',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
+            fontWeight: 700,
             boxShadow: '3px 3px 0 #D4B08C',
           }}
         >
-          再試行
+          {t('retry')}
         </button>
       </div>
     )
   }
 
-  // 投稿詳細ビューを表示する場合
   if (selectedPost) {
     return (
       <PostDetail
@@ -67,32 +122,234 @@ export default function BulletinBoard() {
       {/* ヘッダー */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '1.5rem' }}>📋</span>
-          <h3 style={{ color: '#854D27', margin: 0, fontSize: '1.2rem' }}>
-            メッセージ ({posts.length})
+          <Icon name="ClipboardList" size={24} style={{ color: '#D95D39' }} />
+          <h3 style={{ color: '#854D27', margin: 0, fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>
+            {t('bulletinMessagesCount', { count: posts.length })}
           </h3>
         </div>
       </div>
 
+      {/* 誕生日スレッド */}
+      {!threadsLoading && birthdayThreads.length > 0 && (
+        <section style={{ marginBottom: '28px' }} aria-labelledby="birthday-threads-heading">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <Icon name="Cake" size={22} style={{ color: '#D95D39' }} />
+            <h4 id="birthday-threads-heading" style={{ color: '#854D27', margin: 0, fontSize: '1.1rem', fontFamily: 'var(--font-heading)' }}>
+              {t('birthdayThreadsTitle')}
+            </h4>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: '16px',
+            }}
+          >
+            {birthdayThreads.map((thread) => (
+              <div
+                key={thread.id}
+                role="button"
+                tabIndex={0}
+                className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                onClick={() => setSelectedPost(toPost(thread))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedPost(toPost(thread))
+                  }
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: '16px',
+                  background: '#FFF9F3',
+                  border: '2px solid #D4B08C',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'var(--font-body)',
+                  boxShadow: '3px 3px 0 #D4B08C',
+                  transition: 'transform 0.2s, box-shadow 0.2s, border-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '5px 5px 0 #D4B08C'
+                  e.currentTarget.style.borderColor = '#854D27'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '3px 3px 0 #D4B08C'
+                  e.currentTarget.style.borderColor = '#D4B08C'
+                }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    alignSelf: 'flex-start',
+                    padding: '3px 10px',
+                    borderRadius: '999px',
+                    background: 'rgba(217, 93, 57, 0.12)',
+                    color: '#D95D39',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  <Icon name="Music" size={12} />
+                  {t('birthdayThreadBadge')}
+                </span>
+                {thread.coverUrl ? (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '4 / 3',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      display: 'block',
+                      border: '1px solid #D4B08C',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thread.coverUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: '100%',
+                      aspectRatio: '4 / 3',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'linear-gradient(135deg, #FFF9F3 0%, #F3E3D3 100%)',
+                      border: '1px solid #D4B08C',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        background: '#854D27',
+                        color: '#FFF9F3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.6rem',
+                        fontWeight: 700,
+                        boxShadow: '1px 1px 0 #D4B08C',
+                      }}
+                    >
+                      {thread.birthday_person?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  </span>
+                )}
+                <span style={{ display: 'block', minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      color: '#2C1810',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {thread.birthday_person ?? thread.message}
+                  </span>
+                  <span
+                    style={{
+                      display: 'block',
+                      color: '#854D27',
+                      fontSize: '0.78rem',
+                      opacity: 0.8,
+                      marginTop: '2px',
+                    }}
+                  >
+                    {thread.celebration_date ?? ''}
+                  </span>
+                </span>
+
+                {/* 楽曲を添えてお祝いするボタン */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openModal('message', {
+                      birthdayPerson: thread.birthday_person ?? undefined,
+                      threadId: thread.id,
+                    })
+                  }}
+                  className="focus-visible:ring-2 focus-visible:ring-[#854D27] outline-none"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    width: '100%',
+                    minHeight: '44px',
+                    padding: '8px 12px',
+                    marginTop: '4px',
+                    background: '#854D27',
+                    color: '#FFF9F3',
+                    border: '1.5px solid #D4B08C',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '2px 2px 0 #D4B08C',
+                    transition: 'background 0.2s, border-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#D95D39'
+                    e.currentTarget.style.borderColor = '#D95D39'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#854D27'
+                    e.currentTarget.style.borderColor = '#D4B08C'
+                  }}
+                >
+                  <Icon name="Music" size={15} />
+                  <span>{t('celebrateWithMusic')}</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* 投稿グリッド */}
       {posts.length === 0 ? (
-        <div 
-          style={{ 
-            textAlign: 'center', 
+        <div
+          style={{
+            textAlign: 'center',
             padding: '60px 20px',
-            background: 'rgba(212, 176, 140, 0.1)',
-            borderRadius: '8px',
+            background: 'rgba(212, 176, 140, 0.15)',
+            border: '2px dashed #D4B08C',
+            borderRadius: '12px',
           }}
         >
-          <span style={{ fontSize: '3rem', display: 'block', marginBottom: '16px' }}>💌</span>
-          <p style={{ color: '#854D27', opacity: 0.7 }}>
-            まだメッセージがありません。
+          <Icon name="Mail" size={48} style={{ color: '#D95D39', display: 'block', margin: '0 auto 16px' }} />
+          <p style={{ color: '#854D27', fontWeight: 600 }}>
+            {t('noBulletinMessages')}
           </p>
         </div>
       ) : (
-        <div 
-          style={{ 
-            display: 'grid', 
+        <div
+          style={{
+            display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '16px',
             maxHeight: '60vh',

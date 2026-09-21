@@ -1,6 +1,5 @@
 import type { ThemeName } from '@/types'
 
-// テーマエフェクトタイプ
 export interface ThemeEffect {
   type:
     | 'fallingPetals'
@@ -37,40 +36,6 @@ export interface ThemeConfig {
   videoDuration?: number
   fallbackVideoUrl?: string
   effects: ThemeEffect[]
-}
-
-// 祭りの日付設定
-export interface FestivalDate {
-  month: number
-  startDate: number
-  endDate: number
-}
-
-export const FESTIVAL_DATES: Record<string, FestivalDate | FestivalDate[]> = {
-  christmas: { month: 12, startDate: 20, endDate: 25 },
-  halloween: { month: 10, startDate: 28, endDate: 31 },
-  hanami: [
-    { month: 3, startDate: 20, endDate: 31 },
-    { month: 4, startDate: 1, endDate: 30 },
-    { month: 5, startDate: 1, endDate: 10 },
-  ],
-  obon: { month: 8, startDate: 13, endDate: 16 },
-  tsukimi: [
-    { month: 9, startDate: 15, endDate: 30 },
-    { month: 10, startDate: 1, endDate: 15 },
-  ],
-  tanabata: { month: 7, startDate: 1, endDate: 7 },
-  shogatsu: { month: 1, startDate: 1, endDate: 7 },
-  kodomo: { month: 5, startDate: 1, endDate: 5 },
-  bunka: { month: 11, startDate: 1, endDate: 7 },
-}
-
-// 月ごとの季節設定
-export const SEASON_MONTHS: Record<string, number[]> = {
-  winter: [12, 1],
-  spring: [2, 3, 4],
-  summer: [5, 6, 7, 8],
-  autumn: [9, 10, 11],
 }
 
 export const THEMES: Record<ThemeName, ThemeConfig> = {
@@ -218,7 +183,7 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       accent: '#64B5F6',
     },
     gradient: 'from-indigo-900 via-blue-800 to-indigo-900',
-    videoUrl: '/video/autumn.mp4',
+    videoUrl: '/video/trungthu.mp4',
     effects: [
       { type: 'moonGlow', count: 1 },
       { type: 'fallingLeaves', count: 30 },

@@ -1,8 +1,9 @@
 'use client'
 
 import { forwardRef, HTMLAttributes, useState } from 'react'
+import { Icon } from './Icon'
 
-type CardVariant = 'default' | 'glass' | 'solid' | 'gradient' | 'outline'
+type CardVariant = 'default' | 'glass' | 'solid' | 'gradient' | 'outline' | 'vintage'
 type CardSize = 'sm' | 'md' | 'lg'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
@@ -15,17 +16,18 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const variantClasses: Record<CardVariant, string> = {
-  default: 'bg-white/10 backdrop-blur-md border border-white/20',
-  glass: 'bg-white/5 backdrop-blur-xl border border-white/10',
-  solid: 'bg-slate-800/90 border border-slate-700',
-  gradient: 'bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-md border border-white/20',
-  outline: 'bg-transparent border-2 border-white/20',
+  default: 'bg-[#FFF9F3]/95 dark:bg-stone-900/95 text-[#854D27] dark:text-stone-100 border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C]',
+  vintage: 'bg-[#FFF9F3] dark:bg-stone-900 text-[#854D27] dark:text-stone-100 border-2 border-[#D4B08C] shadow-[6px_6px_0_#D4B08C]',
+  glass: 'bg-white/10 dark:bg-stone-900/80 backdrop-blur-md border border-white/20 dark:border-stone-700/60 text-white shadow-lg',
+  solid: 'bg-stone-900/95 border border-stone-800 text-stone-100 shadow-xl',
+  gradient: 'bg-gradient-to-br from-[#FFF9F3] to-[#F7EDE2] dark:from-stone-900 dark:to-stone-950 border-2 border-[#D4B08C] text-[#854D27] dark:text-stone-100 shadow-[4px_4px_0_#D4B08C]',
+  outline: 'bg-transparent border-2 border-[#D4B08C] text-[#854D27] dark:text-stone-100',
 }
 
 const sizeClasses: Record<CardSize, string> = {
-  sm: 'p-4 rounded-xl',
-  md: 'p-5 rounded-2xl',
-  lg: 'p-6 rounded-3xl',
+  sm: 'p-3.5 sm:p-4 rounded-xl',
+  md: 'p-4 sm:p-5 rounded-2xl',
+  lg: 'p-5 sm:p-6 rounded-3xl',
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -40,6 +42,9 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       className = '',
       children,
       onClick,
+      onKeyDown,
+      tabIndex,
+      role,
       ...props
     },
     ref
@@ -56,10 +61,22 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
       })
     }
 
+    const isInteractive = Boolean(onClick || hover)
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (isInteractive && onClick && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault()
+        onClick(e as unknown as React.MouseEvent<HTMLDivElement>)
+      }
+      onKeyDown?.(e)
+    }
+
     return (
       <Component
         ref={ref}
         onClick={onClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={isInteractive && tabIndex === undefined ? 0 : tabIndex}
+        role={isInteractive && role === undefined ? 'button' : role}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -67,8 +84,12 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           relative overflow-hidden
           ${variantClasses[variant]}
           ${sizeClasses[size]}
-          ${hover ? 'hover:bg-white/15 hover:border-white/30 hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1 transition-all duration-300 cursor-pointer' : ''}
-          ${animated ? 'animate-in fade-in slide-in-from-bottom-4 duration-500' : ''}
+          ${
+            hover
+              ? 'hover:shadow-[6px_6px_0_#D4B08C] hover:-translate-y-1 active:translate-y-0 active:scale-[0.99] transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:ring-offset-2'
+              : ''
+          }
+          ${animated ? 'animate-in fade-in slide-in-from-bottom-3 duration-300' : ''}
           ${className}
         `}
         {...props}
@@ -78,7 +99,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           <div
             className="absolute pointer-events-none transition-opacity duration-300"
             style={{
-              background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(236, 72, 153, 0.15), transparent 40%)`,
+              background: `radial-gradient(400px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(212, 176, 140, 0.25), transparent 50%)`,
               inset: 0,
             }}
           />
@@ -90,7 +111,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         {/* ホバー時の光沢エフェクト */}
         {hover && (
           <div
-            className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full transition-transform duration-700 ${
+            className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full transition-transform duration-700 pointer-events-none ${
               isHovered ? 'translate-x-full' : ''
             }`}
           />
@@ -111,7 +132,7 @@ interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
 
 export function CardHeader({ children, action, className = '', ...props }: CardHeaderProps) {
   return (
-    <div className={`flex items-start justify-between gap-4 mb-4 ${className}`} {...props}>
+    <div className={`flex items-start justify-between gap-4 mb-3 ${className}`} {...props}>
       <div className="flex-1">{children}</div>
       {action && <div className="flex-shrink-0">{action}</div>}
     </div>
@@ -126,8 +147,8 @@ interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export function CardTitle({ children, as: Component = 'h3', icon, className = '', ...props }: CardTitleProps) {
   return (
-    <Component className={`text-lg font-bold text-white flex items-center gap-2 ${className}`} {...props}>
-      {icon && <span className="w-6 h-6 text-pink-400">{icon}</span>}
+    <Component className={`text-base sm:text-lg font-bold flex items-center gap-2 font-heading ${className}`} {...props}>
+      {icon && <span className="w-5 h-5 sm:w-6 sm:h-6 text-[#854D27] dark:text-[#D4B08C] flex-shrink-0">{icon}</span>}
       {children}
     </Component>
   )
@@ -136,7 +157,7 @@ export function CardTitle({ children, as: Component = 'h3', icon, className = ''
 // カードの説明文
 export function CardDescription({ children, className = '', ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={`text-sm text-white/60 mt-1 ${className}`} {...props}>
+    <p className={`text-xs sm:text-sm text-stone-600 dark:text-stone-400 mt-1 leading-relaxed ${className}`} {...props}>
       {children}
     </p>
   )
@@ -145,7 +166,7 @@ export function CardDescription({ children, className = '', ...props }: HTMLAttr
 // カードコンテンツ
 export function CardContent({ children, className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`text-white/80 ${className}`} {...props}>
+    <div className={`text-stone-800 dark:text-stone-200 text-sm ${className}`} {...props}>
       {children}
     </div>
   )
@@ -166,7 +187,7 @@ export function CardFooter({ children, justify = 'end', className = '', ...props
 
   return (
     <div
-      className={`flex items-center gap-3 mt-4 pt-4 border-t border-white/10 ${justifyClasses[justify]} ${className}`}
+      className={`flex items-center gap-3 mt-4 pt-3 border-t border-[#D4B08C]/40 ${justifyClasses[justify]} ${className}`}
       {...props}
     >
       {children}
@@ -190,7 +211,9 @@ export function CardImage({ src, alt, aspectRatio = 'video', overlay = false }: 
   }
 
   return (
-    <div className={`relative ${aspectClasses[aspectRatio]} -mx-5 -mt-5 mb-4 overflow-hidden rounded-t-2xl`}>
+    <div className={`relative ${aspectClasses[aspectRatio]} -mx-4 sm:-mx-5 -mt-4 sm:-mt-5 mb-4 overflow-hidden rounded-t-xl sm:rounded-t-2xl`}>
+      {/* src is caller-provided and may be private or signed; no remote allowlist is available. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={alt} className="w-full h-full object-cover" />
       {overlay && <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />}
     </div>
@@ -208,36 +231,32 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, change, icon, trend }: StatsCardProps) {
   const trendColors = {
-    up: 'text-green-400',
-    down: 'text-red-400',
-    neutral: 'text-white/60',
+    up: 'text-emerald-700 dark:text-emerald-400',
+    down: 'text-rose-700 dark:text-rose-400',
+    neutral: 'text-stone-600 dark:text-stone-400',
   }
 
   return (
-    <Card variant="glass" hover glow>
+    <Card variant="default" hover glow>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-white/60 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-white">{value}</p>
+          <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 mb-1 font-medium">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold font-heading">{value}</p>
           {change && (
-            <p className={`text-sm mt-2 flex items-center gap-1 ${trendColors[trend || 'neutral']}`}>
+            <p className={`text-xs sm:text-sm mt-2 flex items-center gap-1 font-medium ${trendColors[trend || 'neutral']}`}>
               {trend === 'up' && (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
+                <Icon name="ArrowUp" size={16} className="text-emerald-600 dark:text-emerald-300" aria-hidden="true" />
               )}
               {trend === 'down' && (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
+                <Icon name="ArrowDown" size={16} className="text-rose-600 dark:text-rose-300" aria-hidden="true" />
               )}
               {change.value > 0 ? '+' : ''}{change.value}%
-              {change.label && <span className="text-white/40 ml-1">{change.label}</span>}
+              {change.label && <span className="opacity-70 ml-1">{change.label}</span>}
             </p>
           )}
         </div>
         {icon && (
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center text-pink-400">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#D4B08C]/20 border border-[#D4B08C] flex items-center justify-center text-[#854D27] dark:text-[#D4B08C] flex-shrink-0">
             {icon}
           </div>
         )}

@@ -7,11 +7,14 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // eslint-config-next のデフォルトの ignore 設定を上書き
   globalIgnores([
-    // eslint-config-next のデフォルト ignore 対象
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ツールリング生成物・ローカル作業領域はリント対象外
+    ".gitnexus/**",
+    ".claude/**",
+    "tmp/**",
   ]),
 ]);
 

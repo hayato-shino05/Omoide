@@ -1,8 +1,9 @@
 'use client'
 
 import { forwardRef, ButtonHTMLAttributes, useState } from 'react'
+import { Icon } from './Icon'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'gradient'
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'gradient' | 'vintage'
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -17,20 +18,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40',
-  secondary: 'bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40',
-  ghost: 'bg-transparent hover:bg-white/10 text-white',
-  danger: 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg shadow-red-500/25',
-  success: 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/25',
-  gradient: 'bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 hover:from-violet-600 hover:via-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/25',
+  primary: 'bg-[#854D27] hover:bg-[#6e3e1e] text-[#FFF9F3] border-2 border-[#D4B08C] shadow-[3px_3px_0_#D4B08C] hover:shadow-[4px_4px_0_#D4B08C] active:shadow-[1px_1px_0_#D4B08C]',
+  secondary: 'bg-[#FFF9F3] hover:bg-[#FAF0E6] text-[#854D27] border-2 border-[#D4B08C] shadow-[3px_3px_0_#D4B08C] hover:shadow-[4px_4px_0_#D4B08C] active:shadow-[1px_1px_0_#D4B08C]',
+  vintage: 'bg-[#854D27] hover:bg-[#6e3e1e] text-[#FFF9F3] border-2 border-[#D4B08C] shadow-[4px_4px_0_#D4B08C] hover:shadow-[5px_5px_0_#D4B08C] active:shadow-[2px_2px_0_#D4B08C]',
+  ghost: 'bg-transparent hover:bg-white/10 text-white border border-transparent hover:border-white/20',
+  danger: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md shadow-red-500/20 border border-red-400/30',
+  success: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md shadow-emerald-500/20 border border-emerald-400/30',
+  gradient: 'bg-gradient-to-r from-amber-700 via-orange-600 to-[#854D27] hover:from-amber-800 hover:to-[#6e3e1e] text-white shadow-md shadow-orange-900/20 border border-[#D4B08C]/50',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
-  xs: 'px-2 py-1 text-xs gap-1',
-  sm: 'px-3 py-1.5 text-sm gap-1.5',
-  md: 'px-4 py-2 text-base gap-2',
-  lg: 'px-6 py-3 text-lg gap-2',
-  xl: 'px-8 py-4 text-xl gap-3',
+  xs: 'px-2.5 py-1 text-xs gap-1 min-h-[32px]',
+  sm: 'px-3 py-1.5 text-sm gap-1.5 min-h-[38px]',
+  md: 'px-4 py-2 text-base gap-2 min-h-[44px]',
+  lg: 'px-6 py-3 text-lg gap-2 min-h-[48px]',
+  xl: 'px-8 py-3.5 text-xl gap-3 min-h-[56px]',
 }
 
 const roundedClasses = {
@@ -91,11 +93,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={handleClick}
         className={`
           relative inline-flex items-center justify-center font-medium
-          transition-all duration-300 ease-out
-          transform hover:scale-[1.02] active:scale-[0.98]
-          focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent
-          disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100
-          overflow-hidden cursor-pointer
+          transition-all duration-150 ease-out
+          transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96]
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF9F3]
+          disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:translate-y-0 disabled:active:scale-100 disabled:shadow-none
+          overflow-hidden cursor-pointer select-none
           ${variantClasses[variant]}
           ${sizeClasses[size]}
           ${roundedClasses[rounded]}
@@ -119,25 +121,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
         {/* ローディングスピナー */}
         {isLoading && (
-          <svg
-            className={`animate-spin ${iconSizeClasses[size]}`}
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+          <Icon name="LoaderCircle" size={20} className={`animate-spin ${iconSizeClasses[size]}`} />
         )}
 
         {/* 左側のアイコン */}
@@ -149,25 +133,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         <span className={isLoading ? 'opacity-0' : ''}>{children}</span>
         {isLoading && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <svg
-              className={`animate-spin ${iconSizeClasses[size]}`}
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
+            <Icon name="LoaderCircle" size={20} className={`animate-spin ${iconSizeClasses[size]}`} />
           </span>
         )}
 
@@ -196,11 +162,11 @@ interface IconButtonProps extends Omit<ButtonProps, 'leftIcon' | 'rightIcon' | '
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ icon, size = 'md', className = '', ...props }, ref) => {
     const iconButtonSizes: Record<ButtonSize, string> = {
-      xs: 'w-6 h-6',
-      sm: 'w-8 h-8',
-      md: 'w-10 h-10',
-      lg: 'w-12 h-12',
-      xl: 'w-14 h-14',
+      xs: 'w-8 h-8 min-w-[32px] min-h-[32px]',
+      sm: 'w-10 h-10 min-w-[40px] min-h-[40px]',
+      md: 'w-11 h-11 min-w-[44px] min-h-[44px]',
+      lg: 'w-12 h-12 min-w-[48px] min-h-[48px]',
+      xl: 'w-14 h-14 min-w-[56px] min-h-[56px]',
     }
 
     return (

@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react'
+import { useState, useEffect, createContext, useContext, useCallback, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
+import { Icon } from './Icon'
+import { useOptionalLanguage } from '@/lib/i18n/LanguageContext'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading'
 type ToastPosition = 'top-right' | 'top-left' | 'top-center' | 'bottom-right' | 'bottom-left' | 'bottom-center'
@@ -37,12 +39,26 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | null>(null)
 
-export function useToast() {
+const fallbackToastContext: ToastContextType = {
+  toasts: [],
+  addToast: () => '',
+  removeToast: () => {},
+  updateToast: () => {},
+  success: () => '',
+  error: () => '',
+  warning: () => '',
+  info: () => '',
+  loading: () => '',
+  promise: async <T,>(promiseToResolve: Promise<T>): Promise<T> => promiseToResolve,
+}
+
+export function useOptionalToast(): ToastContextType | null {
+  return useContext(ToastContext)
+}
+
+export function useToast(): ToastContextType {
   const context = useContext(ToastContext)
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider')
-  }
-  return context
+  return context ?? fallbackToastContext
 }
 
 interface ToastProviderProps {
@@ -51,13 +67,17 @@ interface ToastProviderProps {
   maxToasts?: number
 }
 
-export function ToastProvider({ children, position = 'bottom-right', maxToasts = 5 }: ToastProviderProps) {
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const [mounted, setMounted] = useState(false)
+const subscribeNoop = () => () => {}
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+export function ToastProvider({ children, position = 'top-right', maxToasts = 5 }: ToastProviderProps) {
+  const lang = useOptionalLanguage()
+  const t = lang?.t ?? ((k: string) => k)
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false
+  )
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9)
@@ -145,7 +165,7 @@ export function ToastProvider({ children, position = 'bottom-right', maxToasts =
           <div
             className={`fixed z-[100] flex flex-col gap-3 pointer-events-none ${positionClasses[position]}`}
             aria-live="polite"
-            aria-label="Notifications"
+            aria-label={t('notifications')}
           >
             {toasts.map((toast, index) => (
               <ToastItem
@@ -168,50 +188,29 @@ export function ToastProvider({ children, position = 'bottom-right', maxToasts =
 
 const typeStyles: Record<ToastType, { bg: string; border: string; icon: React.ReactNode }> = {
   success: {
-    bg: 'bg-gradient-to-r from-green-500/90 to-emerald-500/90',
-    border: 'border-green-400/30',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    bg: 'bg-emerald-800/95 dark:bg-emerald-900/95',
+    border: 'border-emerald-600/50',
+    icon: <Icon name="CheckCircle2" size={20} className="text-emerald-200" aria-hidden="true" />,
   },
   error: {
-    bg: 'bg-gradient-to-r from-red-500/90 to-rose-500/90',
-    border: 'border-red-400/30',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    bg: 'bg-rose-900/95 dark:bg-rose-950/95',
+    border: 'border-rose-700/60',
+    icon: <Icon name="CircleX" size={20} className="text-rose-200" aria-hidden="true" />,
   },
   warning: {
-    bg: 'bg-gradient-to-r from-yellow-500/90 to-amber-500/90',
-    border: 'border-yellow-400/30',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    ),
+    bg: 'bg-amber-800/95 dark:bg-amber-900/95',
+    border: 'border-amber-600/50',
+    icon: <Icon name="AlertTriangle" size={20} className="text-amber-200" aria-hidden="true" />,
   },
   info: {
-    bg: 'bg-gradient-to-r from-blue-500/90 to-cyan-500/90',
-    border: 'border-blue-400/30',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    bg: 'bg-[#854D27]/95 dark:bg-stone-900/95',
+    border: 'border-[#D4B08C]/60',
+    icon: <Icon name="Info" size={20} className="text-[#FBE8D3]" aria-hidden="true" />,
   },
   loading: {
-    bg: 'bg-gradient-to-r from-purple-500/90 to-pink-500/90',
-    border: 'border-purple-400/30',
-    icon: (
-      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-      </svg>
-    ),
+    bg: 'bg-stone-800/95 dark:bg-stone-900/95',
+    border: 'border-[#D4B08C]/50',
+    icon: <Icon name="LoaderCircle" size={20} className="animate-spin text-[#D4B08C]" aria-hidden="true" />,
   },
 }
 
@@ -223,6 +222,8 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onClose, index, position }: ToastItemProps) {
+  const lang = useOptionalLanguage()
+  const t = lang?.t ?? ((k: string) => k)
   const [isExiting, setIsExiting] = useState(false)
   const [progress, setProgress] = useState(100)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -264,7 +265,7 @@ function ToastItem({ toast, onClose, index, position }: ToastItemProps) {
   return (
     <div
       className={`
-        pointer-events-auto min-w-[320px] max-w-md
+        pointer-events-auto min-w-[300px] sm:min-w-[340px] max-w-md
         ${style.bg} backdrop-blur-md
         text-white rounded-xl shadow-2xl
         border ${style.border}
@@ -274,18 +275,19 @@ function ToastItem({ toast, onClose, index, position }: ToastItemProps) {
       style={{
         animationDelay: `${index * 50}ms`,
       }}
-      role="alert"
+      role={toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'}
+      aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
     >
-      <div className="flex items-start gap-3 p-4">
+      <div className="flex items-start gap-3 p-3.5 sm:p-4">
         {/* アイコン */}
         <div className="flex-shrink-0 mt-0.5">{style.icon}</div>
 
         {/* 本文 */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-2">
           {toast.title && (
-            <p className="font-semibold text-white mb-0.5">{toast.title}</p>
+            <p className="font-semibold text-white mb-0.5 text-sm sm:text-base font-heading">{toast.title}</p>
           )}
-          <p className="text-white/90 text-sm">{toast.message}</p>
+          <p className="text-white/95 text-xs sm:text-sm font-body leading-relaxed">{toast.message}</p>
 
           {/* アクションボタン */}
           {toast.action && (
@@ -294,7 +296,7 @@ function ToastItem({ toast, onClose, index, position }: ToastItemProps) {
                 toast.action?.onClick()
                 handleClose()
               }}
-              className="mt-2 text-sm font-medium text-white/80 hover:text-white underline underline-offset-2 cursor-pointer"
+              className="mt-2 inline-flex items-center text-xs sm:text-sm font-semibold text-white hover:text-amber-200 underline underline-offset-4 min-h-[36px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded"
             >
               {toast.action.label}
             </button>
@@ -305,12 +307,10 @@ function ToastItem({ toast, onClose, index, position }: ToastItemProps) {
         {toast.type !== 'loading' && (
           <button
             onClick={handleClose}
-            className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
-            aria-label="通知を閉じる"
+            className="flex-shrink-0 w-11 h-11 -mr-2 -mt-2 rounded-full hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label={t('closeNotification')}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <Icon name="Close" size={16} className="text-rose-100" aria-hidden="true" />
           </button>
         )}
       </div>

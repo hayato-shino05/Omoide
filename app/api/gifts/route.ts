@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase/client'
 
-// GET /api/gifts - ギフト一覧を取得
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabase()
     const { searchParams } = new URL(request.url)
     
     const birthdayPerson = searchParams.get('birthdayPerson')
-    const limit = searchParams.get('limit')
+    const requestedLimit = Number(searchParams.get('limit'))
+    const validLimit = Number.isInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, 100) : undefined
 
     let query = supabase
       .from('virtual_gifts')
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('birthday_person', birthdayPerson)
     }
 
-    if (limit) {
-      query = query.limit(parseInt(limit))
+    if (validLimit) {
+      query = query.limit(validLimit)
     }
 
     const { data, error, count } = await query
@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // ギフト種別ごとに集計
     const giftStats = data?.reduce((acc, gift) => {
       const key = gift.gift_name
       acc[key] = (acc[key] || 0) + 1
@@ -48,7 +47,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/gifts - ギフトを送信
 export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabase()

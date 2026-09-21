@@ -1,15 +1,18 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+
+import { parseMusicTrackReference } from '@/lib/music/reference'
 
 interface Message {
   id: number
   sender: string
   message: string
-  gift_id?: string
-  media_url?: string
-  likes: number
+  birthday_person?: string
+  media_object_path?: string
+  music_track_id?: string
   created_at: string
 }
 
@@ -17,12 +20,16 @@ interface UseMessagesReturn {
   messages: Message[]
   isLoading: boolean
   error: string | null
-  sendMessage: (sender: string, message: string, birthdayPerson?: string, mediaUrl?: string) => Promise<boolean>
-  deleteMessage: (id: number) => Promise<boolean>
+  sendMessage: (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string, musicTrackId?: string) => Promise<boolean>
   refetch: () => Promise<void>
 }
 
 export function useMessages(): UseMessagesReturn {
+  const { t } = useLanguage()
+  const tRef = useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,14 +40,14 @@ export function useMessages(): UseMessagesReturn {
 
     try {
       const { data, error: fetchError } = await supabase
-        .from('bulletin_posts')
+        .from('messages')
         .select('*')
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
       setMessages((data || []) as Message[])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'メッセージ一覧を読み込めませんでした')
+      setError(err instanceof Error ? err.message : tRef.current('messagesLoadError'))
     } finally {
       setIsLoading(false)
     }
@@ -51,36 +58,26 @@ export function useMessages(): UseMessagesReturn {
   }, [fetchMessages])
 
   const sendMessage = useCallback(
-    async (sender: string, message: string, _birthdayPerson?: string, mediaUrl?: string): Promise<boolean> => {
+    async (sender: string, message: string, birthdayPerson?: string, mediaObjectPath?: string, musicTrackId?: string): Promise<boolean> => {
       try {
-        const { error: insertError } = await supabase.from('bulletin_posts').insert({
+        if (musicTrackId && !parseMusicTrackReference(musicTrackId)) {
+          setError(tRef.current('sendMessageFailed'))
+          return false
+        }
+
+        const { error: insertError } = await supabase.from('messages').insert({
           sender,
           message,
-          media_url: mediaUrl || null,
-          likes: 0,
+          birthday_person: birthdayPerson || null,
+          media_object_path: mediaObjectPath || null,
+          music_track_id: musicTrackId || null,
         })
 
         if (insertError) throw insertError
         await fetchMessages()
         return true
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'メッセージを送信できませんでした')
-        return false
-      }
-    },
-    [fetchMessages]
-  )
-
-  const deleteMessage = useCallback(
-    async (id: number): Promise<boolean> => {
-      try {
-        const { error: deleteError } = await supabase.from('bulletin_posts').delete().eq('id', id)
-
-        if (deleteError) throw deleteError
-        await fetchMessages()
-        return true
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'メッセージを削除できませんでした')
+        setError(err instanceof Error ? err.message : tRef.current('sendMessageFailed'))
         return false
       }
     },
@@ -92,7 +89,6 @@ export function useMessages(): UseMessagesReturn {
     isLoading,
     error,
     sendMessage,
-    deleteMessage,
     refetch: fetchMessages,
   }
 }

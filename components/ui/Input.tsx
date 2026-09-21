@@ -1,6 +1,9 @@
 'use client'
 
 import { forwardRef, InputHTMLAttributes, useState, useId } from 'react'
+import { Icon } from './Icon'
+import { useOptionalLanguage } from '@/lib/i18n/LanguageContext'
+import { DEFAULT_LOCALE, translate } from '@/lib/i18n/resolveLocale'
 
 type InputSize = 'sm' | 'md' | 'lg'
 type InputVariant = 'default' | 'filled' | 'flushed'
@@ -22,23 +25,23 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>
 }
 
 const sizeClasses: Record<InputSize, { input: string; icon: string; label: string }> = {
-  sm: { input: 'px-3 py-1.5 text-sm', icon: 'w-4 h-4', label: 'text-xs' },
-  md: { input: 'px-4 py-2.5 text-base', icon: 'w-5 h-5', label: 'text-sm' },
-  lg: { input: 'px-5 py-3 text-lg', icon: 'w-6 h-6', label: 'text-base' },
+  sm: { input: 'px-3 py-2 text-sm min-h-[38px]', icon: 'w-4 h-4', label: 'text-xs' },
+  md: { input: 'px-4 py-2.5 text-base min-h-[44px]', icon: 'w-5 h-5', label: 'text-sm' },
+  lg: { input: 'px-5 py-3.5 text-lg min-h-[50px]', icon: 'w-6 h-6', label: 'text-base' },
 }
 
 const variantClasses: Record<InputVariant, { base: string; focus: string }> = {
   default: {
-    base: 'bg-white/5 border border-white/20 rounded-xl',
-    focus: 'focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20',
+    base: 'bg-white/10 dark:bg-stone-900/60 border border-[#D4B08C]/60 hover:border-[#D4B08C] rounded-xl text-white placeholder-white/50',
+    focus: 'focus:border-[#854D27] dark:focus:border-[#D4B08C] focus:ring-2 focus:ring-[#854D27]/25 dark:focus:ring-[#D4B08C]/25',
   },
   filled: {
-    base: 'bg-white/10 border-2 border-transparent rounded-xl',
-    focus: 'focus:bg-white/5 focus:border-pink-500/50',
+    base: 'bg-white/15 dark:bg-stone-800/80 border border-transparent hover:border-[#D4B08C]/40 rounded-xl text-white placeholder-white/50',
+    focus: 'focus:bg-white/10 dark:focus:bg-stone-900 focus:border-[#854D27] dark:focus:border-[#D4B08C] focus:ring-2 focus:ring-[#854D27]/20',
   },
   flushed: {
-    base: 'bg-transparent border-b-2 border-white/20 rounded-none px-0',
-    focus: 'focus:border-pink-500',
+    base: 'bg-transparent border-b border-[#D4B08C]/60 hover:border-[#D4B08C] rounded-none px-0 text-white placeholder-white/50',
+    focus: 'focus:border-[#854D27] dark:focus:border-[#D4B08C]',
   },
 }
 
@@ -67,6 +70,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
+    const language = useOptionalLanguage()
+    const clearLabel = language?.t('clear') ?? translate(DEFAULT_LOCALE, 'clear', DEFAULT_LOCALE)
     const [isFocused, setIsFocused] = useState(false)
     const [charCount, setCharCount] = useState(String(value || '').length)
     const inputId = useId()
@@ -81,42 +86,36 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
     return (
       <div className="w-full">
-        {/* ラベル */}
         {label && (
           <label
             htmlFor={inputId}
-            className={`block font-medium text-white/80 mb-2 ${sizeStyle.label} transition-colors ${
-              isFocused ? 'text-pink-400' : ''
+            className={`block font-medium text-white/90 mb-1.5 ${sizeStyle.label} transition-colors ${
+              isFocused ? 'text-[#D4B08C]' : ''
             }`}
           >
             {label}
-            {isRequired && <span className="text-pink-500 ml-1">*</span>}
+            {isRequired && <span className="text-rose-400 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
 
-        {/* 入力全体のラッパー */}
         <div className="relative flex">
-          {/* 左側アドオン */}
           {leftAddon && (
-            <div className="flex items-center px-4 bg-white/10 border border-r-0 border-white/20 rounded-l-xl text-white/60">
+            <div className="flex items-center px-3.5 bg-white/10 border border-r-0 border-[#D4B08C]/60 rounded-l-xl text-white/70 text-sm">
               {leftAddon}
             </div>
           )}
 
-          {/* 入力フィールドのコンテナ */}
           <div className="relative flex-1">
-            {/* 左側のアイコン */}
             {leftIcon && (
               <div
-                className={`absolute left-3 top-1/2 -translate-y-1/2 text-white/40 transition-colors ${
-                  isFocused ? 'text-pink-400' : ''
+                className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 transition-colors pointer-events-none ${
+                  isFocused ? 'text-[#D4B08C]' : ''
                 } ${sizeStyle.icon}`}
               >
                 {leftIcon}
               </div>
             )}
 
-            {/* 入力フィールド */}
             <input
               ref={ref}
               id={inputId}
@@ -127,17 +126,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               className={`
-                w-full text-white placeholder-white/40
+                w-full text-white placeholder-white/45 font-body
                 transition-all duration-200 outline-none
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${variantStyle.base}
                 ${variantStyle.focus}
                 ${sizeStyle.input}
                 ${leftIcon ? 'pl-10' : ''}
-                ${rightIcon || showClearButton ? 'pr-10' : ''}
+                ${rightIcon || showClearButton ? 'pr-11' : ''}
                 ${leftAddon ? 'rounded-l-none' : ''}
                 ${rightAddon ? 'rounded-r-none' : ''}
-                ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-400/20' : ''}
+                ${error ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-400/25' : ''}
                 ${className}
               `}
               aria-invalid={!!error}
@@ -145,62 +144,48 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               {...props}
             />
 
-            {/* 右側のアイコンまたはクリアボタン */}
             {(rightIcon || (showClearButton && value)) && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
                 {showClearButton && value && (
                   <button
                     type="button"
                     onClick={onClear}
-                    className="text-white/40 hover:text-white transition-colors cursor-pointer"
-                    aria-label="Clear input"
+                    className="w-11 h-11 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
+                    aria-label={clearLabel}
                   >
-                    <svg className={sizeStyle.icon} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <span aria-hidden="true"><Icon name="X" size={16} className="text-rose-300" /></span>
                   </button>
                 )}
                 {rightIcon && (
-                  <span className={`text-white/40 ${sizeStyle.icon}`}>{rightIcon}</span>
+                  <div className={`w-11 h-11 flex items-center justify-center text-white/50 ${sizeStyle.icon}`}>
+                    {rightIcon}
+                  </div>
                 )}
               </div>
             )}
-
-            {/* フォーカスリングのアニメーション */}
-            <div
-              className={`absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-200 ${
-                isFocused && !error ? 'opacity-100' : 'opacity-0'
-              }`}
-              style={{
-                boxShadow: '0 0 0 3px rgba(236, 72, 153, 0.1)',
-              }}
-            />
           </div>
 
-          {/* 右側アドオン */}
           {rightAddon && (
-            <div className="flex items-center px-4 bg-white/10 border border-l-0 border-white/20 rounded-r-xl text-white/60">
+            <div className="flex items-center px-3.5 bg-white/10 border border-l-0 border-[#D4B08C]/60 rounded-r-xl text-white/70 text-sm">
               {rightAddon}
             </div>
           )}
         </div>
 
-        {/* 下部のエラー/補足テキストと文字数 */}
         <div className="flex items-center justify-between mt-1.5 min-h-[20px]">
           <div className="flex-1">
             {error && (
               <p
                 id={`${inputId}-error`}
-                className="text-sm text-red-400 flex items-center gap-1 animate-in slide-in-from-top-1"
+                role="alert"
+                className="text-xs sm:text-sm text-rose-300 flex items-center gap-1.5 animate-in slide-in-from-top-1 font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {error}
+                <span aria-hidden="true"><Icon name="CircleAlert" size={16} className="text-rose-300 flex-shrink-0" /></span>
+                <span>{error}</span>
               </p>
             )}
             {helperText && !error && (
-              <p id={`${inputId}-helper`} className="text-sm text-white/50">
+              <p id={`${inputId}-helper`} className="text-xs sm:text-sm text-white/60">
                 {helperText}
               </p>
             )}
@@ -209,7 +194,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {showCharCount && maxLength && (
             <span
               className={`text-xs ${
-                charCount >= maxLength ? 'text-red-400' : 'text-white/40'
+                charCount >= maxLength ? 'text-rose-300 font-bold' : 'text-white/50'
               }`}
             >
               {charCount}/{maxLength}
@@ -225,7 +210,6 @@ Input.displayName = 'Input'
 
 export default Input
 
-// 検索入力用バリアント
 interface SearchInputProps extends Omit<InputProps, 'leftIcon' | 'type'> {
   onSearch?: (value: string) => void
 }
@@ -243,11 +227,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       <Input
         ref={ref}
         type="search"
-        leftIcon={
-          <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        }
+        leftIcon={<Icon name="Search" size={20} className="text-sky-300" />}
         onKeyDown={handleKeyDown}
         {...props}
       />
@@ -257,10 +237,13 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
 SearchInput.displayName = 'SearchInput'
 
-// パスワード入力用バリアント
 export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type' | 'rightIcon'>>(
   (props, ref) => {
     const [showPassword, setShowPassword] = useState(false)
+    const language = useOptionalLanguage()
+    const passwordAriaLabel = showPassword
+      ? (language?.t('passwordHide') ?? translate(DEFAULT_LOCALE, 'passwordHide', DEFAULT_LOCALE))
+      : (language?.t('passwordShow') ?? translate(DEFAULT_LOCALE, 'passwordShow', DEFAULT_LOCALE))
 
     return (
       <Input
@@ -270,18 +253,13 @@ export const PasswordInput = forwardRef<HTMLInputElement, Omit<InputProps, 'type
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-white/40 hover:text-white transition-colors cursor-pointer"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            className="w-11 h-11 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
+            aria-label={passwordAriaLabel}
           >
             {showPassword ? (
-              <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
+              <Icon name="EyeOff" size={20} className="text-amber-300" aria-hidden="true" />
             ) : (
-              <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              <Icon name="Eye" size={20} className="text-sky-300" aria-hidden="true" />
             )}
           </button>
         }

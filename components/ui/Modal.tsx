@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useEffect, useCallback, useRef, useState, useSyncExternalStore, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
+import { Icon } from './Icon'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
 
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
-  title?: string
-  description?: string
+  title?: React.ReactNode
+  description?: React.ReactNode
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'widescreen'
   showCloseButton?: boolean
@@ -16,6 +18,8 @@ interface ModalProps {
   footer?: React.ReactNode
   centered?: boolean
   scrollBehavior?: 'inside' | 'outside'
+  variant?: 'default' | 'music'
+  initialFocusRef?: RefObject<HTMLElement | null>
 }
 
 const sizeClasses = {
@@ -40,11 +44,22 @@ export default function Modal({
   footer,
   centered = true,
   scrollBehavior = 'inside',
+  variant = 'default',
+  initialFocusRef,
 }: ModalProps) {
+  const { t } = useLanguage()
   const [isAnimating, setIsAnimating] = useState(false)
-  const [shouldRender, setShouldRender] = useState(false)
+  const [shouldRender, setShouldRender] = useState(isOpen)
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
+  const wasOpenRef = useRef(false)
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   // Escape キー押下時のクローズ処理
   const handleEscape = useCallback(
@@ -78,39 +93,69 @@ export default function Modal({
   // アニメーションとライフサイクル管理
   useEffect(() => {
     if (isOpen) {
-      previousActiveElement.current = document.activeElement as HTMLElement
-      setShouldRender(true)
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+      if (!wasOpenRef.current) {
+        previousActiveElement.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        wasOpenRef.current = true
+      }
       requestAnimationFrame(() => {
+        setShouldRender(true)
         setIsAnimating(true)
       })
+
+      // スクロールバー幅を計算してレイアウトシフト（ガタつき）を防止
+      const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.paddingRight = `${scrollBarWidth}px`
       document.body.style.overflow = 'hidden'
       document.addEventListener('keydown', handleEscape)
       document.addEventListener('keydown', handleTab)
 
-      // Focus first focusable element
-      setTimeout(() => {
-        const firstFocusable = modalRef.current?.querySelector(
+      // 最初のフォーカス可能要素へフォーカス
+      focusTimeoutRef.current = setTimeout(() => {
+        const firstFocusable = initialFocusRef?.current ?? modalRef.current?.querySelector(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        ) as HTMLElement
+        ) as HTMLElement | null
         firstFocusable?.focus()
       }, 100)
     } else {
-      setIsAnimating(false)
-      setTimeout(() => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current)
+        focusTimeoutRef.current = null
+      }
+      requestAnimationFrame(() => {
+        setIsAnimating(false)
+      })
+      wasOpenRef.current = false
+      closeTimeoutRef.current = setTimeout(() => {
         setShouldRender(false)
         document.body.style.overflow = ''
-        previousActiveElement.current?.focus()
+        document.body.style.paddingRight = ''
+        if (previousActiveElement.current?.isConnected) previousActiveElement.current.focus()
+        previousActiveElement.current = null
       }, 200)
     }
 
     return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current)
+        closeTimeoutRef.current = null
+      }
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current)
+        focusTimeoutRef.current = null
+      }
       document.removeEventListener('keydown', handleEscape)
       document.removeEventListener('keydown', handleTab)
       document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
     }
-  }, [isOpen, handleEscape, handleTab])
+  }, [isOpen, handleEscape, handleTab, initialFocusRef])
 
-  if (!shouldRender) return null
+  if (!mounted) return null
+  if (!shouldRender && !isOpen) return null
 
   const modalContent = (
     <div
@@ -143,20 +188,20 @@ export default function Modal({
         <div
           ref={modalRef}
           style={{
-            background: '#FFF9F3',
-            border: '3px solid #D4B08C',
+            background: variant === 'music' ? '#FFFFFF' : '#FFF9F3',
+            border: variant === 'music' ? '2px solid #D4B08C' : '3px solid #D4B08C',
             borderRadius: '16px',
-            boxShadow: '8px 8px 0 #D4B08C',
-            maxHeight: '90vh',
-            minHeight: size === 'widescreen' ? '80vh' : undefined,
+            boxShadow: variant === 'music' ? '0 12px 30px rgba(133, 77, 39, 0.18)' : '8px 8px 0 #D4B08C',
+            maxHeight: '92vh',
             overflow: 'hidden',
             display: size === 'widescreen' ? 'flex' : undefined,
             flexDirection: size === 'widescreen' ? 'column' : undefined,
-            marginTop: '10px',
-            marginBottom: '10px',
+            marginTop: '8px',
+            marginBottom: '8px',
           }}
           className={`
-            relative w-full ${sizeClasses[size]}
+            relative w-full ${sizeClasses[size]} ${variant === 'music' ? 'rounded-xl' : ''}
+            ${size === 'widescreen' ? 'md:min-h-[580px]' : ''}
             transition-all duration-200 ease-out
             pointer-events-auto
             ${isAnimating ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}
@@ -166,13 +211,7 @@ export default function Modal({
           {/* ヘッダー */}
           {(title || showCloseButton) && (
             <div 
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px',
-                borderBottom: '2px solid #D4B08C',
-              }}
+              className="p-3.5 sm:p-5 flex justify-between items-center border-b-2 border-[#D4B08C]"
             >
               <div>
                 {title && (
@@ -181,7 +220,7 @@ export default function Modal({
                     style={{
                       color: '#854D27',
                       fontFamily: 'var(--font-heading)',
-                      fontSize: '1.5rem',
+                      fontSize: '1.35rem',
                       fontWeight: 'bold',
                       margin: 0,
                     }}
@@ -196,7 +235,7 @@ export default function Modal({
                       color: '#854D27',
                       opacity: 0.7,
                       marginTop: '4px',
-                      fontSize: '0.9rem',
+                      fontSize: '0.85rem',
                     }}
                   >
                     {description}
@@ -206,18 +245,10 @@ export default function Modal({
               {showCloseButton && (
                 <button
                   onClick={onClose}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5rem',
-                    cursor: 'pointer',
-                    color: '#854D27',
-                    padding: '5px',
-                    lineHeight: 1,
-                  }}
-                  aria-label="閉じる"
+                  className="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer text-[#854D27] hover:opacity-80 active:scale-95 transition-all rounded-lg focus-visible:ring-2 focus-visible:ring-[#854D27]"
+                  aria-label={t('close')}
                 >
-                  ✕
+                  <Icon name="X" size={22} useSvg className="text-[#854D27]" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -226,11 +257,10 @@ export default function Modal({
           {/* 本文 */}
           <div
             style={{ 
-              padding: '20px',
-              flex: size === 'widescreen' ? 1 : undefined,
-              minHeight: size === 'widescreen' ? 0 : undefined,
+              flex: (size === 'widescreen' || size === 'full') ? 1 : undefined,
+              minHeight: (size === 'widescreen' || size === 'full') ? 0 : undefined,
             }}
-            className={scrollBehavior === 'inside' && size !== 'widescreen' ? 'max-h-[60vh] overflow-y-auto' : size === 'widescreen' ? 'overflow-y-auto' : ''}
+            className={`p-3 sm:p-5 ${scrollBehavior === 'inside' && size !== 'widescreen' && size !== 'full' ? 'max-h-[60vh] overflow-y-auto' : 'max-h-[82vh] overflow-y-auto'}`}
           >
             {children}
           </div>
@@ -256,11 +286,7 @@ export default function Modal({
   )
 
   // モーダルを document.body にポータルとして描画
-  if (typeof window !== 'undefined') {
-    return createPortal(modalContent, document.body)
-  }
-
-  return modalContent
+  return createPortal(modalContent, document.body)
 }
 
 // 確認用モーダルコンポーネント
@@ -282,36 +308,27 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = '確認',
-  cancelText = 'キャンセル',
+  confirmText,
+  cancelText,
   variant = 'danger',
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useLanguage()
+  const resolvedConfirmText = confirmText ?? t('confirm')
+  const resolvedCancelText = cancelText ?? t('cancel')
   const variantStyles = {
     danger: {
-      icon: (
-        <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      ),
+      icon: <Icon name="AlertTriangle" size={24} className="text-rose-300" />,
       iconBg: 'bg-red-500/20',
       confirmClass: 'bg-red-500 hover:bg-red-600',
     },
     warning: {
-      icon: (
-        <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      ),
+      icon: <Icon name="AlertTriangle" size={24} className="text-amber-300" />,
       iconBg: 'bg-yellow-500/20',
       confirmClass: 'bg-yellow-500 hover:bg-yellow-600',
     },
     info: {
-      icon: (
-        <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
+      icon: <Icon name="Info" size={24} className="text-sky-300" />,
       iconBg: 'bg-blue-500/20',
       confirmClass: 'bg-blue-500 hover:bg-blue-600',
     },
@@ -325,28 +342,25 @@ export function ConfirmModal({
         <div className={`w-14 h-14 rounded-full ${style.iconBg} flex items-center justify-center mx-auto mb-4`}>
           {style.icon}
         </div>
-        <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-        <p className="text-white/70 mb-6">{message}</p>
+        <h3 className="text-lg font-bold text-[#854D27] dark:text-stone-100 mb-2 font-heading">{title}</h3>
+        <p className="text-stone-600 dark:text-stone-300 text-sm mb-6 leading-relaxed font-body">{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 min-h-[44px] bg-[#FFF9F3] hover:bg-[#FAF0E6] text-[#854D27] border-2 border-[#D4B08C] rounded-xl font-semibold transition-all active:scale-[0.96] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#854D27]"
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 px-4 py-2.5 ${style.confirmClass} text-white rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2`}
+            className={`flex-1 px-4 py-2.5 min-h-[44px] ${style.confirmClass} text-white rounded-xl font-semibold transition-all active:scale-[0.96] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
           >
             {isLoading && (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+              <Icon name="LoaderCircle" size={16} className="animate-spin" aria-hidden="true" />
             )}
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>
